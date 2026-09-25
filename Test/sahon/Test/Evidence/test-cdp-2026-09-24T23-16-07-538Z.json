@@ -1,0 +1,76 @@
+{
+  "schema": "missionbarisal-test-evidence/v1",
+  "script": "test-cdp.js",
+  "category": "CDP",
+  "started_at": "2026-09-24T23:16:05.435Z",
+  "finished_at": "2026-09-24T23:16:07.538Z",
+  "duration_ms": 2103,
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "linux",
+    "arch": "x64",
+    "hostname": "sahon-All-Series",
+    "cwd": "/home/sahon/vs",
+    "pid": 34902,
+    "collected_at": "2026-09-24T23:16:07.538Z",
+    "run_uuid": "8f2c1e08-c031-458b-a2ca-e86d9f4ac213",
+    "tmp_root": "/tmp/opencode",
+    "chrome_port": 42955,
+    "user_data_dir": "/tmp/opencode/cdp-8f2c1e08-c031-458b-a2ca-e86d9f4ac213",
+    "screenshot": "/tmp/opencode/cdp-test-8f2c1e08-c031-458b-a2ca-e86d9f4ac213.png"
+  },
+  "summary": {
+    "status": "PASS",
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0
+  },
+  "tests": [
+    {
+      "name": "CHECK 1 navigator.webdriver === undefined",
+      "status": "PASS",
+      "detail": "typeof=undefined, value=undefined"
+    },
+    {
+      "name": "CHECK 2 page UA === Browser.getVersion().userAgent (real value kept, not spoofed)",
+      "status": "PASS",
+      "detail": "pageUA=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36 | browserUA=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36 | equal=true"
+    },
+    {
+      "name": "CHECK 3 navigator.language non-empty + syncFingerprint applied without error",
+      "status": "PASS",
+      "detail": "language=\"en-US\" languages=[\"en-US\",\"en\"] acceptLanguage=en-US,en;q=0.9 overrideApplied=true"
+    },
+    {
+      "name": "CHECK 4 request blocking: /pixel blocked + /ok passthrough + no /pixel response",
+      "status": "PASS",
+      "detail": "__blocked=blocked __ok=sent | pixel responses=0 pixel requestWillBeSent=1 pixel requestPaused=1 ok requestWillBeSent=1 transport=fetch | assertion: __blocked===\"blocked\" && __ok===\"sent\" && no /pixel responseReceived && Fetch.requestPaused seen for /pixel"
+    },
+    {
+      "name": "CHECK 5 screenshot written and > 0 bytes",
+      "status": "PASS",
+      "detail": "/tmp/opencode/cdp-test-8f2c1e08-c031-458b-a2ca-e86d9f4ac213.png size=4454 bytes (driver reported 4454)"
+    }
+  ],
+  "notes": [
+    "chrome debug port = 42955 (random, not 9222)",
+    "user-data-dir = /tmp/opencode/cdp-8f2c1e08-c031-458b-a2ca-e86d9f4ac213",
+    "spawned chrome pid=34909",
+    "chrome ready in 380ms, targets=4",
+    "connected: ws://127.0.0.1:42955/devtools/page/EA2BBE5D4811B50A2A0D174F313E8318",
+    "createPage → sessionId=78D8BCD51AFD0F1EB2757265E3E0C961",
+    "applyStealth → fingerprint={\"userAgent\":\"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36\",\"product\":\"Chrome/154.0.8037.57\",\"language\":\"en-US\",\"languages\":[\"en-US\",\"en\"],\"acceptLanguage\":\"en-US,en;q=0.9\",\"userAgentOverrideApplied\":true,\"userAgentOverrideError\":null}",
+    "local test server on http://127.0.0.1:35611/",
+    "blocking = {\"mode\":\"block\",\"transport\":\"fetch\",\"patterns\":[\"google-analytics.com\",\"googletagmanager.com\",\"doubleclick.net\",\"facebook.net\",\"fbclid=\",\"hotjar.com\",\"mixpanel.com\",\"segment.io\",\"sentry.io\",\"browser-intake\",\"/v1/collect\",\"telemetry\",\"doubleclick\",\"clarity.ms\",\"/pixel\",\"*track*\"]}",
+    "page state = {\"ok\":\"sent\",\"blocked\":\"blocked\",\"pixel\":null}",
+    "events: requestWillBeSent=4 responseReceived=3 requestPaused=1",
+    "killed our chrome pid=34909, user-data-dir removed=true",
+    "CDP TEST: 5/5 PASSED"
+  ],
+  "artifacts": {
+    "screenshot": "/tmp/opencode/cdp-test-8f2c1e08-c031-458b-a2ca-e86d9f4ac213.png",
+    "user_data_dir": "/tmp/opencode/cdp-8f2c1e08-c031-458b-a2ca-e86d9f4ac213",
+    "chrome_port": 42955
+  }
+}

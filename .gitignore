@@ -1,0 +1,28 @@
+# ── গোপনীয়তা: কখনও push করো না ──
+.env
+.env.*
+*.env
+*.bak
+*.bak-*
+sahon.zip
+
+# ── রান-টাইম ডেটা (লোকালেই তৈরি হয়) ──
+data/
+logs/
+cache/
+.zombiecoder/
+.missionbarisal/
+node_modules/
+*.log
+*.db
+*.db-journal
+*.db-wal
+*.sock
+
+# ── এক্সটার্নাল MCP কনফিগ (ভবিষ্যতে টোকেন থাকতে পারে) ──
+external mcp/
+
+# ── এডিটর/OS ──
+.vscode/
+.DS_Store
+*.swp

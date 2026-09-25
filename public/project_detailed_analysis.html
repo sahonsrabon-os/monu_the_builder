@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ডিটেইলড প্রজেক্ট অ্যানালাইসিস - মিশন বরিশাল</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Hind Siliguri', sans-serif; background-color: #0f172a; color: #e2e8f0; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .gradient-text { background: linear-gradient(to right, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+</head>
+<body class="p-4 md:p-10">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-16">
+            <h1 class="text-5xl font-extrabold mb-4 gradient-text">🛠️ প্রজেক্ট টেকনিক্যাল অ্যানালাইসিস</h1>
+            <p class="text-slate-400 text-xl">মিশন বরিশাল v3 - আর্কিটেকচারাল ব্রেকডাউন</p>
+            <div class="mt-6 flex justify-center gap-4">
+                <span class="bg-indigo-500/20 text-indigo-400 px-4 py-1 rounded-full border border-indigo-500/30 text-sm">Laravel 10+</span>
+                <span class="bg-emerald-500/20 text-emerald-400 px-4 py-1 rounded-full border border-emerald-500/30 text-sm">PHP 8.x</span>
+                <span class="bg-amber-500/20 text-amber-400 px-4 py-1 rounded-full border border-amber-500/30 text-sm">Vite JS</span>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column: Tech Stack -->
+            <div class="lg:col-span-1 space-y-8">
+                <div class="glass p-6 rounded-2xl shadow-xl">
+                    <h2 class="text-2xl font-bold mb-6 text-indigo-400 flex items-center">
+                        <span class="mr-3">📦</span> টেক স্ট্যাক
+                    </h2>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg">
+                            <span>Backend</span>
+                            <span class="font-mono text-indigo-300">Laravel</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg">
+                            <span>Frontend</span>
+                            <span class="font-mono text-indigo-300">Blade / JS</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg">
+                            <span>Bundler</span>
+                            <span class="font-mono text-indigo-300">Vite</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg">
+                            <span>Events</span>
+                            <span class="font-mono text-indigo-300">Pusher/SSE</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass p-6 rounded-2xl shadow-xl">
+                    <h2 class="text-2xl font-bold mb-6 text-emerald-400 flex items-center">
+                        <span class="mr-3">🔑</span> এক্সেস কন্ট্রোল
+                    </h2>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="p-2 bg-slate-800 rounded border border-slate-700 text-center text-sm">Admin</div>
+                        <div class="p-2 bg-slate-800 rounded border border-slate-700 text-center text-sm">Student</div>
+                        <div class="p-2 bg-slate-800 rounded border border-slate-700 text-center text-sm">Teacher</div>
+                        <div class="p-2 bg-slate-800 rounded border border-slate-700 text-center text-sm">Trainer</div>
+                        <div class="p-2 bg-slate-800 rounded border border-slate-700 text-center text-sm">Manager</div>
+                        <div class="p-2 bg-slate-800 rounded border border-slate-700 text-center text-sm">Team Leader</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Deep Analysis -->
+            <div class="lg:col-span-2 space-y-8">
+                <div class="glass p-8 rounded-2xl shadow-xl">
+                    <h2 class="text-2xl font-bold mb-6 text-amber-400 flex items-center">
+                        <span class="mr-3">🔍</span> আর্কিটেকচারাল ইনসাইট
+                    </h2>
+                    <div class="space-y-6">
+                        <div class="border-l-4 border-amber-500 pl-4">
+                            <h3 class="text-lg font-semibold text-white">মডুলার রাউটিং সিস্টেম</h3>
+                            <p class="text-slate-400">প্রজেক্টে প্রতিটি ইউজার রোলের জন্য আলাদা রাউট ফাইল ব্যবহার করা হয়েছে, যা কোড মেইনটেইন্যান্স সহজ করে এবং সিকিউরিটি বাড়ায়।</p>
+                        </div>
+                        <div class="border-l-4 border-indigo-500 pl-4">
+                            <h3 class="text-lg font-semibold text-white">রিয়েল-টাইম ইভেন্ট আর্কিটেকচার</h3>
+                            <p class="text-slate-400"><code>ActiveSpeakerEvent</code> এবং <code>MeetingChatEvent</code> এর উপস্থিতি প্রমাণ করে যে এখানে একটি লাইভ ইন্টারঅ্যাক্টিভ সিস্টেম ইমপ্লিমেন্ট করা হয়েছে।</p>
+                        </div>
+                        <div class="border-l-4 border-emerald-500 pl-4">
+                            <h3 class="text-lg font-semibold text-white">অটোমেশন টুলস</h3>
+                            <p class="text-slate-400">হোমওয়ার্ক চেকার এবং হোয়াটসঅ্যাপ ট্র্যাকিং ড্যাশবোর্ড প্রজেক্টটিকে একটি সাধারণ LMS থেকে অ্যাডভান্সড ম্যানেজমেন্ট টুলে রূপান্তর করেছে।</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass p-8 rounded-2xl shadow-xl">
+                    <h2 class="text-2xl font-bold mb-6 text-pink-400 flex items-center">
+                        <span class="mr-3">📂</span> ফাইল স্ট্রাকচার ম্যাপ
+                    </h2>
+                    <div class="bg-slate-900 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                        <div class="text-indigo-400">app/</div>
+                        <div class="pl-4 text-slate-300">├── Http/ (Controllers & Middleware)</div>
+                        <div class="pl-4 text-slate-300">├── Models/ (Database Schemas)</div>
+                        <div class="pl-4 text-slate-300">└── Events/ (Real-time Triggers)</div>
+                        <div class="text-indigo-400">routes/</div>
+                        <div class="pl-4 text-slate-300">├── admin.php, student.php, teacher.php...</div>
+                        <div class="text-indigo-400">public/</div>
+                        <div class="pl-4 text-slate-300">└── assets, js, css, uploads</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-16 text-center text-slate-500">
+            <p class="text-sm">প্রস্তুতকারক: <span class="text-indigo-400 font-bold">Code Guru - Monu</span> | মিশন বরিশাল v3</p>
+            <p class="text-xs mt-2">© 2026 Sahon Srabon - Developer Zone</p>
+        </footer>
+    </div>
+</body>
+</html>
