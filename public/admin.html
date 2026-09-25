@@ -621,7 +621,7 @@
             </div>
           </div>
           <div class="card-body" style="overflow-x:auto">
-            <table><thead><tr><th>#</th><th>Model ID</th><th>Provider</th><th>API Model</th><th>Type</th></tr></thead><tbody id="modelTable"><tr><td colspan="5"><div class="loading">Loading models...</div></td></tr></tbody></table>
+            <table><thead><tr><th>#</th><th>Model ID</th><th>Provider</th><th>API Model</th><th>Type</th><th>Status</th></tr></thead><tbody id="modelTable"><tr><td colspan="6"><div class="loading">Loading models...</div></td></tr></tbody></table>
           </div>
         </div>
       </div>
@@ -822,6 +822,7 @@
     let providerDataCache = null;
     let agentStatus = {};
     let agentModelsCache = null; // Cache for available models for agent dropdown
+    let modelDisabledSet = new Set(); // 🧟 "provider::name" disabled models
 
     const savedAdminToken = sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '';
     if (savedAdminToken) {
@@ -1217,11 +1218,15 @@
     async function loadModels() {
       const data = await apiFetch('/api/normalize-list');
       if (data.error) {
-        document.getElementById('modelTable').innerHTML = '<tr><td colspan="5" style="color:var(--red)">Failed: ' + data.error + '</td></tr>';
+        document.getElementById('modelTable').innerHTML = '<tr><td colspan="6" style="color:var(--red)">Failed: ' + data.error + '</td></tr>';
         return;
       }
       const models = data.models || [];
       const providers = data.providers || [];
+      // 🧟 disabled list from server (POST /api/admin/models toggles it)
+      modelDisabledSet = new Set(
+        (data.disabledModels || []).map(d => (d.provider || '') + '::' + (d.name || ''))
+      );
 
       // Stats
       document.getElementById('modelTotalCount').textContent = models.length;
@@ -1258,16 +1263,38 @@
         return true;
       });
       document.getElementById('modelTable').innerHTML = filtered.length
-        ? filtered.map((m, i) => `
-          <tr>
+        ? filtered.map((m, i) => {
+            const name = m.model || m.id || m.name || '—';
+            const key = (m.provider || '') + '::' + name;
+            const off = modelDisabledSet.has(key) || m.enabled === false;
+            return `
+          <tr style="${off ? 'opacity:.55' : ''}">
             <td>${i + 1}</td>
-            <td><code>${m.id || m.name || '—'}</code></td>
-            <td>${m.provider || '—'}</td>
-            <td style="font-size:11px;color:var(--text2)">${m.apiModel || m.name || '—'}</td>
+            <td><code>${name}</code></td>
+            <td>${m.providerName || m.provider || '—'}</td>
+            <td style="font-size:11px;color:var(--text2)">${m.apiModel || m.model || m.name || '—'}</td>
             <td><span class="tag tag-blue">${m.type || 'chat'}</span></td>
-          </tr>
-        `).join('')
-        : '<tr><td colspan="5" style="text-align:center;color:var(--text2)">No matching models</td></tr>';
+            <td>
+              ${off ? '<span class="tag tag-red">⛔ Off</span>' : '<span class="tag tag-green">🟢 On</span>'}
+              <button class="refresh-btn" onclick="toggleModelEnabled('${(m.provider || '').replace(/'/g, "\\'")}', '${String(name).replace(/'/g, "\\'")}', ${off ? 1 : 0})" style="padding:2px 6px;font-size:10px;margin-left:4px;">${off ? '🔔 Enable' : '🔕 Disable'}</button>
+            </td>
+          </tr>`;
+          }).join('')
+        : '<tr><td colspan="6" style="text-align:center;color:var(--text2)">No matching models</td></tr>';
+    }
+
+    // 🧟 Toggle a single model on/off — POST /api/admin/models (persisted in SQLite)
+    async function toggleModelEnabled(provider, name, enable) {
+      if (!enable && !confirm('Disable model "' + name + '" (' + provider + ')? It will be skipped in all requests.')) return;
+      try {
+        const r = await apiFetch('/api/admin/models', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider, name, enabled: enable ? 1 : 0 })
+        });
+        if (r.error) { alert('Failed: ' + r.error); return; }
+        await loadModels();
+      } catch (e) { alert('Error: ' + e.message); }
     }
 
     function filterModels() {
@@ -1335,26 +1362,38 @@
       }
       const providers = data.providers || [];
       const allModels = data.models || [];
+      // 🧟 live on/off state from GET /api/admin/providers (fallback: normalize-list)
+      let provState = {};
+      try {
+        const adm = await apiFetch('/api/admin/providers');
+        if (adm && adm.providers) adm.providers.forEach(p => { provState[p.id] = p; });
+      } catch (_) {}
 
       // Stats
       document.getElementById('provTotal').textContent = providers.length;
       document.getElementById('provModels').textContent = allModels.length;
-      document.getElementById('provActive').textContent = providers.filter(p => p.priority > 0).length;
+      document.getElementById('provActive').textContent = providers.filter(p => (provState[p.id] ? provState[p.id].enabled : p.enabled !== false) && p.priority > 0).length;
       document.getElementById('provPriority').innerHTML = '<span style="color:var(--green)">✓ Active</span>';
       document.getElementById('providerRefreshTime').textContent = 'updated ' + fmtTime(Date.now());
 
-      // Table
-      document.getElementById('providerTable').innerHTML = providers.map(p => `
-        <tr>
+      // Table — with dynamic enable/disable toggle
+      document.getElementById('providerTable').innerHTML = providers.map(p => {
+        const st = provState[p.id] || {};
+        const on = st.enabled !== false && p.enabled !== false;
+        return `
+        <tr style="${on ? '' : 'opacity:.55'}">
           <td><strong>${p.id || p.name || '—'}</strong></td>
           <td>${p.name || '—'}</td>
           <td><span class="tag tag-blue">${p.type || 'openai'}</span></td>
-          <td style="font-size:11px;font-family:monospace">${p.baseUrl ? p.baseUrl.slice(0, 40) + (p.baseUrl.length > 40 ? '...' : '') : '—'}</td>
-          <td>${(p.models && p.models.length) || '—'}</td>
+          <td style="font-size:11px;font-family:monospace">${p.baseUrl ? p.baseUrl.slice(0, 40) + (p.baseUrl.length > 40 ? '...' : '') : '—'}${st.hasKey ? ' 🔑' : ''}</td>
+          <td>${(p.models && p.models.length) || st.models || '—'}</td>
           <td><span class="tag ${p.priority > 1 ? 'tag-green' : 'tag-orange'}">${p.priority || '—'}</span></td>
-          <td><span class="tag tag-green">🟢 Online</span></td>
-        </tr>
-      `).join('');
+          <td>
+            ${on ? '<span class="tag tag-green">🟢 Online</span>' : '<span class="tag tag-red">⛔ Off</span>'}
+            <button class="refresh-btn" onclick="toggleProvider('${(p.id || '').replace(/'/g, "\\'")}', ${on ? 0 : 1})" style="padding:2px 6px;font-size:10px;margin-left:4px;">${on ? '🔕 Disable' : '🔔 Enable'}</button>
+          </td>
+        </tr>`;
+      }).join('');
 
       // Model distribution chart
       document.getElementById('providerChart').innerHTML = providers.map(p => {
@@ -1369,6 +1408,21 @@
           <div style="font-size:10px;color:var(--text2);margin-top:4px">${pct}% of total</div>
         </div>`;
       }).join('');
+    }
+
+    // 🧟 Toggle provider on/off at RUNTIME — persisted to SQLite settings,
+    // enforced by resolveProvider/findNextProvider/AUTO_SYNC (no restart).
+    async function toggleProvider(id, enable) {
+      if (!enable && !confirm('Disable provider "' + id + '"? Its models will be skipped (fallback continues on others).')) return;
+      try {
+        const r = await apiFetch('/api/admin/providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, enabled: enable ? 1 : 0 })
+        });
+        if (r.error) { alert('Failed: ' + r.error); return; }
+        await loadProviders();
+      } catch (e) { alert('Error: ' + e.message); }
     }
 
     // ═══════════════════════════════════════════════
@@ -1979,9 +2033,17 @@
             </div>
           </div>
           <div class="agent-list-model-section">
-            <div class="agent-current-model" style="margin-bottom:8px;">
+            <div class="agent-current-model" style="margin-bottom:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
               <span style="font-size:12px;color:var(--text2);">Model:</span>
-              <code style="margin-left:8px;font-size:12px;">${a.model || 'Not set'}</code>
+              <code style="font-size:12px;">${a.model || 'Not set'}</code>
+              <span style="font-size:11px;color:var(--text2);">→ map:</span>
+              <select onchange="mapAgentModel('${a.id}', this.value)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:2px 6px;border-radius:4px;font-size:11px;max-width:240px;">
+                <option value="">-- choose model --</option>
+                ${(agentModelsCache || []).map(m => {
+                  const nm = m.model || m.name || m.id;
+                  return `<option value="${nm}"${nm === a.model ? ' selected' : ''}>${nm}${m.providerName || m.provider ? ' (' + (m.providerName || m.provider) + ')' : ''}</option>`;
+                }).join('')}
+              </select>
             </div>
             <div style="font-size:11px;color:var(--text2);max-height:60px;overflow:hidden;text-overflow:ellipsis;">
               <strong>Persona:</strong> ${(a.persona || '').slice(0, 150)}${(a.persona || '').length > 150 ? '...' : ''}
@@ -1989,6 +2051,32 @@
           </div>
         </div>`;
       }).join('');
+    }
+
+    // 🧟 Agent↔Model mapping: save model to agents table (runtime, no restart)
+    async function mapAgentModel(agentId, model) {
+      const agent = agentManagerData.find(a => a.id === agentId);
+      if (!agent) return;
+      if (!model) return;
+      try {
+        const r = await apiFetch('/api/admin/agents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: agentId,
+            name: agent.name,
+            role: agent.role,
+            model: model,
+            expertise: agent.expertise,
+            persona: agent.persona,
+            priority: agent.priority,
+            enabled: agent.enabled ? 1 : 0
+          })
+        });
+        if (r.error) { alert('Map failed: ' + r.error); return; }
+        agent.model = model;
+        alert('✅ ' + agentId + ' → ' + model);
+      } catch (e) { alert('Error: ' + e.message); }
     }
 
     function filterManagerAgents() {

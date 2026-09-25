@@ -1,0 +1,2665 @@
+{
+ "_note": "Registry seed for Mission Barisal — downloaded at runtime when local SQLite is empty (api.js seedRegistryFromRemote).",
+ "generated_at": "2026-09-25T23:25:44.087Z",
+ "agents": [
+  {
+   "id": "doc-king",
+   "name": "Documentation King - Halim",
+   "role": "documentation",
+   "model": "mistral-small:free",
+   "expertise": "Technical Documentation & Knowledge",
+   "persona": "Technical Documentation & Knowledge",
+   "priority": 5
+  },
+  {
+   "id": "team-heart",
+   "name": "Team Heart - Jara",
+   "role": "general",
+   "model": "mistral/leanstral-1-5",
+   "expertise": "team coordination, user empathy, communication, morale, conflict resolution, stakeholder management",
+   "persona": "team coordination, user empathy, communication, morale, conflict resolution, stakeholder management",
+   "priority": 7
+  },
+  {
+   "id": "customer-experience-specialist",
+   "name": "Customer Experience Specialist",
+   "role": "customer-experience",
+   "model": "gpt-oss:120b",
+   "expertise": "Customer Experience, Retention, Omnichannel Support, Complaint Resolution, Dispute Handling, Bangladesh Market, bKash/Nagad Payments, Cash on Delivery, Local Delivery Logistics",
+   "persona": "Customer Experience, Retention, Omnichannel Support, Complaint Resolution, Dispute Handling, Bangladesh Market, bKash/Nagad Payments, Cash on Delivery, Local Delivery Logistics",
+   "priority": 8
+  },
+  {
+   "id": "ecommerce-operations-analyst",
+   "name": "E-Commerce Operations Analyst",
+   "role": "ecommerce-operations",
+   "model": "qwen3:free",
+   "expertise": "Ad Copywriting, Product Catalog Optimization, Visitor Behavior Analytics, E-Commerce Strategy, MCP Business Intelligence, Bangladesh E-Commerce Market, Daraz/ShopUp/Chaldal Ecosystem, Local Pricing Strategy",
+   "persona": "Ad Copywriting, Product Catalog Optimization, Visitor Behavior Analytics, E-Commerce Strategy, MCP Business Intelligence, Bangladesh E-Commerce Market, Daraz/ShopUp/Chaldal Ecosystem, Local Pricing Strategy",
+   "priority": 9
+  },
+  {
+   "id": "code-guru",
+   "name": "Code Guru - Monu",
+   "role": "architecture",
+   "model": "llama3.1:8b",
+   "expertise": "Architecture & System Design",
+   "persona": "Architecture & System Design",
+   "priority": 99
+  },
+  {
+   "id": "bug-hunter",
+   "name": "Bug Hunter - Jewel",
+   "role": "debugging",
+   "model": "llama3.1:8b",
+   "expertise": "Debugging & Root-Cause Analysis",
+   "persona": "Debugging & Root-Cause Analysis",
+   "priority": 99
+  },
+  {
+   "id": "security-hero",
+   "name": "Security Hero - Bablu",
+   "role": "security",
+   "model": "north-mini-code:free",
+   "expertise": "Security & Risk Analysis",
+   "persona": "Security & Risk Analysis",
+   "priority": 99
+  },
+  {
+   "id": "perf-wizard",
+   "name": "Performance Wizard - Rashed",
+   "role": "performance",
+   "model": "nemotron-3-nano:30b",
+   "expertise": "Performance & Resource Efficiency",
+   "persona": "Performance & Resource Efficiency",
+   "priority": 99
+  },
+  {
+   "id": "qa-tyrant",
+   "name": "Quality Tyrant - Mojnu",
+   "role": "quality",
+   "model": "glm-4.7-flash:free",
+   "expertise": "Verification & Release Quality",
+   "persona": "Verification & Release Quality",
+   "priority": 99
+  }
+ ],
+ "models": [
+  {
+   "provider": "custom_3",
+   "name": "gemma4:31b",
+   "api_model": "gemma4:31b",
+   "provider_name": "custom_3",
+   "type": "openai",
+   "priority": 1
+  },
+  {
+   "provider": "custom_3",
+   "name": "gpt-oss:120b",
+   "api_model": "gpt-oss:120b",
+   "provider_name": "custom_3",
+   "type": "openai",
+   "priority": 1
+  },
+  {
+   "provider": "custom_3",
+   "name": "gpt-oss:20b",
+   "api_model": "gpt-oss:20b",
+   "provider_name": "custom_3",
+   "type": "openai",
+   "priority": 1
+  },
+  {
+   "provider": "custom_3",
+   "name": "llama3.1:8b",
+   "api_model": "llama3.1:8b",
+   "provider_name": "custom_3",
+   "type": "openai",
+   "priority": 1
+  },
+  {
+   "provider": "custom_3",
+   "name": "nemotron-3-nano:30b",
+   "api_model": "nemotron-3-nano:30b",
+   "provider_name": "custom_3",
+   "type": "openai",
+   "priority": 1
+  },
+  {
+   "provider": "custom_3",
+   "name": "nemotron-3-super",
+   "api_model": "nemotron-3-super",
+   "provider_name": "custom_3",
+   "type": "openai",
+   "priority": 1
+  },
+  {
+   "provider": "custom_3",
+   "name": "nemotron-3-ultra",
+   "api_model": "nemotron-3-ultra",
+   "provider_name": "custom_3",
+   "type": "openai",
+   "priority": 1
+  },
+  {
+   "provider": "custom_3",
+   "name": "qwen2:0.5b",
+   "api_model": "qwen2:0.5b",
+   "provider_name": "custom_3",
+   "type": "openai",
+   "priority": 1
+  },
+  {
+   "provider": "custom_4",
+   "name": "absolutereality:free",
+   "api_model": "absolutereality:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "albedobase-xl-31:free",
+   "api_model": "albedobase-xl-31:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "albedobase-xl-sdxl:free",
+   "api_model": "albedobase-xl-sdxl:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "allam-2-7b:free",
+   "api_model": "allam-2-7b:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "amponyxl:free",
+   "api_model": "amponyxl:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "anything-v5:free",
+   "api_model": "anything-v5:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "anything-xl",
+   "api_model": "anything-xl",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "aura-1:free",
+   "api_model": "aura-1:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "autismmix-sdxl",
+   "api_model": "autismmix-sdxl",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "axon-1.8-flash:free",
+   "api_model": "axon-1.8-flash:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "axon-1.8-lightning:free",
+   "api_model": "axon-1.8-lightning:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "axon-1.8-pro:free",
+   "api_model": "axon-1.8-pro:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "bge-multilingual-gemma2:free",
+   "api_model": "bge-multilingual-gemma2:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-fable-5",
+   "api_model": "claude-fable-5",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-fable-5.1",
+   "api_model": "claude-fable-5.1",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-fable-5.1[1m]",
+   "api_model": "claude-fable-5.1[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-fable-5[1m]",
+   "api_model": "claude-fable-5[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-haiku-4-5-20251001",
+   "api_model": "claude-haiku-4-5-20251001",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-haiku-4-5-20251001[1m]",
+   "api_model": "claude-haiku-4-5-20251001[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-4-5",
+   "api_model": "claude-opus-4-5",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-4-5-thinking",
+   "api_model": "claude-opus-4-5-thinking",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-4-5-thinking[1m]",
+   "api_model": "claude-opus-4-5-thinking[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-4-5[1m]",
+   "api_model": "claude-opus-4-5[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-4-6-thinking",
+   "api_model": "claude-opus-4-6-thinking",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-4-6-thinking[1m]",
+   "api_model": "claude-opus-4-6-thinking[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-4-7-thinking",
+   "api_model": "claude-opus-4-7-thinking",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-4-7-thinking[1m]",
+   "api_model": "claude-opus-4-7-thinking[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-4-8-thinking",
+   "api_model": "claude-opus-4-8-thinking",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-4-8-thinking[1m]",
+   "api_model": "claude-opus-4-8-thinking[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-4.6",
+   "api_model": "claude-opus-4.6",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-4.6[1m]",
+   "api_model": "claude-opus-4.6[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-4.7",
+   "api_model": "claude-opus-4.7",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-4.7[1m]",
+   "api_model": "claude-opus-4.7[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-4.8",
+   "api_model": "claude-opus-4.8",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-4.8[1m]",
+   "api_model": "claude-opus-4.8[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-5",
+   "api_model": "claude-opus-5",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-5-thinking",
+   "api_model": "claude-opus-5-thinking",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-5-thinking[1m]",
+   "api_model": "claude-opus-5-thinking[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-5.5",
+   "api_model": "claude-opus-5.5",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-5.5[1m]",
+   "api_model": "claude-opus-5.5[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-opus-5[1m]",
+   "api_model": "claude-opus-5[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-sonnet-4-5-thinking",
+   "api_model": "claude-sonnet-4-5-thinking",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-sonnet-4-5-thinking[1m]",
+   "api_model": "claude-sonnet-4-5-thinking[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-sonnet-4-5[1m]",
+   "api_model": "claude-sonnet-4-5[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-sonnet-4-6-thinking",
+   "api_model": "claude-sonnet-4-6-thinking",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-sonnet-4-6-thinking[1m]",
+   "api_model": "claude-sonnet-4-6-thinking[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-sonnet-4.5",
+   "api_model": "claude-sonnet-4.5",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-sonnet-4.6",
+   "api_model": "claude-sonnet-4.6",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-sonnet-4.6[1m]",
+   "api_model": "claude-sonnet-4.6[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-sonnet-5",
+   "api_model": "claude-sonnet-5",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-sonnet-5-thinking",
+   "api_model": "claude-sonnet-5-thinking",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-sonnet-5-thinking[1m]",
+   "api_model": "claude-sonnet-5-thinking[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "claude-sonnet-5[1m]",
+   "api_model": "claude-sonnet-5[1m]",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "codestral-latest:free",
+   "api_model": "codestral-latest:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "custom-civitai",
+   "api_model": "custom-civitai",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "cyberrealistic-pony",
+   "api_model": "cyberrealistic-pony",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "cyberrealistic-pony:free",
+   "api_model": "cyberrealistic-pony:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "deepseek-r1",
+   "api_model": "deepseek-r1",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "deepseek-r1-0528",
+   "api_model": "deepseek-r1-0528",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "deepseek-r1-distill-qwen-32b:free",
+   "api_model": "deepseek-r1-distill-qwen-32b:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "deepseek-v3",
+   "api_model": "deepseek-v3",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "deepseek-v3-0324",
+   "api_model": "deepseek-v3-0324",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "deepseek-v3.1-terminus",
+   "api_model": "deepseek-v3.1-terminus",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "deepseek-v3.2",
+   "api_model": "deepseek-v3.2",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "deepseek-v3.2-exp",
+   "api_model": "deepseek-v3.2-exp",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "deepseek-v4-flash",
+   "api_model": "deepseek-v4-flash",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "deepseek-v4-flash-0731",
+   "api_model": "deepseek-v4-flash-0731",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "deepseek-v4-pro",
+   "api_model": "deepseek-v4-pro",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "deepseek-v4-pro-0813",
+   "api_model": "deepseek-v4-pro-0813",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "deepseek-v4.1-flash",
+   "api_model": "deepseek-v4.1-flash",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "deepseek-v4.1-flash:free",
+   "api_model": "deepseek-v4.1-flash:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "deliberate:free",
+   "api_model": "deliberate:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "diffusiongemma-26b-a4b-it:free",
+   "api_model": "diffusiongemma-26b-a4b-it:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "dots-3-note-preview:free",
+   "api_model": "dots-3-note-preview:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "dreamshaper-v8",
+   "api_model": "dreamshaper-v8",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "dreamshaper-xl",
+   "api_model": "dreamshaper-xl",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "dreamshaper:free",
+   "api_model": "dreamshaper:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "epicrealism",
+   "api_model": "epicrealism",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "flat-2d-animerge:free",
+   "api_model": "flat-2d-animerge:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "flux-1-dev-runware",
+   "api_model": "flux-1-dev-runware",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "flux.1-schnell:free",
+   "api_model": "flux.1-schnell:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "flux.2-dev",
+   "api_model": "flux.2-dev",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "flux.2-flex",
+   "api_model": "flux.2-flex",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "flux.2-klein-4b",
+   "api_model": "flux.2-klein-4b",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "flux.2-klein-9b",
+   "api_model": "flux.2-klein-9b",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "flux.2-max",
+   "api_model": "flux.2-max",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "flux.2-pro",
+   "api_model": "flux.2-pro",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "fustercluck:free",
+   "api_model": "fustercluck:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-2.5-flash-lite",
+   "api_model": "gemini-2.5-flash-lite",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-2.5-pro",
+   "api_model": "gemini-2.5-pro",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-2.5-pro-preview-tts",
+   "api_model": "gemini-2.5-pro-preview-tts",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-2.5-pro-thinking",
+   "api_model": "gemini-2.5-pro-thinking",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-3-flash",
+   "api_model": "gemini-3-flash",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-3-pro-preview",
+   "api_model": "gemini-3-pro-preview",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-3.1-flash-image",
+   "api_model": "gemini-3.1-flash-image",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-3.1-flash-lite",
+   "api_model": "gemini-3.1-flash-lite",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-3.1-pro",
+   "api_model": "gemini-3.1-pro",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-3.1-pro-preview",
+   "api_model": "gemini-3.1-pro-preview",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-3.5-flash",
+   "api_model": "gemini-3.5-flash",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-3.5-flash-lite:free",
+   "api_model": "gemini-3.5-flash-lite:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-3.6-flash",
+   "api_model": "gemini-3.6-flash",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-3.6-flash:free",
+   "api_model": "gemini-3.6-flash:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-3.7-flash",
+   "api_model": "gemini-3.7-flash",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-3.8-flash",
+   "api_model": "gemini-3.8-flash",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-embedding-001:free",
+   "api_model": "gemini-embedding-001:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-embedding-2:free",
+   "api_model": "gemini-embedding-2:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemini-robotics-er-2-preview:free",
+   "api_model": "gemini-robotics-er-2-preview:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gemma-4-26b:free",
+   "api_model": "gemma-4-26b:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "glm-4.5",
+   "api_model": "glm-4.5",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "glm-4.5-flash:free",
+   "api_model": "glm-4.5-flash:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "glm-4.6",
+   "api_model": "glm-4.6",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "glm-4.7",
+   "api_model": "glm-4.7",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "glm-4.7-flash:free",
+   "api_model": "glm-4.7-flash:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "glm-4.7-thinking",
+   "api_model": "glm-4.7-thinking",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "glm-5.1",
+   "api_model": "glm-5.1",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "glm-5.2",
+   "api_model": "glm-5.2",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "glm-5.3",
+   "api_model": "glm-5.3",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "glm-5.3-flash",
+   "api_model": "glm-5.3-flash",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "glm-5.3-flash-search:free",
+   "api_model": "glm-5.3-flash-search:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "glm-5.3-flash:free",
+   "api_model": "glm-5.3-flash:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gpt-4o-image",
+   "api_model": "gpt-4o-image",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gpt-4o:free",
+   "api_model": "gpt-4o:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gpt-5.5",
+   "api_model": "gpt-5.5",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gpt-5.6-luna",
+   "api_model": "gpt-5.6-luna",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gpt-5.6-sol",
+   "api_model": "gpt-5.6-sol",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gpt-5.6-terra",
+   "api_model": "gpt-5.6-terra",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gpt-5.6-terra-y",
+   "api_model": "gpt-5.6-terra-y",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gpt-6-astra",
+   "api_model": "gpt-6-astra",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gpt-6-luna",
+   "api_model": "gpt-6-luna",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gpt-6-sol",
+   "api_model": "gpt-6-sol",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gpt-image-1",
+   "api_model": "gpt-image-1",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gpt-image-2",
+   "api_model": "gpt-image-2",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gpt-image-2.5",
+   "api_model": "gpt-image-2.5",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gpt-image-2.5-flare",
+   "api_model": "gpt-image-2.5-flare",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gpt-image-2.5-sunburst",
+   "api_model": "gpt-image-2.5-sunburst",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gpt-oss-20b:free",
+   "api_model": "gpt-oss-20b:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "gpt-oss-safeguard-20b:free",
+   "api_model": "gpt-oss-safeguard-20b:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "granite-4.0-micro:free",
+   "api_model": "granite-4.0-micro:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "grok-4.20-non-reasoning",
+   "api_model": "grok-4.20-non-reasoning",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "grok-4.20-reasoning",
+   "api_model": "grok-4.20-reasoning",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "grok-4.3",
+   "api_model": "grok-4.3",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "grok-4.5",
+   "api_model": "grok-4.5",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "grok-4.6",
+   "api_model": "grok-4.6",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "grok-4.7",
+   "api_model": "grok-4.7",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "grok-beta:free",
+   "api_model": "grok-beta:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "hassaku-xl-illustrious",
+   "api_model": "hassaku-xl-illustrious",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "hy3",
+   "api_model": "hy3",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "hy4-preview",
+   "api_model": "hy4-preview",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "icbinp-i-cant-believe-its-not-photography:free",
+   "api_model": "icbinp-i-cant-believe-its-not-photography:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "ising-calibration-1.5-31b:free",
+   "api_model": "ising-calibration-1.5-31b:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "jev-1.13",
+   "api_model": "jev-1.13",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "jina-code-embeddings-0.5b:free",
+   "api_model": "jina-code-embeddings-0.5b:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "jina-code-embeddings-1.5b:free",
+   "api_model": "jina-code-embeddings-1.5b:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "jina-embeddings-v3:free",
+   "api_model": "jina-embeddings-v3:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "jina-embeddings-v4:free",
+   "api_model": "jina-embeddings-v4:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "jina-embeddings-v5-omni-nano:free",
+   "api_model": "jina-embeddings-v5-omni-nano:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "jina-embeddings-v5-omni-small:free",
+   "api_model": "jina-embeddings-v5-omni-small:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "jina-embeddings-v5-text-nano:free",
+   "api_model": "jina-embeddings-v5-text-nano:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "jina-embeddings-v5-text-small:free",
+   "api_model": "jina-embeddings-v5-text-small:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "juggernaut-xl",
+   "api_model": "juggernaut-xl",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "juggernaut-xl:free",
+   "api_model": "juggernaut-xl:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "k2-horizon:free",
+   "api_model": "k2-horizon:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "kimi-k2.5",
+   "api_model": "kimi-k2.5",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "kimi-k2.6",
+   "api_model": "kimi-k2.6",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "kimi-k2.7-code",
+   "api_model": "kimi-k2.7-code",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "kimi-k3",
+   "api_model": "kimi-k3",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "laguna-s-2.1:free",
+   "api_model": "laguna-s-2.1:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "laguna-xs-2.1:free",
+   "api_model": "laguna-xs-2.1:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "lfm-2.5-2.6b:free",
+   "api_model": "lfm-2.5-2.6b:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "ling-3.0-flash-fin:free",
+   "api_model": "ling-3.0-flash-fin:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "ling-3.0-flash-sante:free",
+   "api_model": "ling-3.0-flash-sante:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "llama-3.2-11b-vision:free",
+   "api_model": "llama-3.2-11b-vision:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "longcat-2.0",
+   "api_model": "longcat-2.0",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "lorellm:free",
+   "api_model": "lorellm:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "majicmix-realistic",
+   "api_model": "majicmix-realistic",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "mimo-v2.5",
+   "api_model": "mimo-v2.5",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "mimo-v2.5-pro",
+   "api_model": "mimo-v2.5-pro",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "mimo-v2.6-flash",
+   "api_model": "mimo-v2.6-flash",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "mimo-v2.6-pro",
+   "api_model": "mimo-v2.6-pro",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "minimax-m2-her",
+   "api_model": "minimax-m2-her",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "minimax-m2.7",
+   "api_model": "minimax-m2.7",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "minimax-m2.7:free",
+   "api_model": "minimax-m2.7:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "minimax-m3",
+   "api_model": "minimax-m3",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "mistral-7b-instruct:free",
+   "api_model": "mistral-7b-instruct:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "mistral-nemotron:free",
+   "api_model": "mistral-nemotron:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "mistral-small",
+   "api_model": "mistral-small",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "mistral-small:free",
+   "api_model": "mistral-small:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "muse-glimmer-30b:free",
+   "api_model": "muse-glimmer-30b:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "muse-spark-1.2-contributor",
+   "api_model": "muse-spark-1.2-contributor",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "muse-spark-1.3-contributor",
+   "api_model": "muse-spark-1.3-contributor",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "nemotron-3-nano-omni-30b-a3b-reasoning:free",
+   "api_model": "nemotron-3-nano-omni-30b-a3b-reasoning:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "nemotron-3-super-120b-a12b:free",
+   "api_model": "nemotron-3-super-120b-a12b:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "nemotron-3-ultra-550b-a55b:free",
+   "api_model": "nemotron-3-ultra-550b-a55b:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "nemotron-3.5-lightning-30b-a3b:free",
+   "api_model": "nemotron-3.5-lightning-30b-a3b:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "nemotron-3.5-lightning:free",
+   "api_model": "nemotron-3.5-lightning:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "nemotron-nano-9b-v2:free",
+   "api_model": "nemotron-nano-9b-v2:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "north-mini-code:free",
+   "api_model": "north-mini-code:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "nova-3:free",
+   "api_model": "nova-3:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "nova-anime-xl:free",
+   "api_model": "nova-anime-xl:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "nova-furry-pony:free",
+   "api_model": "nova-furry-pony:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "nova-furry-xl",
+   "api_model": "nova-furry-xl",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "ntr-mix-il-noob-xl:free",
+   "api_model": "ntr-mix-il-noob-xl:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "or-glm-5.3",
+   "api_model": "or-glm-5.3",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "or-kimi-k3",
+   "api_model": "or-kimi-k3",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "pony-diffusion-v6-xl",
+   "api_model": "pony-diffusion-v6-xl",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "pony-realism",
+   "api_model": "pony-realism",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "prefect-pony:free",
+   "api_model": "prefect-pony:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "quiet-goodnight-xl:free",
+   "api_model": "quiet-goodnight-xl:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "qwen-sea-lion-v4-32b-it:free",
+   "api_model": "qwen-sea-lion-v4-32b-it:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "qwen-sea-lion-v4.5-27b-it:free",
+   "api_model": "qwen-sea-lion-v4.5-27b-it:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "qwen2.5-coder-32b:free",
+   "api_model": "qwen2.5-coder-32b:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "qwen2.5-vl-7b-instruct-awq:free",
+   "api_model": "qwen2.5-vl-7b-instruct-awq:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "qwen3.5-4b:free",
+   "api_model": "qwen3.5-4b:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "qwen3.7-max",
+   "api_model": "qwen3.7-max",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "qwen3.8-27b:free",
+   "api_model": "qwen3.8-27b:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "qwen3.8-flash",
+   "api_model": "qwen3.8-flash",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "qwen3.8-flash-next:free",
+   "api_model": "qwen3.8-flash-next:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "qwen3.8-max",
+   "api_model": "qwen3.8-max",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "qwen3:free",
+   "api_model": "qwen3:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "qwq-32b:free",
+   "api_model": "qwq-32b:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "realistic-vision-v6",
+   "api_model": "realistic-vision-v6",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "rev-animated",
+   "api_model": "rev-animated",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "rev-animated:free",
+   "api_model": "rev-animated:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "riva-translate-4b-instruct-v2:free",
+   "api_model": "riva-translate-4b-instruct-v2:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "sea-lion-e5-embedding-600m:free",
+   "api_model": "sea-lion-e5-embedding-600m:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "sea-lion-modernbert-embedding-300m:free",
+   "api_model": "sea-lion-modernbert-embedding-300m:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "sea-lion-modernbert-embedding-600m:free",
+   "api_model": "sea-lion-modernbert-embedding-600m:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "sensenova-6.8-flash-lite:free",
+   "api_model": "sensenova-6.8-flash-lite:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "sonar:free",
+   "api_model": "sonar:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "space-bunny-alpha:free",
+   "api_model": "space-bunny-alpha:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "swamponyxl:free",
+   "api_model": "swamponyxl:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "swe-1-6-slow:free",
+   "api_model": "swe-1-6-slow:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "text-embedding-3-large",
+   "api_model": "text-embedding-3-large",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "tunix-pony:free",
+   "api_model": "tunix-pony:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "typhoon-v2.5-30b-a3b-instruct:free",
+   "api_model": "typhoon-v2.5-30b-a3b-instruct:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "villanova-2b-2512-preview-apnea-ft:free",
+   "api_model": "villanova-2b-2512-preview-apnea-ft:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "wai-cute-pony:free",
+   "api_model": "wai-cute-pony:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "wai-nsfw-illustrious-sdxl",
+   "api_model": "wai-nsfw-illustrious-sdxl",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "wai-nsfw-illustrious-sdxl:free",
+   "api_model": "wai-nsfw-illustrious-sdxl:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "whisper-large-v3-turbo:free",
+   "api_model": "whisper-large-v3-turbo:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "whisper-large-v3:free",
+   "api_model": "whisper-large-v3:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "whisper-tiny-en:free",
+   "api_model": "whisper-tiny-en:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "custom_4",
+   "name": "whisper:free",
+   "api_model": "whisper:free",
+   "provider_name": "custom_4",
+   "type": "openai",
+   "priority": 7
+  },
+  {
+   "provider": "groq",
+   "name": "allam-2-7b",
+   "api_model": "allam-2-7b",
+   "provider_name": "Groq",
+   "type": "openai",
+   "priority": 3
+  },
+  {
+   "provider": "groq",
+   "name": "canopylabs/orpheus-arabic-saudi",
+   "api_model": "canopylabs/orpheus-arabic-saudi",
+   "provider_name": "Groq",
+   "type": "openai",
+   "priority": 3
+  },
+  {
+   "provider": "groq",
+   "name": "canopylabs/orpheus-v1-english",
+   "api_model": "canopylabs/orpheus-v1-english",
+   "provider_name": "Groq",
+   "type": "openai",
+   "priority": 3
+  },
+  {
+   "provider": "groq",
+   "name": "meta-llama/llama-prompt-guard-2-22m",
+   "api_model": "meta-llama/llama-prompt-guard-2-22m",
+   "provider_name": "Groq",
+   "type": "openai",
+   "priority": 3
+  },
+  {
+   "provider": "groq",
+   "name": "meta-llama/llama-prompt-guard-2-86m",
+   "api_model": "meta-llama/llama-prompt-guard-2-86m",
+   "provider_name": "Groq",
+   "type": "openai",
+   "priority": 3
+  },
+  {
+   "provider": "groq",
+   "name": "openai/gpt-oss-120b",
+   "api_model": "openai/gpt-oss-120b",
+   "provider_name": "Groq",
+   "type": "openai",
+   "priority": 3
+  },
+  {
+   "provider": "groq",
+   "name": "openai/gpt-oss-20b",
+   "api_model": "openai/gpt-oss-20b",
+   "provider_name": "Groq",
+   "type": "openai",
+   "priority": 3
+  },
+  {
+   "provider": "groq",
+   "name": "openai/gpt-oss-safeguard-20b",
+   "api_model": "openai/gpt-oss-safeguard-20b",
+   "provider_name": "Groq",
+   "type": "openai",
+   "priority": 3
+  },
+  {
+   "provider": "groq",
+   "name": "qwen/qwen3.8-27b",
+   "api_model": "qwen/qwen3.8-27b",
+   "provider_name": "Groq",
+   "type": "openai",
+   "priority": 3
+  },
+  {
+   "provider": "groq",
+   "name": "whisper-large-v3",
+   "api_model": "whisper-large-v3",
+   "provider_name": "Groq",
+   "type": "openai",
+   "priority": 3
+  },
+  {
+   "provider": "groq",
+   "name": "whisper-large-v3-turbo",
+   "api_model": "whisper-large-v3-turbo",
+   "provider_name": "Groq",
+   "type": "openai",
+   "priority": 3
+  },
+  {
+   "provider": "ollama",
+   "name": "deepseek-v4-pro:0813",
+   "api_model": "deepseek-v4-pro:0813",
+   "provider_name": "Ollama",
+   "type": "openai",
+   "priority": 5
+  },
+  {
+   "provider": "ollama",
+   "name": "deepseek-v4.1-flash",
+   "api_model": "deepseek-v4.1-flash",
+   "provider_name": "Ollama",
+   "type": "openai",
+   "priority": 5
+  },
+  {
+   "provider": "ollama",
+   "name": "gemma4:31b",
+   "api_model": "gemma4:31b",
+   "provider_name": "Ollama",
+   "type": "openai",
+   "priority": 5
+  },
+  {
+   "provider": "ollama",
+   "name": "glm-5.2",
+   "api_model": "glm-5.2",
+   "provider_name": "Ollama",
+   "type": "openai",
+   "priority": 5
+  },
+  {
+   "provider": "ollama",
+   "name": "glm-5.3",
+   "api_model": "glm-5.3",
+   "provider_name": "Ollama",
+   "type": "openai",
+   "priority": 5
+  },
+  {
+   "provider": "ollama",
+   "name": "glm-5.3-flash",
+   "api_model": "glm-5.3-flash",
+   "provider_name": "Ollama",
+   "type": "openai",
+   "priority": 5
+  },
+  {
+   "provider": "ollama",
+   "name": "gpt-oss:120b",
+   "api_model": "gpt-oss:120b",
+   "provider_name": "Ollama",
+   "type": "openai",
+   "priority": 5
+  },
+  {
+   "provider": "ollama",
+   "name": "gpt-oss:20b",
+   "api_model": "gpt-oss:20b",
+   "provider_name": "Ollama",
+   "type": "openai",
+   "priority": 5
+  },
+  {
+   "provider": "ollama",
+   "name": "kimi-k2.6",
+   "api_model": "kimi-k2.6",
+   "provider_name": "Ollama",
+   "type": "openai",
+   "priority": 5
+  },
+  {
+   "provider": "ollama",
+   "name": "kimi-k2.7-code",
+   "api_model": "kimi-k2.7-code",
+   "provider_name": "Ollama",
+   "type": "openai",
+   "priority": 5
+  },
+  {
+   "provider": "ollama",
+   "name": "kimi-k3",
+   "api_model": "kimi-k3",
+   "provider_name": "Ollama",
+   "type": "openai",
+   "priority": 5
+  },
+  {
+   "provider": "ollama",
+   "name": "minimax-m2.7",
+   "api_model": "minimax-m2.7",
+   "provider_name": "Ollama",
+   "type": "openai",
+   "priority": 5
+  },
+  {
+   "provider": "ollama",
+   "name": "minimax-m3",
+   "api_model": "minimax-m3",
+   "provider_name": "Ollama",
+   "type": "openai",
+   "priority": 5
+  },
+  {
+   "provider": "ollama",
+   "name": "mistral-large-3:675b",
+   "api_model": "mistral-large-3:675b",
+   "provider_name": "Ollama",
+   "type": "openai",
+   "priority": 5
+  },
+  {
+   "provider": "ollama",
+   "name": "nemotron-3-nano:30b",
+   "api_model": "nemotron-3-nano:30b",
+   "provider_name": "Ollama",
+   "type": "openai",
+   "priority": 5
+  },
+  {
+   "provider": "ollama",
+   "name": "nemotron-3-super",
+   "api_model": "nemotron-3-super",
+   "provider_name": "Ollama",
+   "type": "openai",
+   "priority": 5
+  },
+  {
+   "provider": "ollama",
+   "name": "nemotron-3-ultra",
+   "api_model": "nemotron-3-ultra",
+   "provider_name": "Ollama",
+   "type": "openai",
+   "priority": 5
+  },
+  {
+   "provider": "opencode",
+   "name": "big-pickle",
+   "api_model": "big-pickle",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "claude-fable-5-1",
+   "api_model": "claude-fable-5-1",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "claude-haiku-4-5",
+   "api_model": "claude-haiku-4-5",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "claude-opus-5-5",
+   "api_model": "claude-opus-5-5",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "claude-sonnet-5",
+   "api_model": "claude-sonnet-5",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "deepseek-v4-pro",
+   "api_model": "deepseek-v4-pro",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "deepseek-v4.1-flash",
+   "api_model": "deepseek-v4.1-flash",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "gemini-3.1-pro",
+   "api_model": "gemini-3.1-pro",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "gemini-3.5-flash-lite",
+   "api_model": "gemini-3.5-flash-lite",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "gemini-3.8-flash",
+   "api_model": "gemini-3.8-flash",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "glm-5.3",
+   "api_model": "glm-5.3",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "glm-5.3-flash",
+   "api_model": "glm-5.3-flash",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "gpt-5.3-codex",
+   "api_model": "gpt-5.3-codex",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "gpt-5.3-codex-spark",
+   "api_model": "gpt-5.3-codex-spark",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "gpt-5.4-mini",
+   "api_model": "gpt-5.4-mini",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "gpt-5.4-nano",
+   "api_model": "gpt-5.4-nano",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "gpt-5.5",
+   "api_model": "gpt-5.5",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "gpt-5.5-pro",
+   "api_model": "gpt-5.5-pro",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "gpt-5.6-terra",
+   "api_model": "gpt-5.6-terra",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "gpt-6-astra",
+   "api_model": "gpt-6-astra",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "gpt-6-luna",
+   "api_model": "gpt-6-luna",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "gpt-6-sol",
+   "api_model": "gpt-6-sol",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "grok-4.7",
+   "api_model": "grok-4.7",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "grok-build-0.1",
+   "api_model": "grok-build-0.1",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "jev-1.13",
+   "api_model": "jev-1.13",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "jev-1.13-free",
+   "api_model": "jev-1.13-free",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "kimi-k2.7-code",
+   "api_model": "kimi-k2.7-code",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "kimi-k3",
+   "api_model": "kimi-k3",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "ling-3.0-flash-fin-free",
+   "api_model": "ling-3.0-flash-fin-free",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "mimo-v2.5-free",
+   "api_model": "mimo-v2.5-free",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "mimo-v2.6-flash-free",
+   "api_model": "mimo-v2.6-flash-free",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "minimax-m3",
+   "api_model": "minimax-m3",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "muse-spark-1.2-contributor-free",
+   "api_model": "muse-spark-1.2-contributor-free",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "muse-spark-1.3",
+   "api_model": "muse-spark-1.3",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "muse-spark-1.3-contributor-free",
+   "api_model": "muse-spark-1.3-contributor-free",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "nemotron-3-ultra-free",
+   "api_model": "nemotron-3-ultra-free",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "nemotron-3.5-lightning-free",
+   "api_model": "nemotron-3.5-lightning-free",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "qwen3.6-plus",
+   "api_model": "qwen3.6-plus",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "qwen3.8-flash",
+   "api_model": "qwen3.8-flash",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "qwen3.8-max",
+   "api_model": "qwen3.8-max",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "space-bunny-free",
+   "api_model": "space-bunny-free",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "test",
+   "api_model": "test",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  },
+  {
+   "provider": "opencode",
+   "name": "test-novita-dsf4.1",
+   "api_model": "test-novita-dsf4.1",
+   "provider_name": "OpenCode",
+   "type": "openai",
+   "priority": 2
+  }
+ ]
+}

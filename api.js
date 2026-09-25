@@ -976,6 +976,21 @@ function initModelsDb() {
     } catch (migErr) {
       log("WARN", "USERS_MIGRATE_FAIL", { error: migErr.message });
     }
+    // 🧟 Registry migrations: models can be toggled from the admin panel.
+    //   enabled — admin on/off (sync upserts NEVER touch it, so the flag survives)
+    //   pinned  — seeded from remote registry; syncModelsToDb's stale-row DELETE
+    //             skips pinned rows (otherwise remote seeds vanish next boot)
+    try {
+      const mcols = MODELS_DB.prepare("PRAGMA table_info(models)").all().map((c) => c.name);
+      if (!mcols.includes("enabled")) MODELS_DB.prepare("ALTER TABLE models ADD COLUMN enabled INTEGER DEFAULT 1").run();
+      if (!mcols.includes("pinned")) MODELS_DB.prepare("ALTER TABLE models ADD COLUMN pinned INTEGER DEFAULT 0").run();
+    } catch (migErr) {
+      log("WARN", "MODELS_MIGRATE_FAIL", { error: migErr.message });
+    }
+    // 🧟 settings KV — persisted runtime state (provider_disabled etc.)
+    MODELS_DB.prepare(
+      "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER DEFAULT 0)"
+    ).run();
     log("INFO", "SQLITE_READY", { path: MODELS_DB_PATH });
     return true;
   } catch (e) {
@@ -1017,7 +1032,8 @@ function syncModelsToDb() {
       }
     }
     // Remove stale rows (models no longer present after this sync)
-    MODELS_DB.prepare("DELETE FROM models WHERE updated_at < ?").run(now);
+    // 🧟 pinned=1 rows are remote-registry seeds — they survive across syncs
+    MODELS_DB.prepare("DELETE FROM models WHERE updated_at < ? AND COALESCE(pinned,0) = 0").run(now);
     log("INFO", "MODELS_DB_SYNCED", { count, path: MODELS_DB_PATH });
     return { ok: true, synced: count };
   } catch (e) {
@@ -1206,6 +1222,10 @@ function fetchProviderModels(providerId, p) {
 async function runNormalizerSync() {
   const results = {};
   for (const [id, p] of Object.entries(PROVIDER_CONFIG)) {
+    if (p.enabled === false) {
+      results[id] = { ok: false, skipped: true, reason: "admin-disabled" };
+      continue;
+    }
     if (!p.baseUrl) {
       results[id] = { ok: false, error: "no baseUrl", skipped: true };
       continue;
@@ -1264,13 +1284,17 @@ function getAllModels() {
   const list = [];
   for (const [id, p] of Object.entries(PROVIDER_CONFIG)) {
     if (p.models.length === 0) {
-      list.push({ model: "*", provider: id, providerName: p.name });
+      list.push({ model: "*", provider: id, providerName: p.name, providerType: p.type, enabled: p.enabled !== false });
     } else {
       for (const m of p.models) {
         list.push({
           model: getModelName(m),
+          apiModel: getApiModelName(m),
           provider: id,
           providerName: p.name,
+          providerType: p.type,
+          type: typeof m === "object" && m.type ? m.type : p.type,
+          enabled: p.enabled !== false && !DISABLED_MODELS.has(id + "::" + getModelName(m)),
         });
       }
     }
@@ -1314,11 +1338,69 @@ function getFallbackModel(excludeModel, triedModels) {
 
 // ─── Competition Router ─────────────────────────────────────
 // Resolves which provider to call based on model name
+// ─── 🧟 Admin runtime enable/disable state (persisted in `settings`) ──
+// Providers: PROVIDER_CONFIG[id].enabled === false → skipped by resolve/fallback/sync.
+// Models:    DISABLED_MODELS has "provider::name"     → skipped by resolve.
+let DISABLED_MODELS = new Set();
+
+function firstEnabledProviderId() {
+  const ids = Object.keys(PROVIDER_CONFIG);
+  return ids.find((k) => PROVIDER_CONFIG[k].enabled !== false) || ids[0];
+}
+
+function loadDisabledState() {
+  if (!MODELS_DB) return;
+  try {
+    const row = MODELS_DB.prepare(
+      "SELECT value FROM settings WHERE key = 'provider_disabled'"
+    ).get();
+    const ids = row && row.value ? JSON.parse(row.value) : [];
+    for (const [id, p] of Object.entries(PROVIDER_CONFIG)) {
+      p.enabled = !ids.includes(id);
+    }
+    const rows = MODELS_DB.prepare(
+      "SELECT provider, name FROM models WHERE enabled = 0"
+    ).all();
+    DISABLED_MODELS = new Set(rows.map((r) => r.provider + "::" + r.name));
+    log("INFO", "DISABLED_STATE_LOADED", {
+      providers_off: ids.length,
+      models_off: DISABLED_MODELS.size,
+    });
+  } catch (e) {
+    log("WARN", "DISABLED_STATE_FAIL", { error: e.message });
+  }
+}
+
+function persistProviderDisabled() {
+  if (!MODELS_DB) return [];
+  const ids = Object.entries(PROVIDER_CONFIG)
+    .filter(([, p]) => p.enabled === false)
+    .map(([id]) => id);
+  try {
+    MODELS_DB.prepare(
+      "INSERT INTO settings (key, value, updated_at) VALUES ('provider_disabled', ?, ?) " +
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at"
+    ).run(JSON.stringify(ids), Date.now());
+  } catch (e) {
+    log("WARN", "PROVIDER_DISABLED_SAVE_FAIL", { error: e.message });
+  }
+  return ids;
+}
+
+function getDisabledModelRows() {
+  if (!MODELS_DB) return [];
+  try {
+    return MODELS_DB.prepare("SELECT provider, name FROM models WHERE enabled = 0").all();
+  } catch (e) {
+    return [];
+  }
+}
+
 function resolveProvider(model, exactOnly) {
   // 🧟 GUARD: Reject template/placeholder model names (e.g. "{{model}}")
   // These come from misconfigured clients and cause massive PROXY_FAIL storms
   if (!model || typeof model !== "string" || /\{\{.*\}\}/.test(model) || model.length < 2) {
-    const firstId = Object.keys(PROVIDER_CONFIG)[0];
+    const firstId = firstEnabledProviderId();
     return {
       providerId: firstId,
       config: PROVIDER_CONFIG[firstId],
@@ -1332,8 +1414,11 @@ function resolveProvider(model, exactOnly) {
     ([, a], [, b]) => (a.priority || 999) - (b.priority || 999),
   );
   for (const [id, p] of sortedProviders) {
+    if (p.enabled === false) continue; // 🧟 admin-disabled provider
     for (const m of p.models) {
       const name = getModelName(m);
+      // 🧟 admin-disabled model — never resolved, still re-enableable in admin
+      if (DISABLED_MODELS.has(id + "::" + name)) continue;
       // Don't overwrite — first provider (highest priority) wins
       if (!allNames.has(name)) {
         allNames.set(name, { providerId: id, config: p });
@@ -1352,12 +1437,13 @@ function resolveProvider(model, exactOnly) {
   if (exactOnly) return null;
   // 2. Wildcard — empty models[] accepts any model
   for (const [id, p] of Object.entries(PROVIDER_CONFIG)) {
+    if (p.enabled === false) continue; // 🧟 admin-disabled provider
     if (p.models.length === 0) {
       return { providerId: id, config: p, matchType: "wildcard" };
     }
   }
   // 3. Fallback — first provider
-  const firstId = Object.keys(PROVIDER_CONFIG)[0];
+  const firstId = firstEnabledProviderId();
   return {
     providerId: firstId,
     config: PROVIDER_CONFIG[firstId],
@@ -1373,7 +1459,9 @@ function resolveAllProviders(model) {
   );
   const matches = [];
   for (const [id, p] of sorted) {
+    if (p.enabled === false) continue; // 🧟 admin-disabled provider
     for (const m of p.models) {
+      if (DISABLED_MODELS.has(id + "::" + getModelName(m))) continue; // 🧟
       if (getModelName(m) === model || getApiModelName(m) === model) {
         matches.push({ providerId: id, config: p });
         break;
@@ -1394,7 +1482,10 @@ function findNextProvider(model, currentProviderId) {
   // Start from the next provider after currentIdx, skipping unhealthy ones
   for (let i = currentIdx + 1; i < allProviders.length; i++) {
     const candidate = allProviders[i];
-    if (isProviderHealthy(candidate.providerId, model)) {
+    if (
+      PROVIDER_CONFIG[candidate.providerId]?.enabled !== false && // 🧟 admin-off
+      isProviderHealthy(candidate.providerId, model)
+    ) {
       return candidate;
     }
     log("INFO", "PROVIDER_SKIP_UNHEALTHY", {
@@ -2947,6 +3038,130 @@ function seedAgentsFromPersonas() {
     log("WARN", "AGENTS_SEED_FAIL", { error: e.message });
     return { ok: false, error: e.message };
   }
+}
+
+// ─── 🧟 Runtime registry guarantee (heart-core agents/models → DB) ──
+// Order (user contract): (1) create DB+schema at runtime — initModelsDb() does
+// CREATE TABLE IF NOT EXISTS; (2) seed from local sources (PERSONAS.md /
+// agent/*.js); (3) if STILL empty → download registry.seed.json from the
+// remote repo. Models follow the same ladder via ensureModelsRegistry().
+const REGISTRY_REMOTE_URL =
+  process.env.REGISTRY_REMOTE_URL ||
+  "https://raw.githubusercontent.com/sahonsrabon-os/monu_the_builder/main/registry.seed.json";
+
+async function seedRegistryFromRemote(reason) {
+  if (!REGISTRY_REMOTE_URL.startsWith("http")) {
+    log("WARN", "REGISTRY_REMOTE_SKIP", { reason, url: REGISTRY_REMOTE_URL });
+    return { ok: false, error: "remote url invalid" };
+  }
+  if (!MODELS_DB) return { ok: false, error: "sqlite unavailable" };
+  log("INFO", "REGISTRY_REMOTE_FETCH", { url: REGISTRY_REMOTE_URL, reason });
+  try {
+    const data = await new Promise((resolve, reject) => {
+      https
+        .get(REGISTRY_REMOTE_URL, { timeout: 10000 }, (res) => {
+          let d = "";
+          res.setEncoding("utf8");
+          res.on("data", (c) => (d += c));
+          res.on("end", () => resolve(d));
+        })
+        .on("error", reject);
+    });
+    const reg = JSON.parse(data);
+    const now = Date.now();
+    let na = 0;
+    if (Array.isArray(reg.agents)) {
+      const ins = MODELS_DB.prepare(
+        `INSERT OR IGNORE INTO agents (id, name, role, model, expertise, persona, enabled, priority, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`
+      );
+      for (const a of reg.agents) {
+        if (!a || !a.id) continue;
+        try {
+          ins.run(
+            a.id,
+            a.name || a.id,
+            a.role || "general",
+            a.model || "",
+            a.expertise || "",
+            a.persona || "Agent",
+            a.priority || 99,
+            now,
+          );
+          na++;
+        } catch (_) { /* duplicate id — fine */ }
+      }
+    }
+    let nm = 0;
+    if (Array.isArray(reg.models)) {
+      const ins = MODELS_DB.prepare(
+        `INSERT OR IGNORE INTO models (provider, name, api_model, provider_name, type, priority, updated_at, enabled, pinned)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1)`
+      );
+      for (const m of reg.models) {
+        if (!m || !m.provider || !m.name) continue;
+        try {
+          ins.run(
+            m.provider,
+            m.name,
+            m.api_model || m.name,
+            m.provider_name || m.provider,
+            m.type || "openai",
+            m.priority || 99,
+            now,
+          );
+          nm++;
+        } catch (_) { /* duplicate (provider,name) — fine */ }
+      }
+    }
+    log("INFO", "REGISTRY_REMOTE_SEEDED", { agents: na, models: nm, url: REGISTRY_REMOTE_URL });
+    return { ok: true, agents: na, models: nm };
+  } catch (e) {
+    log("WARN", "REGISTRY_REMOTE_FAIL", { error: e.message, url: REGISTRY_REMOTE_URL });
+    return { ok: false, error: e.message };
+  }
+}
+
+async function ensureAgentsRegistry() {
+  if (!MODELS_DB) return { ok: false, error: "sqlite unavailable" };
+  try {
+    const c = MODELS_DB.prepare("SELECT COUNT(*) c FROM agents").get();
+    if (c && c.c > 0) return { ok: true, source: "db", count: c.c };
+  } catch (e) { /* fall through to seed */ }
+  // 2. local agent/*.js files (zero-dependency curated defaults)
+  try {
+    const fileAgents = loadAgentFiles();
+    const ins = MODELS_DB.prepare(
+      `INSERT OR IGNORE INTO agents (id, name, role, model, expertise, persona, enabled, priority, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`
+    );
+    const now = Date.now();
+    let n = 0;
+    for (const a of fileAgents) {
+      if (!a || !a.id) continue;
+      try {
+        ins.run(a.id, a.name || a.id, a.role || "general", a.model || "", a.expertise || "", a.persona || "Agent", a.priority || 99, now);
+        n++;
+      } catch (_) { /* dup */ }
+    }
+    if (n > 0) {
+      log("INFO", "AGENTS_SEEDED", { from: "agent/*.js", count: n });
+      return { ok: true, source: "files", count: n };
+    }
+  } catch (e) {
+    log("WARN", "AGENTS_FILE_SEED_FAIL", { error: e.message });
+  }
+  // 3. remote registry download
+  return await seedRegistryFromRemote("agents-empty");
+}
+
+async function ensureModelsRegistry() {
+  if (!MODELS_DB) return { ok: false, error: "sqlite unavailable" };
+  try {
+    const c = MODELS_DB.prepare("SELECT COUNT(*) c FROM models").get();
+    if (c && c.c > 0) return { ok: true, source: "db", count: c.c };
+  } catch (e) { /* fall through */ }
+  return await seedRegistryFromRemote("models-empty");
 }
 
 // ─── Phase B: API Auth (users + sessions in SQLite) ────────
@@ -5106,6 +5321,36 @@ function callGeminiModelStream(
 // ══════════════════════════════════════════════════════════════
 //  🔌 MODEL CALL (via Competition Router)
 // ══════════════════════════════════════════════════════════════
+// ─── 🧟 #5 swap_notice — ethical model/provider swap visibility ──
+// Every silent fallback (provider-hop or model-hop) is recorded on a
+// per-request trail. Keyed by the SAME messages array that recursion
+// reuses, so concurrent requests never cross-contaminate. The trail is
+// surfaced in chat.completion responses as `swap_notice` (ethics §4:
+// never pretend the fallback didn't happen).
+const SWAP_TRAIL = new WeakMap();
+function noteSwap(messages, from, to, kind) {
+  if (!messages || typeof messages !== "object") return;
+  try {
+    const trail = SWAP_TRAIL.get(messages) || [];
+    trail.push({
+      from: String(from || "?"),
+      to: String(to || "?"),
+      kind, // "provider" | "model"
+      at: new Date().toISOString(),
+    });
+    SWAP_TRAIL.set(messages, trail);
+  } catch (_) { /* trail is best-effort */ }
+}
+function getSwapNotice(messages) {
+  try {
+    const trail = SWAP_TRAIL.get(messages);
+    if (trail && trail.length > 0) {
+      return { swapped: true, swaps: trail };
+    }
+  } catch (_) {}
+  return null;
+}
+
 function callModelStream(
   model,
   messages,
@@ -5324,6 +5569,7 @@ function callModelStream(
                 : "STREAM_ERROR_FALLBACK",
               { from: providerId, to: next.providerId, error: streamError.message },
             );
+            noteSwap(messages, providerId, next.providerId, "provider");
             resolve(
               callModelStream(
                 model,
@@ -5348,6 +5594,7 @@ function callModelStream(
                 : "STREAM_ERROR_MODEL_FALLBACK",
               { from: model, to: fallbackModel, error: streamError.message },
             );
+            noteSwap(messages, model, fallbackModel, "model");
             const nextTried = [...(triedModels || []), model];
             resolve(
               callModelStream(
@@ -5387,6 +5634,7 @@ function callModelStream(
               to: next.providerId,
               model,
             });
+            noteSwap(messages, providerId, next.providerId, "provider");
             resolve(
               callModelStream(
                 model,
@@ -5408,6 +5656,7 @@ function callModelStream(
               from: model,
               to: fallbackModel,
             });
+            noteSwap(messages, model, fallbackModel, "model");
             const nextTried = [...(triedModels || []), model];
             resolve(
               callModelStream(
@@ -5442,6 +5691,7 @@ function callModelStream(
           to: next.providerId,
           error: err.message,
         });
+        noteSwap(messages, providerId, next.providerId, "provider");
         resolve(
           callModelStream(
             model,
@@ -5655,6 +5905,7 @@ function callModel(
                   cooldown:
                     getRateLimitState(DETECTED_DOMAIN).cooldownMs + "ms",
                 });
+                noteSwap(messages, providerId, _np.providerId, "provider");
                 resolve(
                   callModel(
                     model,
@@ -5687,6 +5938,7 @@ function callModel(
                 error: errMsg,
                 code: _sc,
               });
+              noteSwap(messages, providerId, _np2.providerId, "provider");
               resolve(
                 callModel(
                   model,
@@ -5765,6 +6017,7 @@ function callModel(
               to: _np3.providerId,
               error: _err.message,
             });
+            noteSwap(messages, providerId, _np3.providerId, "provider");
             resolve(
               callModel(
                 model,
@@ -5859,6 +6112,7 @@ function callModel(
                 error: errMsg,
                 cooldown: getRateLimitState(DETECTED_DOMAIN).cooldownMs + "ms",
               });
+              noteSwap(messages, providerId, nextProvider.providerId, "provider");
               resolve(
                 callModel(
                   model,
@@ -5895,6 +6149,7 @@ function callModel(
               error: errMsg,
               code: statusCode,
             });
+            noteSwap(messages, providerId, nextProvider.providerId, "provider");
             resolve(
               callModel(
                 model,
@@ -5952,6 +6207,7 @@ function callModel(
                 from: model,
                 to: fallbackModel,
               });
+              noteSwap(messages, model, fallbackModel, "model");
               const nextTried = [...(triedModels || []), model];
               resolve(
                 callModel(
@@ -6004,6 +6260,7 @@ function callModel(
           to: nextProvider.providerId,
           error: err.message,
         });
+        noteSwap(messages, providerId, nextProvider.providerId, "provider");
         resolve(
           callModel(
             model,
@@ -8654,7 +8911,7 @@ function buildThreeFileContext(projectDir, sessionId) {
         syllabusContent +
         "\n--- END SYLLABUS ---\n" +
         "\n\nSESSION TOOLS & SYSTEM IDENTITY & ETHICS (injected every session):\n" +
-        "- TOOLS AVAILABLE: read_file, write_file, list_directory, glob, grep, terminal, exec, db_query, web_search, http_request, open_browser, agent_single, agent_mission, call_agent, get_memory, read_ssot, get_working_dir, set_working_dir, env_get, system_info, remote_mcp_call, delete_file, rename_file\n" +
+        "- TOOLS AVAILABLE: read_file, write_file, list_directory, glob, grep, terminal, exec, db_query, web_search, http_request, open_browser, browse_cdp, agent_single, agent_mission, call_agent, get_memory, read_ssot, get_working_dir, set_working_dir, env_get, system_info, remote_mcp_call, delete_file, rename_file\n" +
         "- SYSTEM IDENTITY: You are a Mission Barisal agent (ZombieCoder) owned by Sahon Srabon (Barisal, Bangladesh). You are NOT a generic assistant. Follow the context above exactly.\n" +
         "- ETHICS: Evidence-driven, proof-first. Never hallucinate. If you lack proof say 'আমার কাছে প্রমাণ নেই'. Never hide errors. Code in English, chat with users in Bengali (Barishali style). No emojis in code.\n" +
         "--- END SESSION TOOLS & IDENTITY & ETHICS ---\n"
@@ -9047,6 +9304,8 @@ async function executeSingleAgent(
     agent: { id: agent.id, name: agent.name, role: agent.role },
     goalVerified: singleGoalCheck.passed,
     goalReason: singleGoalCheck.reason,
+    // 🧟 #5 swap_notice: trail recorded on THIS request's augmentedMessages
+    swap_notice: getSwapNotice(augmentedMessages),
   };
 }
 
@@ -9198,6 +9457,26 @@ const MCP_TOOLS = {
       },
     },
     required: ["target"],
+  },
+  browse_cdp: {
+    description:
+      "Headless-browse a URL via Chrome DevTools Protocol over a PIPE (zero HTTP control channel — no port, no websocket). Fetches a page with headless Chrome and returns its text, HTML, title, or a screenshot. Use for reading local or remote web pages.",
+    params: {
+      url: {
+        type: "string",
+        description: "Absolute URL to open: http://, https:// or file://",
+      },
+      action: {
+        type: "string",
+        description:
+          "What to return: text (default, readable page text) | html | title | screenshot (base64 png)",
+      },
+      timeout_ms: {
+        type: "number",
+        description: "Load timeout in milliseconds (default 20000)",
+      },
+    },
+    required: ["url"],
   },
   call_agent: {
     description:
@@ -10139,6 +10418,53 @@ async function executeMcpTool(tool, args) {
             });
         });
       });
+    }
+    case "browse_cdp": {
+      // 🧟 #7: headless Chrome over --remote-debugging-pipe (fd 3/4, \0-framed
+      // JSON). Zero HTTP/TCP/WebSocket in the CONTROL channel — module does
+      // not open a single socket itself.
+      const cdpUrl = args.url || "";
+      const cdpAction = args.action || "text";
+      try {
+        const { browseCdp } = require("./cdp-pipe.js");
+        const r = await browseCdp({
+          url: cdpUrl,
+          action: cdpAction,
+          timeout_ms: args.timeout_ms,
+        });
+        let out;
+        if (cdpAction === "screenshot") {
+          out = {
+            ok: true,
+            url: r.url,
+            title: r.title,
+            note: "base64 PNG follows",
+            png_base64: r.png_base64 || "",
+          };
+        } else {
+          const cap = s => (s || "").length > 40000 ? s.slice(0, 40000) + "\n…[truncated]" : s;
+          out = {
+            ok: r.ok,
+            url: r.url,
+            title: r.title,
+            action: cdpAction,
+            result:
+              cdpAction === "html"
+                ? cap(r.html)
+                : cdpAction === "title"
+                ? r.title
+                : cap(r.text),
+            transport: "cdp-pipe (fd3/4, no HTTP control channel)",
+          };
+        }
+        return { content: [{ type: "text", text: JSON.stringify(out) }] };
+      } catch (e) {
+        return {
+          content: [
+            { type: "text", text: JSON.stringify({ ok: false, error: e.message, url: cdpUrl }) },
+          ],
+        };
+      }
     }
     case "call_agent": {
       const targetAgentId = args.agent_id || "";
@@ -12789,6 +13115,104 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // ─── 🧟 Admin: provider & model enable/disable (runtime + persisted) ──
+    if (url === "/api/admin/providers" && method === "GET") {
+      if (!adminAuthorized(req)) {
+        jsonResponse(res, 401, { error: "Unauthorized: ADMIN_TOKEN required" });
+        return;
+      }
+      jsonResponse(res, 200, {
+        ok: true,
+        providers: Object.entries(PROVIDER_CONFIG).map(([id, p]) => ({
+          id,
+          name: p.name || id,
+          type: p.type || "openai",
+          baseUrl: p.baseUrl || "",
+          priority: p.priority || 99,
+          enabled: p.enabled !== false,
+          models: (p.models || []).length,
+          hasKey: !!(p.key && p.key.length > 8),
+        })),
+      });
+      return;
+    }
+    if (url === "/api/admin/providers" && method === "POST") {
+      if (!adminAuthorized(req)) {
+        jsonResponse(res, 401, { error: "Unauthorized: ADMIN_TOKEN required" });
+        return;
+      }
+      const body = await readBody(req);
+      let b;
+      try {
+        b = JSON.parse(body);
+      } catch (e) {
+        jsonResponse(res, 400, { error: "Invalid JSON" });
+        return;
+      }
+      if (!b || !b.id || !PROVIDER_CONFIG[b.id]) {
+        jsonResponse(res, 404, { error: "Unknown provider: " + (b && b.id) });
+        return;
+      }
+      PROVIDER_CONFIG[b.id].enabled = b.enabled ? true : false;
+      const off = persistProviderDisabled();
+      log("INFO", "ADMIN_PROVIDER_TOGGLE", {
+        provider: b.id,
+        enabled: PROVIDER_CONFIG[b.id].enabled,
+        disabled_list: off,
+      });
+      jsonResponse(res, 200, {
+        ok: true,
+        id: b.id,
+        enabled: PROVIDER_CONFIG[b.id].enabled,
+        disabledProviders: off,
+      });
+      return;
+    }
+    if (url === "/api/admin/models" && method === "POST") {
+      if (!adminAuthorized(req)) {
+        jsonResponse(res, 401, { error: "Unauthorized: ADMIN_TOKEN required" });
+        return;
+      }
+      if (!MODELS_DB) {
+        jsonResponse(res, 503, { error: "sqlite unavailable" });
+        return;
+      }
+      const body = await readBody(req);
+      let b;
+      try {
+        b = JSON.parse(body);
+      } catch (e) {
+        jsonResponse(res, 400, { error: "Invalid JSON" });
+        return;
+      }
+      if (!b || !b.provider || !b.name) {
+        jsonResponse(res, 400, { error: "provider and name are required" });
+        return;
+      }
+      const r = MODELS_DB.prepare(
+        "UPDATE models SET enabled = ? WHERE provider = ? AND name = ?"
+      ).run(b.enabled ? 1 : 0, b.provider, b.name);
+      if (r.changes === 0) {
+        jsonResponse(res, 404, { error: "Model not found in DB" });
+        return;
+      }
+      if (b.enabled) DISABLED_MODELS.delete(b.provider + "::" + b.name);
+      else DISABLED_MODELS.add(b.provider + "::" + b.name);
+      log("INFO", "ADMIN_MODEL_TOGGLE", {
+        provider: b.provider,
+        name: b.name,
+        enabled: !!b.enabled,
+      });
+      jsonResponse(res, 200, {
+        ok: true,
+        provider: b.provider,
+        name: b.name,
+        enabled: !!b.enabled,
+        disabledCount: DISABLED_MODELS.size,
+      });
+      return;
+    }
+
     if (url === "/api/admin/agents" && method === "POST") {
       if (!adminAuthorized(req)) {
         jsonResponse(res, 401, { error: "Unauthorized: ADMIN_TOKEN required" });
@@ -12806,13 +13230,19 @@ const server = http.createServer(async (req, res) => {
         jsonResponse(res, 400, { error: "Invalid JSON" });
         return;
       }
-      if (!a || !a.id || !a.persona) {
-        jsonResponse(res, 400, { error: "id and persona are required" });
+      if (!a || !a.id) {
+        jsonResponse(res, 400, { error: "id is required" });
         return;
       }
       const existing = MODELS_DB.prepare(
         "SELECT name, role, model, expertise, persona, enabled, priority FROM agents WHERE id = ?"
       ).get(a.id);
+      // persona required only when CREATING — updates (model mapping,
+      // enable/disable) may omit it and inherit the stored persona.
+      if (!a.persona && !existing) {
+        jsonResponse(res, 400, { error: "id and persona are required" });
+        return;
+      }
       const now = Date.now();
       MODELS_DB.prepare(`
         INSERT INTO agents (id, name, role, model, expertise, persona, enabled, priority, updated_at)
@@ -13527,8 +13957,10 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
           baseUrl: p.baseUrl || "",
           models: p.models || [],
           priority: p.priority,
+          enabled: p.enabled !== false, // 🧟 admin toggle state
         })),
         models: getAllModels(),
+        disabledModels: getDisabledModelRows(), // 🧟 for admin re-enable UI
         db: dbStats,
         features: [
           "OpenAI standard format",
@@ -14632,11 +15064,15 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
         // Final [DONE] chunk
         // Apply identity masking to full content — strip model names
         const maskedFullContent = maskModelIdentity(fullContent);
+        // 🧟 #5 swap_notice: surface every silent provider/model fallback
+        // (ethics §4 — the user must KNOW the swap happened).
+        const swapNotice = getSwapNotice(augmentedMessages);
         const doneData = JSON.stringify({
           id: responseId,
           object: "chat.completion.chunk",
           created: Math.floor(Date.now() / 1000),
           model: agent.id,
+          ...(swapNotice ? { swap_notice: swapNotice } : {}),
           choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
           usage: {
             prompt_tokens: Math.ceil(
@@ -14751,6 +15187,8 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
         session_id: sessionId,
         conversation_id: getSession(sessionId)?.conversation_id || sessionId,
         agent: singleResult.agent,
+        // 🧟 #5 swap_notice (non-stream): silent fallbacks made visible
+        ...(singleResult.swap_notice ? { swap_notice: singleResult.swap_notice } : {}),
       });
       return;
     }
@@ -16109,10 +16547,15 @@ async function init() {
   // Env vars are the single source of truth: re-apply env-defined models
   // over the DB cache so edits to .env win without a full restart.
   if (MODELS_DB) syncEnvModelsToDb();
+  // 🧟 Restore admin enable/disable state, then guarantee the registry:
+  // runtime DB creation → local seed → remote download (in that order).
+  if (MODELS_DB) loadDisabledState();
+  await ensureModelsRegistry();
 
   // PHASE A: seed agents table from PERSONAS.md on first boot (idempotent),
   // then load DB-first. PERSONAS.md remains as fallback for ids not in DB.
   seedAgentsFromPersonas();
+  await ensureAgentsRegistry();
   // PHASE B: seed admin user from ADMIN_USER/ADMIN_API_KEY env (idempotent).
   seedAdminUser();
   AGENTS = await loadPersonas();
