@@ -67,16 +67,17 @@ DB** — change it live from **Admin → Agent Manager** (`Change Model` → `Sa
 | `team-heart` | Team Heart - Jara | general | `llama-local` |
 | `customer-experience-specialist` | Customer Experience Specialist | customer-experience | `llama-local` |
 | `ecommerce-operations-analyst` | E-Commerce Operations Analyst | ecommerce-operations | `llama-local` |
-| `bug-hunter` | Bug Hunter - Jewel | debugging | `llama-local` |
-| `code-guru` | Code Guru - Monu | architecture | `llama-local` |
+| `bug-hunter` | Bug Hunter - Jewel | debugging | `qwen2:0.5b` |
+| `code-guru` | Code Guru - Monu | architecture | `qwen2:0.5b` |
 | `perf-wizard` | Performance Wizard - Rashed | performance | `llama-local` |
 | `qa-tyrant` | Quality Tyrant - Mojnu | quality | `llama-local` |
 | `security-hero` | Security Hero - Bablu | security | `llama-local` |
 
-> Mappings are live DB values shown as a snapshot (2026-09-27 — all nine agents
-> run on the local model `llama-local`, public alias `zombie-mini`, per the
-> 2026-09-27 alignment). The DB is the source of truth - edit in Admin ->
-> Agent Manager; `docs/openai-schema.json` regenerates from it via
+> Mappings are live DB values shown as a snapshot (2026-09-27). Seven of the nine
+> agents run on the local model `llama-local` (public alias `zombie-mini`); the
+> coding pair `bug-hunter` / `code-guru` was set to `qwen2:0.5b` through
+> Admin -> Agent Manager on the same day. The DB is the source of truth - edit in
+> Admin -> Agent Manager; `docs/openai-schema.json` regenerates from it via
 > `tools/gen-openai-docs.js`.
 
 A virtual `mission` model runs the multi-agent debate path
@@ -443,7 +444,9 @@ have to repeat.
   to `qwen2:0.5b` once via `STREAM_ERROR_MODEL_FALLBACK`), and local latency
   scales with machine load (the 13.75 s round measured at `load < 2`; the same
   prefill took 112 s at `load ≈ 6`).
-- **Roster:** all nine agents mapped to `llama-local` in the DB.
+- **Roster:** seven of nine agents on `llama-local`; `bug-hunter` and `code-guru`
+  set to `qwen2:0.5b` via a live Admin -> Agent Manager save the same day (kept as
+  the user's latest choice — DB stays the source of truth).
 
 ---
 

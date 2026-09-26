@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "title": "Mission Barisal — OpenAI-compatible shared schema",
   "description": "Single OpenAI-compatible manifest consumed by every Mission Barisal agent and by any OpenAI SDK client: chat/models contract + all MCP tools converted to OpenAI function-calling format + agent-to-model routing map. Generated from the LIVE server (not hand-written).",
-  "generated_utc": "2026-09-26T22:03:18Z",
+  "generated_utc": "2026-09-26T22:10:32Z",
   "generator": "tools/gen-openai-docs.js (live gateway)",
   "contract": {
     "gateway": {
@@ -100,19 +100,7 @@
       "kind": "provider"
     },
     {
-      "id": "whisper-large-v3-turbo",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
-      "id": "meta-llama/llama-prompt-guard-2-86m",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
-      "id": "openai/gpt-oss-safeguard-20b",
+      "id": "openai/gpt-oss-20b",
       "object": "model",
       "provider": "Groq",
       "kind": "provider"
@@ -124,25 +112,37 @@
       "kind": "provider"
     },
     {
-      "id": "meta-llama/llama-prompt-guard-2-22m",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
       "id": "whisper-large-v3",
       "object": "model",
       "provider": "Groq",
       "kind": "provider"
     },
     {
-      "id": "canopylabs/orpheus-arabic-saudi",
+      "id": "meta-llama/llama-prompt-guard-2-22m",
       "object": "model",
       "provider": "Groq",
       "kind": "provider"
     },
     {
-      "id": "openai/gpt-oss-20b",
+      "id": "whisper-large-v3-turbo",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "openai/gpt-oss-safeguard-20b",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "meta-llama/llama-prompt-guard-2-86m",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "canopylabs/orpheus-arabic-saudi",
       "object": "model",
       "provider": "Groq",
       "kind": "provider"
@@ -1342,6 +1342,12 @@
       "kind": "provider"
     },
     {
+      "id": "gemini-flash-lite-latest:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
       "id": "gemini-robotics-er-2-preview:free",
       "object": "model",
       "provider": "custom_4",
@@ -1421,6 +1427,18 @@
     },
     {
       "id": "glm-5.3-flash-search:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.3-flash-think-search:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.3-flash-thinking:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -2068,12 +2086,6 @@
       "kind": "provider"
     },
     {
-      "id": "qwen3.5-4b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
       "id": "qwen3.6-plus:free",
       "object": "model",
       "provider": "custom_4",
@@ -2182,6 +2194,12 @@
       "kind": "provider"
     },
     {
+      "id": "step-3.7-flash:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
       "id": "swamponyxl:free",
       "object": "model",
       "provider": "custom_4",
@@ -2268,7 +2286,7 @@
     {
       "id": "llama-local",
       "object": "model",
-      "provider": "local_llm",
+      "provider": "Zombie Mini",
       "kind": "provider"
     },
     {
