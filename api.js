@@ -6574,7 +6574,33 @@ async function callModelWithTools(
       providerOverride,
     );
     if (!response.success) return response;
-    const tcs = response.tool_calls;
+    let tcs = response.tool_calls;
+    if ((!tcs || tcs.length === 0) && tools && tools.length && response.content) {
+      // 🧹 TOOL SANITIZER (last resort): custom providers / small local models
+      // sometimes answer in plain text marker format instead of native
+      // tool_calls. Extract real calls from the markers — extraction only,
+      // never invention (allowlist = names actually sent in this request).
+      try {
+        const { extractToolCalls } = require("./tools/tool-sanitizer.js");
+        const allow = tools
+          .map((t) => (t && t.function && t.function.name) || (t && t.name))
+          .filter(Boolean);
+        const san = extractToolCalls(response.content, allow);
+        if (san.tool_calls.length) {
+          log("WARN", "SANITIZED_TOOL_CALLS", {
+            model,
+            dialect: san.dialect,
+            count: san.tool_calls.length,
+          });
+          response.content = san.cleaned;
+          response.tool_calls = san.tool_calls;
+          response.sanitized = true;
+          tcs = san.tool_calls;
+        }
+      } catch (sanErr) {
+        log("WARN", "SANITIZER_ERROR", { error: sanErr.message });
+      }
+    }
     if (!tcs || tcs.length === 0) {
       log("INFO", "TOOL_LOOP_NO_TOOL_CALLS", {
         round,

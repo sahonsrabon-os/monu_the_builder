@@ -273,7 +273,8 @@ Routes served on **both** transports: `GET /health` · `GET /v1/models` ·
 |----------|---------|---------|
 | `BRIDGE_BACKEND` | `auto` | `auto` / `llama` / `ollama` |
 | `LLAMA_SERVER_BIN` | auto-detect | llama-server binary (verified: v0.5.0-dev, build 11146) |
-| `BRIDGE_GGUF` | auto-detect | the model file (verified: Llama-3.2-1B-Instruct Q8_0, 1.32 GB; a cached Qwen3.5-0.8B is the fallback) |
+| `BRIDGE_GGUF` | scan | exact GGUF path if set; otherwise **discovered at runtime** by scanning every `*.gguf` under `~/.local/share/models` and the Hugging Face hub cache (no fixed list — the folder may move) |
+| `BRIDGE_GGUF_HINT` | unset | substring used to pick one file among the scanned candidates (e.g. `Meta-Llama-3.1-8B`); newest match wins |
 | `BRIDGE_MODEL` | `llama-local` | wire model name |
 | `BRIDGE_PORT` | `11435` | loopback TCP |
 | `BRIDGE_SOCKET` | `/tmp/local-llm.sock` | Unix socket (perm 0666) |
@@ -290,6 +291,51 @@ CUSTOM_PROVIDER_5_NAME=local_llm
 CUSTOM_PROVIDER_5_URL=http://127.0.0.1:11435/v1
 CUSTOM_PROVIDER_5_SOCKET=/tmp/local-llm.sock
 CUSTOM_PROVIDER_5_MODELS=llama-local
+```
+
+### Portable model discovery + external launcher
+
+No folder is treated as final: the bridge **scans** its model roots at every
+start instead of remembering a path, so copying the whole setup elsewhere needs
+zero reconfiguration (env vars only, all optional). A sibling launcher folder
+(`lama/`, outside this repo) wraps the bridge with env-only defaults —
+`run.sh [start|status]`, a README describing the port/socket contract, and a
+Colab note as the cloud fallback when the local runtime is unavailable.
+
+Verified on this machine: `Meta-Llama-3.1-8B-Instruct-Q4_K_M` (bartowski GGUF,
+4.7 GB) answers exactly through the UDS (`UDS-OK`), emits native `tool_calls`
+(`get_weather {"city":"Dhaka"}`), and reaches the gateway as provider
+`custom_5`. An earlier IQ3_XS build of the same family produced looping prose
+even with a matching sha256 — quarantined in favor of the Q4_K_M quant.
+
+---
+
+## Tool sanitizer (`tools/tool-sanitizer.js`)
+
+Last-resort layer for **custom providers and small local models** that cannot
+emit native OpenAI `tool_calls` and answer in plain text instead. It is a new
+layer only — the existing design is untouched: `api.js` adds one `require` and
+one hook inside `callModelWithTools`, all logic lives in the module.
+
+Runs **only** when the model returned no native calls while tools were sent,
+and only extracts explicit markers — never invents calls, and (when a tool list
+is present) accepts only names that were actually sent:
+
+| # | Dialect recognized |
+|---|--------------------|
+| D1 | fenced ` ```tool_call ` block (single JSON or array) |
+| D2 | fenced ` ```function_call ` block (same payload shape) |
+| D3 | `<invoke name="…">` tags |
+| D4 | canonical marker `[[FL]]{"name":…,"arguments":…}[[/FL]]` (the format a prompt can instruct) |
+| D5 | first balanced bare JSON `{name, arguments}` in the text |
+
+Extraction is logged as `SANITIZED_TOOL_CALLS` with the winning dialect;
+cleaned text replaces the raw content so markers are not echoed back.
+`formatHint(tools)` returns the one-line prompt instruction that tells a
+model to use the canonical marker when it cannot call tools natively.
+
+```bash
+node tools/tool-sanitizer.js --selftest   # 13 assertions, all must pass
 ```
 
 ---
@@ -434,7 +480,7 @@ monu_the_builder/
 ├── agent/ · cache/ · logs/
 ├── tests/ · Test/          # live test suites + archived test material
 ├── external tools/ · external mcp/  # php-broker, OCR/screen/TTS servers
-├── tools/                  # gen-openai-docs.js (docs from the live registry)
+├── tools/                  # gen-openai-docs.js (docs from the live registry), tool-sanitizer.js (marker → tool_calls)
 ├── registry.seed.json     # model/provider seed (text)
 ├── registry.db            # same seed as binary snapshot (fresh-install path)
 ├── start-local-mcp.js      # standalone MCP starter

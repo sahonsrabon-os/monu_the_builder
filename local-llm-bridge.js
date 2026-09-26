@@ -122,19 +122,68 @@ function findLlamaServer() {
   }
 }
 
+/**
+ * GGUF discovery (PORTABLE — no folder is treated as final):
+ *   1. BRIDGE_GGUF env        — exact path wins if it exists
+ *   2. BRIDGE_GGUF_HINT env   — substring match (e.g. "Meta-Llama-3.1-8B")
+ *      scanned across EVERY known model root
+ *   3. newest *.gguf found anywhere in the roots
+ * Roots scanned (all relocatable, all optional):
+ *   ~/.local/share/models, ~/.cache/huggingface/hub (recursive)
+ * Moving the whole folder elsewhere = just re-set the env (or nothing,
+ * if the scan roots still resolve). ZERO hardcoded final paths.
+ */
+function scanGgufRoots() {
+  const roots = [MODEL_DIR, path.join(HOME, ".cache", "huggingface", "hub")];
+  const found = [];
+  for (const root of roots) {
+    const stack = [root];
+    while (stack.length) {
+      const dir = stack.pop();
+      let ents = [];
+      try {
+        ents = fs.readdirSync(dir, { withFileTypes: true });
+      } catch (_) {
+        continue;
+      }
+      for (const e of ents) {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) stack.push(full);
+        else if (e.name.endsWith(".gguf")) {
+          let mtime = 0;
+          try {
+            mtime = fs.statSync(full).mtimeMs;
+          } catch (_) {}
+          found.push({ path: full, mtime });
+        }
+      }
+    }
+  }
+  return found;
+}
+
+function detectGguf() {
+  if (process.env.BRIDGE_GGUF && fs.existsSync(process.env.BRIDGE_GGUF)) {
+    return process.env.BRIDGE_GGUF;
+  }
+  const cands = scanGgufRoots();
+  if (!cands.length) return null;
+  const hint = process.env.BRIDGE_GGUF_HINT;
+  if (hint) {
+    const hit = cands.filter((c) => c.path.includes(hint));
+    if (hit.length) {
+      hit.sort((a, b) => b.mtime - a.mtime);
+      return hit[0].path;
+    }
+  }
+  cands.sort((a, b) => b.mtime - a.mtime);
+  return cands[0].path;
+}
+
 const CFG = {
   backend: (process.env.BRIDGE_BACKEND || "auto").toLowerCase(),
   llamaBin: findLlamaServer(),
-  gguf:
-    process.env.BRIDGE_GGUF ||
-    firstExisting([
-      path.join(MODEL_DIR, "Llama-3.2-1B-Instruct-Q8_0.gguf"),
-      path.join(MODEL_DIR, "Qwen3.5-0.8B-Q8_0.gguf"),
-      path.join(
-        HOME,
-        ".cache/huggingface/hub/models--ggml-org--Qwen3.5-0.8B-GGUF/snapshots/8fea620810c4afa23dd6443f999a48574c1611a3/Qwen3.5-0.8B-Q8_0.gguf",
-      ),
-    ]),
+  gguf: detectGguf(),
   model: process.env.BRIDGE_MODEL || "llama-local",
   port: parseInt(process.env.BRIDGE_PORT || "11435", 10),
   socket: process.env.BRIDGE_SOCKET || "/tmp/local-llm.sock",

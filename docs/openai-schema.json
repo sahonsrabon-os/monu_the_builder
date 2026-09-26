@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "title": "Mission Barisal — OpenAI-compatible shared schema",
   "description": "Single OpenAI-compatible manifest consumed by every Mission Barisal agent and by any OpenAI SDK client: chat/models contract + all MCP tools converted to OpenAI function-calling format + agent-to-model routing map. Generated from the LIVE server (not hand-written).",
-  "generated_utc": "2026-09-26T05:14:13Z",
+  "generated_utc": "2026-09-26T15:16:09Z",
   "generator": "tools/gen-openai-docs.js (live gateway)",
   "contract": {
     "gateway": {
@@ -106,7 +106,7 @@
       "kind": "provider"
     },
     {
-      "id": "openai/gpt-oss-20b",
+      "id": "meta-llama/llama-prompt-guard-2-22m",
       "object": "model",
       "provider": "Groq",
       "kind": "provider"
@@ -118,7 +118,13 @@
       "kind": "provider"
     },
     {
-      "id": "whisper-large-v3",
+      "id": "openai/gpt-oss-safeguard-20b",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "openai/gpt-oss-20b",
       "object": "model",
       "provider": "Groq",
       "kind": "provider"
@@ -130,13 +136,7 @@
       "kind": "provider"
     },
     {
-      "id": "meta-llama/llama-prompt-guard-2-22m",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
-      "id": "openai/gpt-oss-safeguard-20b",
+      "id": "whisper-large-v3",
       "object": "model",
       "provider": "Groq",
       "kind": "provider"
@@ -580,12 +580,6 @@
       "kind": "provider"
     },
     {
-      "id": "deepseek-r1:7b",
-      "object": "model",
-      "provider": "custom_3",
-      "kind": "provider"
-    },
-    {
       "id": "qwen2:0.5b",
       "object": "model",
       "provider": "custom_3",
@@ -628,6 +622,12 @@
       "kind": "provider"
     },
     {
+      "id": "llama3.1:8b",
+      "object": "model",
+      "provider": "custom_3",
+      "kind": "provider"
+    },
+    {
       "id": "nemotron-3.5-lightning-30b-a3b:free",
       "object": "model",
       "provider": "custom_4",
@@ -641,12 +641,6 @@
     },
     {
       "id": "absolutereality:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "agnes-2.0-flash:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -707,6 +701,12 @@
     },
     {
       "id": "axon-1.8-lightning:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "axon-1.8-pro:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -1042,12 +1042,6 @@
       "kind": "provider"
     },
     {
-      "id": "deepseek-v4-flash:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
       "id": "deepseek-v4-pro",
       "object": "model",
       "provider": "custom_4",
@@ -1288,13 +1282,13 @@
       "kind": "provider"
     },
     {
-      "id": "glm-4.5",
+      "id": "gemma-4-31b-it:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
     },
     {
-      "id": "glm-4.5-flash:free",
+      "id": "glm-4.5",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -1354,7 +1348,7 @@
       "kind": "provider"
     },
     {
-      "id": "glm-5.3-flash:free",
+      "id": "glm-5.3-flash-thinking:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -1636,24 +1630,6 @@
       "kind": "provider"
     },
     {
-      "id": "l3-70b-euryale-v2.1:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "l3-8b-stheno-v3.2:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "l3.3-ms-nevoria-70b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
       "id": "laguna-s-2.1:free",
       "object": "model",
       "provider": "custom_4",
@@ -1709,12 +1685,6 @@
     },
     {
       "id": "majicmix-realistic",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "manta-flash-1.0:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -1792,19 +1762,7 @@
       "kind": "provider"
     },
     {
-      "id": "mistral-small-3.2:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
       "id": "mistral-small:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "mn-violet-lotus-12b:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -1960,24 +1918,6 @@
       "kind": "provider"
     },
     {
-      "id": "qwen3-next-80b-a3b-instruct:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3.5-4b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3.6-35b-a3b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
       "id": "qwen3.7-max",
       "object": "model",
       "provider": "custom_4",
@@ -2039,12 +1979,6 @@
     },
     {
       "id": "riva-translate-4b-instruct-v2:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "sapphira-l3.3-70b-0.1:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -2253,7 +2187,7 @@
       "id": "team-heart",
       "name": "Team Heart - Jara",
       "role": "general",
-      "model": "mistral/leanstral-1-5"
+      "model": "qwen2:0.5b"
     },
     {
       "id": "customer-experience-specialist",
@@ -2277,7 +2211,7 @@
       "id": "code-guru",
       "name": "Code Guru - Monu",
       "role": "architecture",
-      "model": "deepseek-r1:7b"
+      "model": "qwen2:0.5b"
     },
     {
       "id": "llama-local-test",
