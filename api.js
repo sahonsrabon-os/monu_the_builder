@@ -5034,6 +5034,28 @@ function detectProvider(raw, modelHint) {
  *    যাতে বাংলা/ইমোজি ক্যারেক্টার ভেঙে না যায়।
  * ============================================================
  */
+// ─── Universal Tool-Call Adapter — "external tools/tool.js" ─────────────
+// SIX official dialects → ONE OpenAI tool_calls shape:
+//   Groq/OpenAI chat [1] · Ollama [4] · Gemini [3] · OpenAI/Groq
+//   Responses [2][5] · llama.cpp text-fallback [6] · Anthropic [7] ·
+//   Bedrock [8]  (doc links inside tool.js)
+// Load failure → no-op adapter: chat keeps working, tool parsing degrades.
+let TOOLADAPTER;
+try {
+  TOOLADAPTER = require("./external tools/tool.js");
+} catch (e) {
+  TOOLADAPTER = {
+    parseToolCalls: () => [],
+    normalizeChatToolCalls: (t) => t,
+    toProviderTools: (t) => t,
+    toProviderMessages: (m) => m,
+    extractTextToolCalls: () => [],
+    extractText: () => "",
+    detectApi: () => "unknown",
+  };
+  console.warn("[TOOL_ADAPTER_LOAD_FAIL] " + e.message);
+}
+
 function normalizeResponse(raw, modelHint) {
   // Empty/null input -> error response
   if (!raw) {
@@ -5073,6 +5095,38 @@ function normalizeResponse(raw, modelHint) {
   const choice = raw.choices && raw.choices[0] ? raw.choices[0] : null;
 
   if (!choice) {
+    // ─── UNIVERSAL TOOL-CALL ADAPTER PASS ──────────────────
+    // Responses output[], Gemini functionCall parts, Anthropic tool_use,
+    // Bedrock toolUse, Ollama native, Gemini-interactions steps, and
+    // llama.cpp text-embedded calls — ALL → OpenAI tool_calls, HERE,
+    // before any dialect branch. executeMcpTool loop (callModelWithTools)
+    // then works for every provider unchanged.
+    const autoToolCalls = TOOLADAPTER.parseToolCalls(raw);
+    if (autoToolCalls.length) {
+      return {
+        id,
+        object: "chat.completion",
+        created,
+        model: maskModelName(model),
+        provider: "ZombieCoder",
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: "assistant",
+              content: TOOLADAPTER.extractText(raw) || "",
+              tool_calls: autoToolCalls,
+            },
+            finish_reason: "tool_calls",
+          },
+        ],
+        usage: raw.usage || {},
+        normalized: true,
+        originalFormat: TOOLADAPTER.detectApi(raw),
+        toolCallsFrom: "universal-adapter",
+      };
+    }
+
     // ─── Google Gemini format ─────────────────────────────
     // Google Gemini format — only our provider formats, no external ones
     if (raw.candidates && raw.candidates[0]) {
@@ -5242,7 +5296,9 @@ function normalizeResponse(raw, modelHint) {
   const finish = choice.finish_reason || "stop";
   // CRITICAL: Preserve tool_calls — was being stripped, which killed
   // the callModelWithTools execution loop!
-  const toolCalls = message.tool_calls || null;
+  // + ADAPTER: ids guaranteed, object arguments (Ollama quirk [4]) →
+  //   JSON strings (OpenAI canonical [1][5]) so JSON.parse never breaks.
+  const toolCalls = TOOLADAPTER.normalizeChatToolCalls(message.tool_calls);
 
   // KEY FIX: Mimo, North Mini, Nemotron → content empty, reasoning exists
   // Use FULL reasoning as content when content is empty — no truncation
@@ -5271,7 +5327,7 @@ function normalizeResponse(raw, modelHint) {
           role,
           content,
           ...(reasoning ? { reasoning_content: reasoning } : {}),
-          ...(toolCalls ? { tool_calls: toolCalls } : {}),
+          ...(toolCalls.length ? { tool_calls: toolCalls } : {}),
         },
         finish_reason: finish,
       },
@@ -5300,16 +5356,22 @@ function callGeminiModel(
   resolve,
   providerId,
   config,
+  tools,
 ) {
   const apiKey = config.key;
   const apiModel = resolveApiModel(model, providerId);
-  const contents = messages.map((m) => ({
-    role:
-      m.role === "assistant" ? "model" : m.role === "system" ? "user" : m.role,
-    parts: [{ text: m.content || "" }],
-  }));
+  // 🧟 TOOL ADAPTER — Gemini never saw tools before this line (the honest
+  // "gemini+tools → empty" gap). Now:
+  //   messages → Gemini contents (assistant tool_calls → model functionCall
+  //   parts, tool results → user functionResponse parts) [doc 3]
+  //   OpenAI tools → [{functionDeclarations:[...]}] (schema sanitized) [doc 3]
+  const contents = TOOLADAPTER.toProviderMessages(messages, "gemini");
+  const geminiTools = tools
+    ? TOOLADAPTER.toProviderTools(tools, "gemini")
+    : undefined;
   const reqBody = {
     contents,
+    ...(geminiTools ? { tools: geminiTools } : {}),
     ...(temperature ? { generationConfig: { temperature } } : {}),
   };
   const body = JSON.stringify(reqBody);
@@ -5401,16 +5463,18 @@ function callGeminiModelStream(
   resolve,
   providerId,
   config,
+  tools,
 ) {
   const apiKey = config.key;
   const apiModel = resolveApiModel(model, providerId);
-  const contents = messages.map((m) => ({
-    role:
-      m.role === "assistant" ? "model" : m.role === "system" ? "user" : m.role,
-    parts: [{ text: m.content || "" }],
-  }));
+  // 🧟 TOOL ADAPTER — same outbound conversion as the non-stream path. [doc 3]
+  const contents = TOOLADAPTER.toProviderMessages(messages, "gemini");
+  const geminiTools = tools
+    ? TOOLADAPTER.toProviderTools(tools, "gemini")
+    : undefined;
   const reqBody = {
     contents,
+    ...(geminiTools ? { tools: geminiTools } : {}),
     ...(temperature ? { generationConfig: { temperature } } : {}),
   };
   const body = JSON.stringify(reqBody);
@@ -5432,7 +5496,8 @@ function callGeminiModelStream(
   const proto = url.protocol === "http:" ? http : https;
   const req = proto.request(options, (res) => {
     let fullContent = "",
-      buffer = "";
+      buffer = "",
+      streamToolCalls = [];
     res.setEncoding("utf8");
     res.on("data", (chunk) => {
       buffer += chunk;
@@ -5450,13 +5515,18 @@ function callGeminiModelStream(
             fullContent += text;
             if (onChunk) onChunk({ content: text }, parsed);
           }
+          // 🧟 TOOL ADAPTER — functionCall parts in the SSE stream →
+          // accumulated OpenAI tool_calls (doc 3), returned on end.
+          const tc = TOOLADAPTER.parseToolCalls(parsed);
+          if (tc.length) streamToolCalls.push(...tc);
         } catch (e) { }
       }
     });
     res.on("end", () =>
       resolve({
-        success: true,
+        success: !!(fullContent || streamToolCalls.length),
         content: fullContent,
+        ...(streamToolCalls.length ? { tool_calls: streamToolCalls } : {}),
         model,
         provider: providerId,
       }),
@@ -5564,6 +5634,7 @@ function callModelStream(
         resolve,
         providerId,
         config,
+        tools,
       );
     }
 
@@ -5660,6 +5731,7 @@ function callModelStream(
       let fullContent = "",
         buffer = "",
         hasToolCalls = false,
+        accToolCalls = [],
         streamError = null;
       responseStream.setEncoding("utf8");
       responseStream.on("data", (chunk) => {
@@ -5705,7 +5777,27 @@ function callModelStream(
                   : JSON.stringify(reasoning);
             }
             const toolCalls = delta.tool_calls || null;
-            if (toolCalls) hasToolCalls = true;
+            if (toolCalls) {
+              hasToolCalls = true;
+              // Accumulate streamed tool_call FRAGMENTS (OpenAI streaming
+              // spec: id/name arrive once, arguments stream as deltas) so
+              // the resolve carries complete tool_calls, not just a flag.
+              for (const tcf of toolCalls) {
+                const idx = typeof tcf.index === "number" ? tcf.index : accToolCalls.length;
+                if (!accToolCalls[idx]) {
+                  accToolCalls[idx] = {
+                    id: "",
+                    type: "function",
+                    function: { name: "", arguments: "" },
+                  };
+                }
+                if (tcf.id) accToolCalls[idx].id = tcf.id;
+                if (tcf.function) {
+                  if (tcf.function.name) accToolCalls[idx].function.name += tcf.function.name;
+                  if (tcf.function.arguments) accToolCalls[idx].function.arguments += tcf.function.arguments;
+                }
+              }
+            }
             if (content) fullContent += content;
             if (content || toolCalls) {
               if (onChunk) onChunk({ ...delta, content }, parsed);
@@ -5837,6 +5929,13 @@ function callModelStream(
         resolve({
           success: !!(fullContent || hasToolCalls),
           content: fullContent,
+          ...(accToolCalls.filter(Boolean).length
+            ? {
+                tool_calls: accToolCalls
+                  .filter(Boolean)
+                  .map((t, i) => (t.id ? t : { ...t, id: "call_stream_" + i })),
+              }
+            : {}),
           model,
           provider: providerId,
         });
@@ -5960,6 +6059,7 @@ function callModel(
         resolve,
         providerId,
         config,
+        tools,
       );
     }
 
@@ -15465,6 +15565,13 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
           provider: usedProvider,
           editor: parsed.editor || "hermes",
         });
+        // 🧟 TOOL ADAPTER: forward the adapter-parsed tool_calls to the
+        // client — this block used to hardcode finish_reason:"stop" and
+        // DROP tool_calls, so no /v1 client could ever see a function call.
+        const proxyToolCalls =
+          proxyResult && Array.isArray(proxyResult.tool_calls)
+            ? proxyResult.tool_calls
+            : [];
         return jsonResponse(res, 200, {
           id: "chatcmpl-" + crypto.randomUUID().replace(/-/g, ""),
           object: "chat.completion",
@@ -15480,8 +15587,9 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
                 content: maskModelIdentity(
                   proxyResult ? proxyResult.content : "No response",
                 ),
+                ...(proxyToolCalls.length ? { tool_calls: proxyToolCalls } : {}),
               },
-              finish_reason: "stop",
+              finish_reason: proxyToolCalls.length ? "tool_calls" : "stop",
             },
           ],
           usage: {},

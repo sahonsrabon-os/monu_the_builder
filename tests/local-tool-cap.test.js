@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 // =============================================================================
 // TEST: "custom_ টেস্ট প্রভাইডারের অস্তিত্ব কি থাকা উচিত?" + লোকাল মডেল টুল-ক্যাপ
+//       + Universal Tool-Call Adapter ("external tools/tool.js") ইন্টিগ্রেশন
 // =============================================================================
 // পদ্ধতি (evidence-based, কোনো অনুমান নয়):
 //   1) STATIC  — api.js থেকে আসল সোর্স-লাইন টেক্সট পড়ে assert করা হয়
-//   2) DYNAMIC — api.js-এর 14551-14580 ব্লকের কোডটা নিজে থেকে extract করে
-//                ঠিক সেই কোডকে eval করানো হয় (copy নয় — আসল কোড)
+//   2) DYNAMIC — api.js-এর আসল ব্লক extract করে ঠিক সেই কোডকে eval
+//                করানো হয় (copy নয় — আসল কোড)
+//   3) PART C  — tool.js-এর ৬টা অফিসিয়াল ডকের fixture দিয়ে কনভার্সন যাচাই
+//   4) PART D  — normalizeResponse-এর সাথে অ্যাডাপ্টার সংযোগ (static+dynamic)
 //
 // চলার পদ্ধতি:  node tests/local-tool-cap.test.js
 // শেষে exit code 0 = সব assertion pass।
@@ -202,6 +205,172 @@ const isTestOnly = /if \(!url\) \{[^}]*Skipped: no URL set/.test(src);
 assert("B9  custom_ প্রোভাইডার test-only নয় — URL থাকলেই প্রোডাকশন প্রোভাইডার হিসেবে লোড হয়",
   isTestOnly === true && loaderCallLine > 0, "line " + (customLoaderLine + 1) + " + startup call");
 fact("B9  অর্থাৎ: এটা mutex/fixture নয়, এটা লোকাল-মডেল রাউটিংয়ের প্রধান চাবিকাঠি", "");
+
+// ─────────────────────────────────────────────────────────────
+// PART C — Universal Tool-Call Adapter ("external tools/tool.js")
+//   ৬টা অফিসিয়াল ডকের fixture (Groq / Gemini / Ollama / OpenAI
+//   Responses / llama.cpp / Anthropic / Bedrock) দিয়ে অ্যাডাপ্টারের
+//   কনভার্সন যাচাই — কোনো অনুমান নয়, ডকের JSON কপি করা fixture।
+// ─────────────────────────────────────────────────────────────
+const ADAPTER_PATH = path.resolve(__dirname, "..", "external tools", "tool.js");
+let ADAPTER = null;
+try { ADAPTER = require(ADAPTER_PATH); } catch (e) { }
+assert("C0  external tools/tool.js লোড হয়", !!ADAPTER,
+  ADAPTER ? Object.keys(ADAPTER).length + " exports" : "load fail");
+
+if (ADAPTER) {
+  const chatTools = [{ type: "function", function: { name: "get_weather", description: "d", parameters: { type: "object", properties: { location: { type: "string" } }, required: ["location"], additionalProperties: false } } }];
+
+  // C1 — Groq Tool Use doc: standard chat tool_calls [doc 1]
+  const groqRaw = { choices: [{ message: { role: "assistant", content: "", tool_calls: [{ id: "call_abc123", type: "function", function: { name: "get_weather", arguments: "{\"location\":\"San Francisco, CA\"}" } }] }, finish_reason: "tool_calls" }] };
+  const c1 = ADAPTER.parseToolCalls(groqRaw);
+  assert("C1  [Groq doc] chat tool_calls → canonical", c1.length === 1 && c1[0].id === "call_abc123" && JSON.parse(c1[0].function.arguments).location === "San Francisco, CA");
+
+  // C2 — Ollama doc: arguments OBJECT, কোনো id নেই [doc 4]
+  const ollamaRaw = { message: { role: "assistant", content: "", tool_calls: [{ type: "function", function: { index: 0, name: "get_temperature", arguments: { city: "New York" } } }] } };
+  const c2 = ADAPTER.parseToolCalls(ollamaRaw);
+  assert("C2  [Ollama doc] object args → JSON string + id synthesized", c2.length === 1 && typeof c2[0].function.arguments === "string" && JSON.parse(c2[0].function.arguments).city === "New York" && !!c2[0].id);
+
+  // C3 — Ollama doc: tool result message → tool_name [doc 4]
+  const om = ADAPTER.toProviderMessages([{ role: "tool", tool_call_id: "call_1", content: "22°C" }], "ollama");
+  assert("C3  [Ollama doc] result message → {role:'tool', tool_name}", om[0].role === "tool" && om[0].tool_name === "call_1");
+
+  // C4 — Gemini doc: parts[].functionCall {name, args:OBJECT} [doc 3]
+  const gemRaw = { candidates: [{ content: { role: "model", parts: [{ functionCall: { name: "set_light_values", args: { brightness: 25, color_temp: "warm" } } }] }, finishReason: "STOP" }] };
+  const c4 = ADAPTER.parseToolCalls(gemRaw);
+  assert("C4  [Gemini doc] functionCall part → tool_calls", c4.length === 1 && c4[0].function.name === "set_light_values" && JSON.parse(c4[0].function.arguments).brightness === 25);
+
+  // C5 — Gemini doc: outbound functionDeclarations + schema sanitize [doc 3]
+  const gt = ADAPTER.toProviderTools(chatTools, "gemini");
+  assert("C5  [Gemini doc] tools → functionDeclarations, additionalProperties stripped",
+    Array.isArray(gt) && gt[0].functionDeclarations[0].name === "get_weather" &&
+    gt[0].functionDeclarations[0].parameters.additionalProperties === undefined);
+
+  // C6 — Gemini doc: history — assistant→model functionCall, tool→user functionResponse [doc 3]
+  const gh = ADAPTER.toProviderMessages([
+    { role: "user", content: "lights?" },
+    { role: "assistant", content: "", tool_calls: [{ id: "call_9", type: "function", function: { name: "set_light_values", arguments: "{\"brightness\":25}" } }] },
+    { role: "tool", tool_call_id: "call_9", content: "{\"ok\":true}" },
+  ], "gemini");
+  assert("C6  [Gemini doc] history → functionCall + functionResponse parts",
+    gh[1].role === "model" && gh[1].parts[0].functionCall.name === "set_light_values" &&
+    gh[2].role === "user" && gh[2].parts[0].functionResponse.name === "set_light_values" &&
+    gh[2].parts[0].functionResponse.response.ok === true);
+
+  // C7 — OpenAI Responses doc: FLAT tools + output[] function_call [doc 5]
+  const respRaw = { id: "resp_1", output: [{ id: "fc_123", call_id: "call_12345xyz", type: "function_call", name: "get_horoscope", arguments: "{\"sign\":\"Taurus\"}" }] };
+  const c7 = ADAPTER.parseToolCalls(respRaw);
+  const rt = ADAPTER.toProviderTools(chatTools, "responses");
+  assert("C7  [OpenAI Responses doc] output[] → tool_calls + FLAT tools",
+    c7.length === 1 && c7[0].id === "call_12345xyz" && JSON.parse(c7[0].function.arguments).sign === "Taurus" &&
+    rt[0].type === "function" && rt[0].name === "get_weather" && !rt[0].function);
+
+  // C8 — llama.cpp doc: text-embedded call + allow-list [doc 6]
+  const c8 = ADAPTER.extractTextToolCalls('```tool_call\n{"name":"python","arguments":{"code":"print(1)"}}\n```', ["python"]);
+  const c8b = ADAPTER.extractTextToolCalls('{"name":"evil_tool","arguments":{}}', ["python"]);
+  assert("C8  [llama.cpp doc] text → tool_calls; unknown name rejected", c8.length === 1 && JSON.parse(c8[0].function.arguments).code === "print(1)" && c8b.length === 0);
+
+  // C9 — Anthropic tool_use → OpenAI shape (আগে raw ব্লক যেত, arguments অবজেক্ট ছিল)
+  const c9 = ADAPTER.parseToolCalls({ content: [{ type: "text", text: "hi" }, { type: "tool_use", id: "toolu_1", name: "get_weather", input: { location: "Paris" } }], stop_reason: "tool_use" });
+  assert("C9  [Anthropic] tool_use → {id, function:{name, arguments:STRING}}",
+    c9.length === 1 && c9[0].id === "toolu_1" && typeof c9[0].function.arguments === "string" && JSON.parse(c9[0].function.arguments).location === "Paris");
+
+  // C10 — Bedrock Converse toolUse [doc 8]
+  const c10 = ADAPTER.parseToolCalls({ output: { message: { content: [{ toolUse: { toolUseId: "ts_1", name: "get_weather", input: { location: "Rome" } } }] } }, stopReason: "tool_use" });
+  assert("C10 [Bedrock] toolUse → tool_calls", c10.length === 1 && c10[0].id === "ts_1");
+
+  // C11 — কোনো call নেই → [] (ভুল positive নয়)
+  assert("C11 plain text → [] (no false positive)", ADAPTER.parseToolCalls({ choices: [{ message: { content: "hello world" } }] }).length === 0);
+}
+
+// ─────────────────────────────────────────────────────────────
+// PART D — নরমালাইজারের সাথে অ্যাডাপ্টারের সংযোগ (api.js)
+//   STATIC: কোথায় যুক্ত হয়েছে + DYNAMIC: api.js থেকে আসল
+//   normalizeResponse ব্লক extract করে eval করে fixture দেওয়া।
+// ─────────────────────────────────────────────────────────────
+assert("D1  api.js external tools/tool.js require করে",
+  src.includes('require("./external tools/tool.js")'));
+
+const gemOutboundCount = src.split('TOOLADAPTER.toProviderTools(tools, "gemini")').length - 1;
+assert("D2  Gemini outbound: functionDeclarations দুই পাথে (non-stream + stream)",
+  gemOutboundCount === 2, gemOutboundCount + " জায়গায়");
+
+assert("D3  Gemini stream-এ functionCall accumulate + tool_calls রিসলভ",
+  src.includes("streamToolCalls.push(...tc)") && src.includes("tool_calls: streamToolCalls"));
+assert("D4  OpenAI stream-এ tool_call fragment accumulator (আগে শুধু ফ্ল্যাগ ছিল)",
+  src.includes("accToolCalls") && src.includes("call_stream_"));
+
+const passToolsStream = /return callGeminiModelStream\(\s*model,\s*messages,\s*temperature,\s*onChunk,\s*resolve,\s*providerId,\s*config,\s*tools,/.test(src);
+const passToolsNonStream = /return callGeminiModel\(\s*model,\s*messages,\s*temperature,\s*resolve,\s*providerId,\s*config,\s*tools,/.test(src);
+assert("D5  দুই call-site-এই tools পাস হয়", passToolsStream && passToolsNonStream,
+  "stream=" + passToolsStream + " non-stream=" + passToolsNonStream);
+
+// D6 — api.js থেকে আসল normalizeResponse ব্লক extract (copy নয়)
+const nrStart = src.indexOf("function normalizeResponse(raw, modelHint) {");
+const bannerIdx = nrStart > 0 ? src.indexOf("🔌 MODEL CALL", nrStart) : -1;
+let nrBlock = "";
+if (nrStart > 0 && bannerIdx > 0) nrBlock = src.slice(nrStart, src.lastIndexOf("\n", src.lastIndexOf("\n", bannerIdx)));
+assert("D6  normalizeResponse ব্লক extract হয়েছে", nrBlock.length > 2000, nrBlock.length + " chars");
+
+let normalizeResponse = null;
+if (nrBlock) {
+  try {
+    normalizeResponse = new Function("log", "maskModelName", "TOOLADAPTER",
+      nrBlock + "\nreturn normalizeResponse;")(() => {}, (m) => m, ADAPTER);
+  } catch (e) { fact("D6  eval error", e.message); }
+}
+assert("D6b normalizeResponse eval হয়েছে", typeof normalizeResponse === "function");
+
+if (typeof normalizeResponse === "function" && ADAPTER) {
+  // D7 — Gemini + functionCall → tool_calls (আগে: টেক্সটই আসত না, ফাঁকি)
+  const n7 = normalizeResponse({ candidates: [{ content: { role: "model", parts: [{ functionCall: { name: "set_light_values", args: { brightness: 25, color_temp: "warm" } } }] }, finishReason: "STOP" }] }, "gemini-flash");
+  const m7 = n7.choices[0];
+  assert("D7  normalizeResponse(gemini+functionCall) → finish=tool_calls + parsed args",
+    m7.finish_reason === "tool_calls" && m7.message.tool_calls && m7.message.tool_calls.length === 1 &&
+    JSON.parse(m7.message.tool_calls[0].function.arguments).color_temp === "warm" &&
+    n7.toolCallsFrom === "universal-adapter",
+    "originalFormat=" + n7.originalFormat);
+
+  // D8 — Responses API output[] (আগে HAQ_MAWLA_UNKNOWN_FORMAT পড়ত)
+  const n8 = normalizeResponse({ id: "resp_1", output: [{ call_id: "call_12345xyz", type: "function_call", name: "get_horoscope", arguments: "{\"sign\":\"Taurus\"}" }] }, "gpt-oss-120b");
+  assert("D8  normalizeResponse(responses output[]) → tool_calls",
+    n8.choices[0].message.tool_calls && n8.choices[0].message.tool_calls[0].id === "call_12345xyz",
+    "originalFormat=" + n8.originalFormat);
+
+  // D9 — Anthropic: arguments STRING (আগে raw input অবজেক্ট যেত)
+  const n9 = normalizeResponse({ content: [{ type: "text", text: "আমি টুল ব্যবহার করছি" }, { type: "tool_use", id: "toolu_1", name: "get_weather", input: { location: "Paris" } }], stop_reason: "tool_use" }, "claude-x");
+  const t9 = n9.choices[0].message.tool_calls;
+  assert("D9  normalizeResponse(anthropic tool_use) → string arguments + content রাখা",
+    t9 && typeof t9[0].function.arguments === "string" && n9.choices[0].message.content.includes("আমি টুল"));
+
+  // D10 — Gemini TEXT-ONLY regression: আগের পাথ অক্ষত
+  const n10 = normalizeResponse({ candidates: [{ content: { role: "model", parts: [{ text: "নমস্কার ভাই!" }] }, finishReason: "STOP" }] }, "gemini-flash");
+  assert("D10 gemini text-only → content অক্ষত, কোনো tool_calls নেই",
+    n10.choices[0].message.content === "নমস্কার ভাই!" && !n10.choices[0].message.tool_calls && n10.choices[0].finish_reason === "stop");
+
+  // D11 — unknown plain object → আগের fallback অক্ষত (crash নয়)
+  const n11 = normalizeResponse({ foo: 1 }, "mystery-model");
+  assert("D11 unknown format → unknown_external fallback অক্ষত",
+    n11.originalFormat === "unknown_external" && n11.choices[0].message.role === "assistant");
+
+  // D12 — OpenAI-ভিত্তিক পাথে object arguments (Ollama quirk) → string
+  const n12 = normalizeResponse({ choices: [{ message: { role: "assistant", content: "", tool_calls: [{ type: "function", function: { name: "f", arguments: { a: 1 } } }] }, finish_reason: "tool_calls" }] }, "m");
+  assert("D12 choices-path: object arguments → JSON string (normalizeChatToolCalls)",
+    typeof n12.choices[0].message.tool_calls[0].function.arguments === "string" &&
+    JSON.parse(n12.choices[0].message.tool_calls[0].function.arguments).a === 1);
+
+  // D13 — tool না থাকলে OpenAI পাথে tool_calls key থাকবে না (শূন্য array নয়)
+  const n13 = normalizeResponse({ choices: [{ message: { role: "assistant", content: "hi" }, finish_reason: "stop" }] }, "m");
+  assert("D13 plain chat → tool_calls key absent", !("tool_calls" in n13.choices[0].message));
+}
+
+// D14 — প্রক্সি /v1/chat/completions চূড়ান্ত রেসপন্সে tool_calls ফরোয়ার্ড
+//   (এই ব্লক আগে finish_reason:"stop" হার্ডকোড করে tool_calls বাদ দিত —
+//    লাইভে ধরা পড়েছিল, তাই এখন static regression guard)
+const proxyForwardsTools =
+  src.includes("proxyToolCalls") &&
+  src.includes('finish_reason: proxyToolCalls.length ? "tool_calls" : "stop"');
+assert("D14 প্রক্সি রেসপন্সে tool_calls forward + dynamic finish_reason", proxyForwardsTools);
 
 // ─────────────────────────────────────────────────────────────
 console.log("\n══════════════════════════════════════════════════════════");
