@@ -1077,6 +1077,14 @@ async function handler(req, res) {
 // ── Dual bind + lifecycle ─────────────────────────────────────
 function start() {
   log("INFO", "=====================================================");
+  const hintNow = process.env.BRIDGE_GGUF_HINT;
+  if (hintNow && CFG.gguf && !CFG.gguf.includes(hintNow)) {
+    log("WARN", "HINT_NO_MATCH", {
+      hint: hintNow,
+      using: path.basename(CFG.gguf),
+      note: "no gguf matched the hint - fell back to the newest file",
+    });
+  }
   log("INFO", "LOCAL LLM BRIDGE STARTING", {
     backend: CFG.backend,
     model: CFG.model,

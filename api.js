@@ -15853,10 +15853,12 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
 
         // 🧟 EMPTY RESPONSE RETRY: If model returns empty, retry once without tools
         let retryWithoutTools = false;
+        let streamedToolCalls = 0;
         const streamCallback = (delta, parsed) => {
             const content = delta.content || "";
             const toolCalls = delta.tool_calls || null;
             if (content) fullContent += content;
+            if (toolCalls) streamedToolCalls++;
 
             const chunk = {
               id: responseId,
@@ -15884,13 +15886,21 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
           toolsForStream,
         );
 
-        // 🧟 EMPTY RESPONSE RETRY: model returned nothing with tools → retry without
-        if (!fullContent && toolsForStream && toolsForStream.length > 0) {
+        // 🧟 EMPTY RESPONSE RETRY: model returned NOTHING at all (no content AND
+        // no tool calls) with tools → retry without tools. A tool-call-only
+        // response is a VALID answer - never discard it (2026-09-26 live test:
+        // get_weather {"city":"Dhaka"} was thrown away by this branch).
+        if (
+          !fullContent &&
+          !streamedToolCalls &&
+          toolsForStream &&
+          toolsForStream.length > 0
+        ) {
           retryWithoutTools = true;
           log("WARN", "EMPTY_RESPONSE_RETRY", {
             agent: agent.id,
             tools: toolsForStream.length,
-            reason: "model returned 0 chars with tools, retrying without tools",
+            reason: "model returned 0 chars and 0 tool calls with tools, retrying without tools",
           });
           fullContent = ""; // reset
           await callModelStream(

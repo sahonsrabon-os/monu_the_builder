@@ -56,7 +56,7 @@ and this README keeps a public Limitations section instead of hiding failures.
 
 ---
 
-## The Mission Barisal Agents (10)
+## The Mission Barisal Agents (9)
 
 Each agent has a persona, an architecture role, and a **model mapped from the model
 DB** — change it live from **Admin → Agent Manager** (`Change Model` → `Save`).
@@ -64,7 +64,7 @@ DB** — change it live from **Admin → Agent Manager** (`Change Model` → `Sa
 | ID | Persona | Role | Mapped model |
 |----|---------|------|--------------|
 | `doc-king` | Documentation King - Halim | documentation | `mistral-small:free` |
-| `team-heart` | Team Heart - Jara | general | `qwen2:0.5b` |
+| `team-heart` | Team Heart - Jara | general | `llama-local` |
 | `customer-experience-specialist` | Customer Experience Specialist | customer-experience | `gpt-oss:120b` |
 | `ecommerce-operations-analyst` | E-Commerce Operations Analyst | ecommerce-operations | `qwen3:free` |
 | `bug-hunter` | Bug Hunter - Jewel | debugging | `llama-local` |
@@ -361,6 +361,7 @@ have to repeat.
 | S4 | **The broker is an anti-corruption layer.** The gateway keeps speaking only the standard OpenAI dialect; all format translation lives in the broker; `api.js` gains no per-caller format branches; contract tests are the treaty. | Keeps the gateway independent of any single client. *Missing: a broker-side contract test.* |
 | S5 | **The gateway (port 3000) is the response-collection point.** Models talk only to the server; the companion UI is deferred — its backend answered in ~1.2 s while the frontend failed to render (UI-side issue, tracked separately). | Response collection first; presentation second. |
 | S6 | **Canonical local model id is `llama-local`.** Agents and docs reference it; the defective IQ3_XS quant was deleted; Q4_K_M is the verified file. | Renaming the id would break existing agent rows. |
+| S7 | **Dual tool contract, stated explicitly.** Non-stream single-agent requests execute tools server-side (loop capped at MAX_ROUNDS, then a forced text final); streaming requests forward `tool_calls` deltas and do NOT execute — the client is the executor. | Observed live 2026-09-26 night: the non-stream path logged real `MCP_CALL` executions, while a stream round forwarded tool_call fragments with zero executions. |
 
 ### Proposals (open)
 
@@ -372,6 +373,7 @@ have to repeat.
 | P4 | Dual-face transport: the Unix socket is the memory-to-memory data path with no header ceremony; loopback TCP is the metadata face (health / models / identity handshake) for clients that expect a TCP handshake. | Accepted principle, partially implemented — both transports already serve `/health` and `/v1/models` with `auth_required:false`. |
 | P5 | Inject identity/session metadata into response headers so remote clients do not treat this server as anonymous. | Logical in outline, but SSE clients may drop headers and headers must never leak secrets — **needs a concrete spec** (the shared fragment was incomplete). |
 | P6 | Use the CDP pipe as the "king's driver" for outbound browsing/identity. | Scope-limited: `browse_cdp` is an MCP tool, not part of the inference path — keep the two separate. |
+| P7 | Execute tools server-side inside the streaming path too (or require clients to execute and ship an executor). | Blocking for the UI: today a streamed tool-call round ends with an empty content bubble (S7). Needs a decision before browser work resumes. |
 
 ### Rejected / bounded
 
@@ -381,6 +383,25 @@ have to repeat.
   his format") — refined to S4: standard dialect at the gateway, translation in the
   broker.
 - **Deep-debugging the companion UI** — deferred (S5).
+
+### Live verification — 2026-09-26 night (tool chain)
+
+- **Fixed:** the streaming empty-response retry discarded valid tool-call-only
+  rounds (`EMPTY_RESPONSE_RETRY` fired at 18:50:55 on a correct
+  `get_weather {"city":"Dhaka"}` call and re-ran without tools). The condition now
+  requires zero content **and** zero tool calls — zero occurrences after the fix
+  across every stream test.
+- **Measured** (local model over the Unix socket): direct chat 1.5 s; direct tool
+  round 3.5 s; non-stream agent full loops 148 s / 303 s / 383 s (persona prompt
+  ≈ 5.7 k tokens, first round ≈ 147 s, cached mid-loop rounds ≈ 10 s); one stream
+  agent round ≈ 155 s ending in an empty bubble (P7).
+- **Findings:** (a) test requests without a body `session_id` / `client_id` silently
+  share the default session and pollute each other; (b) the 1 B model sometimes
+  passes the tool's JSON schema as its arguments (harmless for no-parameter tools;
+  correct arguments observed for parameterised ones); (c) `get_weather` is a
+  sanitizer fixture, not a gateway tool — `executeMcpTool` correctly answers
+  "Tool not found" for unknown names; (d) model selection now logs `HINT_NO_MATCH`
+  instead of silently falling back to the newest file.
 
 ---
 
