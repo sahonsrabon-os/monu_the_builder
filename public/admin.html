@@ -1348,7 +1348,9 @@
       const stats = statusRes.stats || {};
       document.getElementById('activeSessions').textContent = health.session_count || 0;
       document.getElementById('totalRequests').textContent = stats.totalRequests || '—';
-      document.getElementById('totalAgents').textContent = stats.totalAgents || '—';
+      document.getElementById('totalAgents').textContent =
+        (logRes && logRes.agent_calls != null ? logRes.agent_calls : null) ??
+        stats.totalAgents ?? stats.agents ?? '—';
 
       // 🧟 SQLite-backed session history (session_log table — survives restart)
       const sessions = (logRes && logRes.sessions) || [];

@@ -14298,6 +14298,18 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
         sessions,
         recent,
         active: cleanExpired().length,
+        // 🧟 lifetime agent-call counter (agent_stats SUM — survives restart)
+        agent_calls: (function () {
+          if (!MODELS_DB) return null;
+          try {
+            const r = MODELS_DB
+              .prepare("SELECT COALESCE(SUM(calls),0) AS c FROM agent_stats")
+              .get();
+            return r ? r.c : null;
+          } catch (e) {
+            return null;
+          }
+        })(),
       });
       return;
     }
