@@ -635,7 +635,7 @@
         </div>
         <div class="card">
           <div class="card-header"><h3>🔌 Session Log</h3><span id="sessionDate" style="font-size:11px;color:var(--text2)"></span></div>
-          <div class="card-body"><table><thead><tr><th>Time</th><th>Session ID</th><th>Editor</th><th>Status</th></tr></thead><tbody id="sessionTable"><tr><td colspan="4"><div class="loading">Loading sessions...</div></td></tr></tbody></table></div>
+          <div class="card-body"><table><thead><tr><th>Time</th><th>Session ID</th><th>Editor</th><th>Status</th><th>Agent / Model</th></tr></thead><tbody id="sessionTable"><tr><td colspan="5"><div class="loading">Loading sessions...</div></td></tr></tbody></table></div>
         </div>
       </div>
 
@@ -662,7 +662,7 @@
         </div>
         <div class="card">
           <div class="card-header"><h3>🌐 Provider Configuration</h3><span style="font-size:11px;color:var(--text2)" id="providerRefreshTime"></span></div>
-          <div class="card-body"><table><thead><tr><th>Provider</th><th>Name</th><th>Type</th><th>Base URL</th><th>Models</th><th>Priority</th><th>Status</th></tr></thead><tbody id="providerTable"><tr><td colspan="7"><div class="loading">Loading providers...</div></td></tr></tbody></table></div>
+          <div class="card-body"><table><thead><tr><th>Provider</th><th>Name</th><th>Type</th><th>Base URL</th><th>Models</th><th>Priority</th><th>Req</th><th>Err</th><th>OK%</th><th>Status</th></tr></thead><tbody id="providerTable"><tr><td colspan="10"><div class="loading">Loading providers...</div></td></tr></tbody></table></div>
         </div>
         <div class="card">
           <div class="card-header"><h3>📊 Provider Model Distribution</h3></div>
@@ -746,7 +746,7 @@
         </div>
         <div class="card">
           <div class="card-header"><h3>🛠 Tool Usage</h3></div>
-          <div class="card-body" style="overflow-x:auto"><table><thead><tr><th>Tool</th><th>Calls</th><th>Errors</th><th>Last Used</th></tr></thead><tbody id="toolUsageTable"><tr><td colspan="4"><div class="loading">Loading...</div></td></tr></tbody></table></div>
+          <div class="card-body" style="overflow-x:auto"><table><thead><tr><th>Tool</th><th>Calls</th><th>Errors</th><th>Last Used</th><th>Status</th></tr></thead><tbody id="toolUsageTable"><tr><td colspan="5"><div class="loading">Loading...</div></td></tr></tbody></table></div>
         </div>
       </div>
 
@@ -786,6 +786,25 @@
               <button class="refresh-btn" onclick="updateSessionVerifyUrl(document.getElementById('sessionVerifyInput').value)" style="padding:8px 16px">🔄 Change Domain</button>
             </div>
             <p style="font-size:11px;color:var(--text2);margin-top:8px">Enter new verification URL and click "Change Domain" to update at runtime.</p>
+            <!-- 🧟 editable runtime config — saved to SQLite settings table, survives restart -->
+            <div style="display:grid;gap:10px;margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+              <strong style="font-size:12px">⚙️ Edit Runtime Config <span style="font-weight:400;color:var(--text2)">(persists in SQLite — no restart)</span></strong>
+              <label style="font-size:11px;color:var(--text2)">Log Level
+                <select id="cfgLogLevel" style="display:block;margin-top:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;width:100%">
+                  <option value="INFO">INFO</option>
+                  <option value="DEBUG">DEBUG</option>
+                  <option value="WARN">WARN</option>
+                  <option value="ERROR">ERROR</option>
+                </select>
+              </label>
+              <label style="font-size:11px;color:var(--text2)">Allowed Origins (one per line)
+                <textarea id="cfgOrigins" rows="4" style="display:block;margin-top:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;width:100%;font-family:monospace"></textarea>
+              </label>
+              <label style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:6px">
+                <input type="checkbox" id="cfgAntiDote"> Anti-Dote monitoring enabled
+              </label>
+              <button class="refresh-btn" onclick="saveRuntimeConfig()" style="padding:8px 16px;justify-self:start">💾 Save Config</button>
+            </div>
           </div>
         </div>
         <div class="card">
@@ -879,6 +898,22 @@
       else if (page === 'config') loadConfig();
       else if (page === 'about') loadAbout();
       else if (page === 'agent-manager') loadAgentManager();
+      else if (page === 'chat') populateChatAgents();
+    }
+
+    // 🧟 Chat dropdown is DB-driven (agents table) — no hardcoded agent list.
+    async function populateChatAgents() {
+      try {
+        const data = await apiFetch('/api/agents');
+        const list = (data && data.agents) || [];
+        if (!list.length) return;
+        const sel = document.getElementById('chatAgentSelect');
+        const cur = sel.value;
+        sel.innerHTML = '<option value="mission">🤖 Mission (All Agents)</option>' +
+          list.map(a => `<option value="${a.id}">🤖 ${a.name || a.id}</option>`).join('');
+        if (cur) sel.value = cur;
+        document.getElementById('chatStatus').textContent = 'ready';
+      } catch (_) {}
     }
 
     function refreshCurrentPage() {
@@ -1307,22 +1342,28 @@
     //  SESSIONS
     // ═══════════════════════════════════════════════
     async function loadSessions(dateFilter) {
-      const [health, statusRes] = await Promise.all([apiFetch('/health'), apiFetch('/status')]);
+      const [health, statusRes, logRes] = await Promise.all([
+        apiFetch('/health'), apiFetch('/status'), apiFetch('/api/admin/session-log'),
+      ]);
       const stats = statusRes.stats || {};
       document.getElementById('activeSessions').textContent = health.session_count || 0;
       document.getElementById('totalRequests').textContent = stats.totalRequests || '—';
       document.getElementById('totalAgents').textContent = stats.totalAgents || '—';
 
-      // Try to get session data from status endpoint
-      const sessions = statusRes.sessions || [];
+      // 🧟 SQLite-backed session history (session_log table — survives restart)
+      const sessions = (logRes && logRes.sessions) || [];
       document.getElementById('sessionTable').innerHTML = sessions.length
         ? sessions.map(s => `
-          <tr><td>${fmtTime(s.created_at) || '—'}</td>
-          <td><code>${(s.id || '').slice(0, 12)}</code></td>
-          <td>${s.editor || '—'}</td>
-          <td><span class="tag ${s.status === 'active' ? 'tag-green' : 'tag-orange'}">${s.status || 'unknown'}</span></td></tr>
+          <tr>
+            <td>${s.last_seen ? fmtTime(Number(s.last_seen)) : '—'}</td>
+            <td><code>${(s.id || '').slice(0, 12)}</code></td>
+            <td>${s.editor || '—'}${s.user_agent ? '<div style="font-size:10px;color:var(--text2)">' + String(s.user_agent).slice(0, 42) + '</div>' : ''}</td>
+            <td><span class="tag ${s.status === 'active' ? 'tag-green' : 'tag-orange'}">${s.status || 'unknown'}</span>
+                <span class="tag tag-blue">${s.requests || 0} req</span></td>
+            <td style="font-size:11px">${s.agent || '—'}${s.model ? ' · ' + s.model : ''}${s.provider ? ' <span class="tag tag-blue">@' + s.provider + '</span>' : ''}</td>
+          </tr>
         `).join('')
-        : '<tr><td colspan="4" style="text-align:center;color:var(--text2)">No active sessions</td></tr>';
+        : '<tr><td colspan="5" style="text-align:center;color:var(--text2)">No sessions recorded yet — send one chat message and it will appear here.</td></tr>';
       if (!dateFilter) document.getElementById('sessionDate').textContent = '📅 ' + new Date().toISOString().slice(0,10);
     }
 
@@ -1357,7 +1398,7 @@
     async function loadProviders() {
       const data = await apiFetch('/api/normalize-list');
       if (data.error) {
-        document.getElementById('providerTable').innerHTML = '<tr><td colspan="7" style="color:var(--red)">Failed: ' + data.error + '</td></tr>';
+        document.getElementById('providerTable').innerHTML = '<tr><td colspan="10" style="color:var(--red)">Failed: ' + data.error + '</td></tr>';
         return;
       }
       const providers = data.providers || [];
@@ -1388,8 +1429,12 @@
           <td style="font-size:11px;font-family:monospace">${p.baseUrl ? p.baseUrl.slice(0, 40) + (p.baseUrl.length > 40 ? '...' : '') : '—'}${st.hasKey ? ' 🔑' : ''}</td>
           <td>${(p.models && p.models.length) || st.models || '—'}</td>
           <td><span class="tag ${p.priority > 1 ? 'tag-green' : 'tag-orange'}">${p.priority || '—'}</span></td>
+          <td><strong>${st.requests || 0}</strong></td>
+          <td><span class="tag ${st.errors > 0 ? 'tag-red' : 'tag-green'}">${st.errors || 0}</span></td>
+          <td>${st.success_pct == null ? '<span style="color:var(--text2)">—</span>' : '<strong style="color:' + (st.success_pct >= 90 ? 'var(--green)' : (st.success_pct >= 60 ? 'var(--orange)' : 'var(--red)')) + '">' + st.success_pct + '%</strong>'}<div style="font-size:10px;color:var(--text2)">${st.last_used ? ago(st.last_used) : 'never used'}</div></td>
           <td>
-            ${on ? '<span class="tag tag-green">🟢 Online</span>' : '<span class="tag tag-red">⛔ Off</span>'}
+            ${on ? (st.healthy === false ? '<span class="tag tag-red">🔴 Failing</span>' : '<span class="tag tag-green">🟢 Online</span>') : '<span class="tag tag-red">⛔ Off</span>'}
+            ${st.last_error ? '<div style="font-size:10px;color:var(--red);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + String(st.last_error).replace(/"/g, "'") + '">⚠ ' + String(st.last_error).slice(0, 40) + '</div>' : ''}
             <button class="refresh-btn" onclick="toggleProvider('${(p.id || '').replace(/'/g, "\\'")}', ${on ? 0 : 1})" style="padding:2px 6px;font-size:10px;margin-left:4px;">${on ? '🔕 Disable' : '🔔 Enable'}</button>
           </td>
         </tr>`;
@@ -1440,6 +1485,13 @@
       if (cfg.sessionVerifyUrl) {
         document.getElementById('sessionVerifyInput').value = cfg.sessionVerifyUrl;
       }
+      // Fill editable runtime config controls
+      const cfgLog = document.getElementById('cfgLogLevel');
+      const cfgOrg = document.getElementById('cfgOrigins');
+      const cfgAd = document.getElementById('cfgAntiDote');
+      if (cfgLog && cfg.logLevel) cfgLog.value = cfg.logLevel;
+      if (cfgOrg && Array.isArray(cfg.allowedOrigins)) cfgOrg.value = cfg.allowedOrigins.join('\n');
+      if (cfgAd && typeof cfg.antiDoteEnabled === 'boolean') cfgAd.checked = cfg.antiDoteEnabled;
 
       // Config table
       document.getElementById('configTable').innerHTML = Object.entries(cfg).map(([k, v]) => `
@@ -1616,7 +1668,15 @@
         } else {
           const r = await fetch(API + '/v1/chat/completions', {
             method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ model: agentId, messages: [{ role: 'user', content: msg }] })
+            body: JSON.stringify({
+              model: agentId,
+              messages: [{ role: 'user', content: msg }],
+              // 🧟 server-side tool catalog (web_search, read_file, ...) so
+              // the agent can actually USE tools, not just chat.
+              tools: 'mcp',
+              session_id: currentChatSessionId || undefined,
+              editor: 'admin-panel',
+            })
           });
           result = await r.json();
         }
@@ -1777,6 +1837,29 @@
       }).catch(e => alert('❌ Error: ' + e.message));
     }
 
+    // 🧟 Save logLevel + allowedOrigins + antiDoteEnabled → settings KV (SQLite)
+    function saveRuntimeConfig() {
+      const origins = (document.getElementById('cfgOrigins').value || '')
+        .split('\n').map(s => s.trim()).filter(Boolean);
+      fetch(API + '/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          logLevel: document.getElementById('cfgLogLevel').value,
+          allowedOrigins: origins,
+          antiDoteEnabled: document.getElementById('cfgAntiDote').checked,
+          sessionVerifyUrl: document.getElementById('sessionVerifyInput').value,
+        })
+      }).then(r => r.json()).then(res => {
+        if (res.success) {
+          alert('✅ Config saved to SQLite — survives restart!');
+          loadConfig();
+        } else {
+          alert('❌ Failed: ' + JSON.stringify(res));
+        }
+      }).catch(e => alert('❌ Error: ' + e.message));
+    }
+
     // ═══════════════════════════════════════════════
     //  USAGE STATS PAGE
     // ═══════════════════════════════════════════════
@@ -1863,17 +1946,24 @@
     //  MCP & TOOLS PAGE
     // ═══════════════════════════════════════════════
     async function loadMcpTools() {
-      const data = await apiFetch('/api/admin/mcp-connections');
+      const [data, toolsRes] = await Promise.all([
+        apiFetch('/api/admin/mcp-connections'),
+        apiFetch('/api/admin/tools'),
+      ]);
       if (data.error) {
         console.error('Failed to load MCP data:', data.error);
         return;
       }
 
+      // 🧟 tools now come from the SQLite tool_stats table (calls/errors/
+      // last_used persist across restarts) + admin on/off state.
+      const tools = (toolsRes && toolsRes.tools) || [];
+
       // Summary
       document.getElementById('mcpActiveConns').textContent = data.activeConnections || 0;
-      document.getElementById('mcpTotalTools').textContent = data.totalTools || 0;
-      const totalCalls = (data.tools || []).reduce((sum, t) => sum + (t.usage?.count || 0), 0);
-      const totalErrors = (data.tools || []).reduce((sum, t) => sum + (t.usage?.errors || 0), 0);
+      document.getElementById('mcpTotalTools').textContent = (toolsRes && toolsRes.total_tools) || tools.length || 0;
+      const totalCalls = tools.reduce((sum, t) => sum + (t.calls || 0), 0);
+      const totalErrors = tools.reduce((sum, t) => sum + (t.errors || 0), 0);
       document.getElementById('mcpToolCalls').textContent = totalCalls;
       document.getElementById('mcpToolErrors').textContent = totalErrors;
 
@@ -1894,18 +1984,33 @@
         `).join('')
         : '<p style="color:var(--text2)">No MCP clients connected</p>';
 
-      // Tool usage table
-      const tools = data.tools || [];
+      // Tool usage table + on/off toggle
       document.getElementById('toolUsageTable').innerHTML = tools.length
-        ? tools.sort((a,b) => (b.usage?.count || 0) - (a.usage?.count || 0)).map(t => `
-          <tr>
-            <td><code>${t.name}</code></td>
-            <td><strong>${t.usage?.count || 0}</strong></td>
-            <td><span class="tag ${(t.usage?.errors || 0) > 0 ? 'tag-red' : 'tag-green'}">${t.usage?.errors || 0}</span></td>
-            <td style="font-size:11px;color:var(--text2)">${t.usage?.lastUsed ? ago(t.usage.lastUsed) : 'never'}</td>
+        ? tools.sort((a,b) => (b.calls || 0) - (a.calls || 0)).map(t => `
+          <tr style="${t.enabled ? '' : 'opacity:.55'}">
+            <td><code>${t.name}</code>${t.description ? '<div style="font-size:10px;color:var(--text2);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + String(t.description).replace(/"/g, "'") + '">' + String(t.description).slice(0, 70) + '</div>' : ''}</td>
+            <td><strong>${t.calls || 0}</strong></td>
+            <td><span class="tag ${(t.errors || 0) > 0 ? 'tag-red' : 'tag-green'}">${t.errors || 0}</span></td>
+            <td style="font-size:11px;color:var(--text2)">${t.last_used ? ago(t.last_used) : 'never'}</td>
+            <td>
+              <span class="tag ${t.enabled ? 'tag-green' : 'tag-red'}">${t.enabled ? '✅ On' : '⛔ Off'}</span>
+              <button class="refresh-btn" onclick="toggleTool('${t.name.replace(/'/g, "\\'")}', ${t.enabled ? 0 : 1})" style="padding:2px 6px;font-size:10px;margin-left:4px;">${t.enabled ? '🔕 Disable' : '🔔 Enable'}</button>
+            </td>
           </tr>
         `).join('')
-        : '<tr><td colspan="4" style="text-align:center;color:var(--text2)">No tools available</td></tr>';
+        : '<tr><td colspan="5" style="text-align:center;color:var(--text2)">No tools available</td></tr>';
+    }
+
+    // 🧟 Turn a tool on/off — persisted in tool_stats.enabled (SQLite).
+    function toggleTool(tool, enable) {
+      fetch(API + '/api/admin/tools', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool, enabled: !!enable })
+      }).then(r => r.json()).then(res => {
+        if (res.ok) loadMcpTools();
+        else alert('❌ ' + JSON.stringify(res));
+      }).catch(e => alert('❌ ' + e.message));
     }
 
     // ═══════════════════════════════════════════════

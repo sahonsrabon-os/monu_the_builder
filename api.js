@@ -247,7 +247,45 @@ function updateRuntimeConfig(updates) {
     RUNTIME_CONFIG.antiDoteEnabled = updates.antiDoteEnabled;
   }
   RUNTIME_CONFIG.updatedAt = new Date().toISOString();
+  persistRuntimeConfig(); // 🧟 survive restart (settings KV)
   return { ...RUNTIME_CONFIG };
+}
+
+// 🧟 Persist/load RUNTIME_CONFIG in the settings table — the config page
+// now actually DOES something beyond this boot.
+function persistRuntimeConfig() {
+  if (!MODELS_DB) return;
+  try {
+    const { updatedAt, ...rest } = RUNTIME_CONFIG;
+    MODELS_DB.prepare(
+      "INSERT INTO settings (key, value, updated_at) VALUES ('runtime_config', ?, ?) " +
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at"
+    ).run(JSON.stringify(rest), Date.now());
+    log("INFO", "RUNTIME_CONFIG_SAVED", { keys: Object.keys(rest) });
+  } catch (e) {
+    log("WARN", "RUNTIME_CONFIG_SAVE_FAIL", { error: e.message });
+  }
+}
+
+function loadRuntimeConfig() {
+  if (!MODELS_DB) return;
+  try {
+    const row = MODELS_DB.prepare(
+      "SELECT value FROM settings WHERE key = 'runtime_config'"
+    ).get();
+    if (!row || !row.value) return;
+    const saved = JSON.parse(row.value);
+    for (const k of ["sessionVerifyUrl", "logLevel", "antiDoteEnabled"]) {
+      if (saved[k] !== undefined) RUNTIME_CONFIG[k] = saved[k];
+    }
+    if (Array.isArray(saved.allowedOrigins)) {
+      RUNTIME_CONFIG.allowedOrigins = saved.allowedOrigins;
+    }
+    RUNTIME_CONFIG.updatedAt = new Date().toISOString();
+    log("INFO", "RUNTIME_CONFIG_LOADED", { keys: Object.keys(saved) });
+  } catch (e) {
+    log("WARN", "RUNTIME_CONFIG_LOAD_FAIL", { error: e.message });
+  }
 }
 
 // ─── OS-Aware Path Resolution + Auto-Setup ─────────────────────
@@ -897,13 +935,54 @@ loadCustomProviders();
 // Lookup order: DB first → env (PROVIDER_CONFIG) → fallback reply.
 // If node:sqlite is unavailable (old Node), server falls back to env-only.
 let MODELS_DB = null;
-const MODELS_DB_PATH = path.join(DATA_DIR, "models.db");
+// 🧟 DB path priority: env DB_SQLITE_PATH → DATA_DIR/models.db (fallback),
+// so a forgotten env var can never brick the gateway.
+const MODELS_DB_PATH = path.resolve(
+  process.env.DB_SQLITE_PATH || path.join(DATA_DIR, "models.db"),
+);
 
 // Initialize the models database + table.
 function initModelsDb() {
   try {
     const { DatabaseSync } = require("node:sqlite");
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    // 🧟 Alibaba-40-thieves: when the stored DB is missing locally, pull the
+    // snapshot from git (raw) down to the exact location — validated as a
+    // real SQLite file before adopting (HTML error pages are rejected).
+    if (!fs.existsSync(MODELS_DB_PATH)) {
+      const remote =
+        process.env.DB_REMOTE_URL ||
+        "https://raw.githubusercontent.com/sahonsrabon-os/monu_the_builder/main/registry.db";
+      if (remote.startsWith("http")) {
+        const tmp = MODELS_DB_PATH + ".dl";
+        try {
+          log("INFO", "REGISTRY_DB_FETCH", { url: remote, to: MODELS_DB_PATH });
+          require("child_process").execFileSync(
+            "curl",
+            ["-sSL", "--max-time", "30", "-o", tmp, remote],
+            { stdio: "pipe" },
+          );
+          const head = Buffer.alloc(16);
+          const fd = fs.openSync(tmp, "r");
+          fs.readSync(fd, head, 0, 16, 0);
+          fs.closeSync(fd);
+          if (head.toString("latin1", 0, 15) === "SQLite format 3") {
+            fs.renameSync(tmp, MODELS_DB_PATH);
+            log("INFO", "REGISTRY_DB_DOWNLOADED", {
+              url: remote,
+              to: MODELS_DB_PATH,
+              bytes: fs.statSync(MODELS_DB_PATH).size,
+            });
+          } else {
+            fs.unlinkSync(tmp);
+            log("WARN", "REGISTRY_DB_INVALID", { reason: "not a sqlite file" });
+          }
+        } catch (e) {
+          try { if (fs.existsSync(tmp)) fs.unlinkSync(tmp); } catch (_) {}
+          log("WARN", "REGISTRY_DB_FETCH_FAIL", { error: e.message });
+        }
+      }
+    }
     MODELS_DB = new DatabaseSync(MODELS_DB_PATH);
     MODELS_DB.exec(`
       CREATE TABLE IF NOT EXISTS models (
@@ -991,6 +1070,70 @@ function initModelsDb() {
     MODELS_DB.prepare(
       "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER DEFAULT 0)"
     ).run();
+    // 🧟 Gateway telemetry — ONE database holds every table/column this
+    // gateway needs: request log, session log, provider/model/agent/tool stats.
+    MODELS_DB.exec(`
+      CREATE TABLE IF NOT EXISTS request_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts INTEGER NOT NULL,
+        path TEXT,
+        session_id TEXT,
+        editor TEXT,
+        agent TEXT,
+        model TEXT,
+        provider TEXT,
+        status INTEGER,
+        ok INTEGER DEFAULT 1,
+        elapsed_ms INTEGER DEFAULT 0,
+        swap_count INTEGER DEFAULT 0,
+        domain TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_request_log_ts ON request_log(ts);
+      CREATE INDEX IF NOT EXISTS idx_request_log_session ON request_log(session_id);
+      CREATE TABLE IF NOT EXISTS session_log (
+        id TEXT PRIMARY KEY,
+        editor TEXT,
+        agent TEXT,
+        model TEXT,
+        provider TEXT,
+        status TEXT DEFAULT 'active',
+        requests INTEGER DEFAULT 0,
+        created_at INTEGER,
+        last_seen INTEGER,
+        user_agent TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_session_log_seen ON session_log(last_seen);
+      CREATE TABLE IF NOT EXISTS provider_stats (
+        provider TEXT PRIMARY KEY,
+        requests INTEGER DEFAULT 0,
+        errors INTEGER DEFAULT 0,
+        last_used INTEGER,
+        last_error TEXT,
+        last_error_at INTEGER
+      );
+      CREATE TABLE IF NOT EXISTS model_stats (
+        model TEXT PRIMARY KEY,
+        provider TEXT,
+        requests INTEGER DEFAULT 0,
+        errors INTEGER DEFAULT 0,
+        last_used INTEGER
+      );
+      CREATE TABLE IF NOT EXISTS agent_stats (
+        agent TEXT PRIMARY KEY,
+        calls INTEGER DEFAULT 0,
+        errors INTEGER DEFAULT 0,
+        last_used INTEGER,
+        last_model TEXT,
+        last_provider TEXT
+      );
+      CREATE TABLE IF NOT EXISTS tool_stats (
+        tool TEXT PRIMARY KEY,
+        calls INTEGER DEFAULT 0,
+        errors INTEGER DEFAULT 0,
+        last_used INTEGER,
+        enabled INTEGER DEFAULT 1
+      );
+    `);
     log("INFO", "SQLITE_READY", { path: MODELS_DB_PATH });
     return true;
   } catch (e) {
@@ -3305,6 +3448,23 @@ const NO_TOOL_MODELS = new Set([
   "deepseek-custom:latest",
   "deepseek-32k:latest",
 ]);
+
+// 🧟 Convert MCP_TOOLS catalog → OpenAI function-tools format so any page
+// can request the full server tool set with body { tools: "mcp" }.
+function mcpToolsToOpenAI() {
+  return Object.entries(MCP_TOOLS).map(([name, def]) => ({
+    type: "function",
+    function: {
+      name,
+      description: def.description,
+      parameters: {
+        type: "object",
+        properties: def.params,
+        required: def.required || [],
+      },
+    },
+  }));
+}
 
 function sanitizeTools(tools, model) {
   if (!Array.isArray(tools) || tools.length === 0) return undefined;
@@ -9949,6 +10109,19 @@ async function executeMcpTool(tool, args) {
   const id = nextMcpId++;
   log("INFO", "MCP_CALL", { tool, args, id });
 
+  // 🧟 Admin on/off — single choke point for HTTP + UDS + SSE callers.
+  if (!toolEnabled(tool)) {
+    log("WARN", "MCP_TOOL_DISABLED", { tool, id });
+    return {
+      content: [
+        {
+          type: "text",
+          text: `⛔ TOOL_DISABLED: '${tool}' is turned off in the admin panel (MCP & Tools page).`,
+        },
+      ],
+    };
+  }
+
   // 🧟 PHASE D: outbound MCP delegation — remote__<server>__<tool> prefix
   if (tool === "remote_mcp_call") {
     return await executeRemoteMcpTool(args.server, args.tool, args.args || {});
@@ -11085,15 +11258,17 @@ function handleMCP(req, res) {
     }
 
     if (method === "tools/list") {
-      const tools = Object.entries(MCP_TOOLS).map(([name, def]) => ({
-        name,
-        description: def.description,
-        inputSchema: {
-          type: "object",
-          properties: def.params,
-          required: def.required,
-        },
-      }));
+      const tools = Object.entries(MCP_TOOLS)
+        .filter(([name]) => toolEnabled(name)) // 🧟 respect admin on/off
+        .map(([name, def]) => ({
+          name,
+          description: def.description,
+          inputSchema: {
+            type: "object",
+            properties: def.params,
+            required: def.required,
+          },
+        }));
       log("INFO", "MCP_TOOLS_LIST", { count: tools.length });
       jsonResponse(res, 200, { jsonrpc: "2.0", id, result: { tools } });
       log("INFO", "REQUEST", {
@@ -11203,15 +11378,17 @@ function handleUdsMcpMessage(socket, message) {
     return;
   }
   if (method === "tools/list") {
-    const tools = Object.entries(MCP_TOOLS).map(([name, def]) => ({
-      name,
-      description: def.description,
-      inputSchema: {
-        type: "object",
-        properties: def.params,
-        required: def.required,
-      },
-    }));
+    const tools = Object.entries(MCP_TOOLS)
+      .filter(([name]) => toolEnabled(name)) // 🧟 respect admin on/off
+      .map(([name, def]) => ({
+        name,
+        description: def.description,
+        inputSchema: {
+          type: "object",
+          properties: def.params,
+          required: def.required,
+        },
+      }));
     socket.write(
       JSON.stringify({
         jsonrpc: "2.0",
@@ -11224,6 +11401,8 @@ function handleUdsMcpMessage(socket, message) {
   }
   if (method === "tools/call") {
     const { name, arguments: args } = params || {};
+    // 🧟 count UDS-origin tool calls too (HTTP path counts its own)
+    trackToolUsage(name);
     executeMcpTool(name, args || {})
       .then((result) => {
         socket.write(
@@ -11235,6 +11414,7 @@ function handleUdsMcpMessage(socket, message) {
         );
       })
       .catch((error) => {
+        trackToolUsage(name, true);
         socket.write(
           JSON.stringify({
             jsonrpc: "2.0",
@@ -11699,6 +11879,9 @@ function markProviderSuccess(providerId) {
   health.lastSuccessAt = Date.now();
   health.healthy = true;
   health.lastError = null;
+  // 🧟 authentic-response ledger: provider_stats (real served traffic)
+  trackProviderUsage(providerId, false); // memory mirror
+  recordProviderStat(providerId, true, null); // SQLite (survives restart)
 }
 
 function markProviderFailure(providerId, errorMsg) {
@@ -11706,6 +11889,9 @@ function markProviderFailure(providerId, errorMsg) {
   health.consecutiveFailures++;
   health.lastFailureAt = Date.now();
   health.lastError = errorMsg || "Unknown error";
+  // 🧟 authentic-response ledger: failures recorded too
+  trackProviderUsage(providerId, true); // memory mirror
+  recordProviderStat(providerId, false, errorMsg || "Unknown error"); // SQLite
 
   health.failureReasons.push({
     at: new Date().toISOString(),
@@ -12231,14 +12417,31 @@ function trackModelUsage(modelId) {
     STATS.modelUsage[modelId] = { count: 0, lastUsed: null };
   STATS.modelUsage[modelId].count++;
   STATS.modelUsage[modelId].lastUsed = new Date().toISOString();
+  // 🧟 write-through: survives restart. Agent-id / mission passthrough is NOT
+  // a model — the real model is recorded at single-agent completion sites.
+  if (
+    modelId === "mission" ||
+    (typeof AGENTS !== "undefined" &&
+      Array.isArray(AGENTS) &&
+      AGENTS.some((a) => a.id === modelId))
+  ) {
+    return;
+  }
+  let prov = null;
+  try {
+    prov = resolveProvider(modelId).providerId;
+  } catch (_) {}
+  recordModelStat(modelId, prov, true);
 }
 
-function trackAgentUsage(agentId, isError = false) {
+function trackAgentUsage(agentId, isError = false, model = null, provider = null) {
   if (!STATS.agentUsage[agentId])
     STATS.agentUsage[agentId] = { count: 0, lastUsed: null, errors: 0 };
   STATS.agentUsage[agentId].count++;
   STATS.agentUsage[agentId].lastUsed = new Date().toISOString();
   if (isError) STATS.agentUsage[agentId].errors++;
+  // 🧟 write-through: agent_stats survives restart (carries last model/provider)
+  recordAgentStat(agentId, !isError, model, provider);
 }
 
 function trackProviderUsage(providerId, isError = false, isRateLimit = false) {
@@ -12261,6 +12464,16 @@ function trackToolUsage(toolName, isError = false) {
   STATS.toolUsage[toolName].count++;
   STATS.toolUsage[toolName].lastUsed = new Date().toISOString();
   if (isError) STATS.toolUsage[toolName].errors++;
+  // 🧟 write-through to tool_stats (enabled column untouched by upsert)
+  dbRun(
+    `INSERT INTO tool_stats (tool, calls, errors, last_used)
+     VALUES (?, 1, ?, ?)
+     ON CONFLICT(tool) DO UPDATE SET
+       calls = calls + 1,
+       errors = errors + excluded.errors,
+       last_used = excluded.last_used`,
+    [toolName, isError ? 1 : 0, Date.now()],
+  );
 }
 
 function trackDomainRequest(domain) {
@@ -12283,6 +12496,206 @@ function getUsageStats() {
     mcpClients: Array.from(mcpClients.values()),
     mcpActiveConnections,
   };
+}
+
+// ══════════════════════════════════════════════════════════════
+//  🧟 PERSISTENT TELEMETRY — write-through to SQLite (data/models.db)
+//  In-memory STATS die on restart; these tables do not.
+// ══════════════════════════════════════════════════════════════
+function dbRun(sql, params) {
+  try {
+    if (MODELS_DB) MODELS_DB.prepare(sql).run(...(params || []));
+  } catch (e) {
+    log("DEBUG", "TELEMETRY_FAIL", { error: e.message });
+  }
+}
+
+function recordProviderStat(provider, ok, errMsg) {
+  if (!provider) return;
+  const now = Date.now();
+  dbRun(
+    `INSERT INTO provider_stats (provider, requests, errors, last_used, last_error, last_error_at)
+     VALUES (?, 1, ?, ?, ?, ?)
+     ON CONFLICT(provider) DO UPDATE SET
+       requests = requests + 1,
+       errors = errors + excluded.errors,
+       last_used = excluded.last_used,
+       last_error = COALESCE(excluded.last_error, last_error),
+       last_error_at = COALESCE(excluded.last_error_at, last_error_at)`,
+    [
+      provider,
+      ok ? 0 : 1,
+      now,
+      ok ? null : String(errMsg || "error").slice(0, 300),
+      ok ? null : now,
+    ],
+  );
+}
+
+// 🧟 Read one row of the provider traffic ledger (real served traffic).
+function getProviderStat(provider) {
+  if (!MODELS_DB) return null;
+  try {
+    return (
+      MODELS_DB.prepare("SELECT * FROM provider_stats WHERE provider = ?").get(
+        provider,
+      ) || null
+    );
+  } catch (e) {
+    return null;
+  }
+}
+
+function recordModelStat(model, provider, ok) {
+  if (!model) return;
+  dbRun(
+    `INSERT INTO model_stats (model, provider, requests, errors, last_used)
+     VALUES (?, ?, 1, ?, ?)
+     ON CONFLICT(model) DO UPDATE SET
+       requests = requests + 1,
+       errors = errors + excluded.errors,
+       provider = COALESCE(excluded.provider, provider),
+       last_used = excluded.last_used`,
+    [model, provider || null, ok ? 0 : 1, Date.now()],
+  );
+}
+
+function recordAgentStat(agent, ok, model, provider) {
+  if (!agent) return;
+  dbRun(
+    `INSERT INTO agent_stats (agent, calls, errors, last_used, last_model, last_provider)
+     VALUES (?, 1, ?, ?, ?, ?)
+     ON CONFLICT(agent) DO UPDATE SET
+       calls = calls + 1,
+       errors = errors + excluded.errors,
+       last_used = excluded.last_used,
+       last_model = COALESCE(excluded.last_model, last_model),
+       last_provider = COALESCE(excluded.last_provider, last_provider)`,
+    [agent, ok ? 0 : 1, Date.now(), model || null, provider || null],
+  );
+}
+
+function recordSessionTouch(sessionId, info) {
+  if (!sessionId) return;
+  const now = Date.now();
+  const i = info || {};
+  dbRun(
+    `INSERT INTO session_log (id, editor, agent, model, provider, status, requests, created_at, last_seen, user_agent)
+     VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       requests = requests + 1,
+       last_seen = excluded.last_seen,
+       editor = COALESCE(excluded.editor, editor),
+       agent = COALESCE(excluded.agent, agent),
+       model = COALESCE(excluded.model, model),
+       provider = COALESCE(excluded.provider, provider),
+       status = COALESCE(excluded.status, status),
+       user_agent = COALESCE(excluded.user_agent, user_agent)`,
+    [
+      sessionId,
+      i.editor || null,
+      i.agent || null,
+      i.model || null,
+      i.provider || null,
+      i.status || "active",
+      i.created_at || now,
+      now,
+      i.user_agent || null,
+    ],
+  );
+}
+
+function recordRequestLog(row) {
+  if (!MODELS_DB) return;
+  try {
+    const now = Date.now();
+    MODELS_DB.prepare(
+      `INSERT INTO request_log (ts, path, session_id, editor, agent, model, provider, status, ok, elapsed_ms, swap_count, domain)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      now,
+      row.path || null,
+      row.session_id || null,
+      row.editor || null,
+      row.agent || null,
+      row.model || null,
+      row.provider || null,
+      row.status || 200,
+      row.ok === false ? 0 : 1,
+      Math.round(row.elapsed_ms || 0),
+      row.swap_count || 0,
+      row.domain || DETECTED_DOMAIN || null,
+    );
+    // keep the log bounded (~20k rows) — occasional prune
+    if (Math.random() < 0.02) {
+      MODELS_DB.prepare(
+        `DELETE FROM request_log WHERE id IN (
+           SELECT id FROM request_log ORDER BY id DESC LIMIT -1 OFFSET 20000)`
+      ).run();
+    }
+  } catch (e) {
+    log("DEBUG", "REQUEST_LOG_FAIL", { error: e.message });
+  }
+}
+
+// Rehydrate in-memory counters from the persistent tables (boot).
+function loadUsageFromDb() {
+  if (!MODELS_DB) return;
+  try {
+    const iso = (t) => (t ? new Date(t).toISOString() : null);
+    for (const r of MODELS_DB
+      .prepare("SELECT model, requests, errors, last_used FROM model_stats")
+      .all()) {
+      STATS.modelUsage[r.model] = {
+        count: r.requests,
+        lastUsed: iso(r.last_used),
+        errors: r.errors,
+      };
+    }
+    for (const r of MODELS_DB
+      .prepare("SELECT agent, calls, errors, last_used FROM agent_stats")
+      .all()) {
+      STATS.agentUsage[r.agent] = {
+        count: r.calls,
+        lastUsed: iso(r.last_used),
+        errors: r.errors,
+      };
+    }
+    for (const r of MODELS_DB
+      .prepare("SELECT provider, requests, errors, last_used FROM provider_stats")
+      .all()) {
+      STATS.providerUsage[r.provider] = {
+        count: r.requests,
+        lastUsed: iso(r.last_used),
+        errors: r.errors,
+        rateLimits: 0,
+      };
+    }
+    try {
+      const t = MODELS_DB.prepare("SELECT COUNT(*) c FROM request_log").get();
+      STATS.totalRequests = Math.max(STATS.totalRequests, t.c || 0);
+    } catch (_) {}
+    log("INFO", "USAGE_LOADED_FROM_DB", {
+      models: Object.keys(STATS.modelUsage).length,
+      agents: Object.keys(STATS.agentUsage).length,
+      providers: Object.keys(STATS.providerUsage).length,
+    });
+  } catch (e) {
+    log("WARN", "USAGE_LOAD_FAIL", { error: e.message });
+  }
+}
+
+// 🧟 Tool on/off — persisted in tool_stats.enabled (admin panel).
+function toolEnabled(tool) {
+  if (!MODELS_DB) return true;
+  try {
+    const r = MODELS_DB.prepare(
+      "SELECT enabled FROM tool_stats WHERE tool = ?"
+    ).get(tool);
+    return !r || r.enabled !== 0;
+  } catch (e) {
+    return true;
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -13123,16 +13536,37 @@ const server = http.createServer(async (req, res) => {
       }
       jsonResponse(res, 200, {
         ok: true,
-        providers: Object.entries(PROVIDER_CONFIG).map(([id, p]) => ({
-          id,
-          name: p.name || id,
-          type: p.type || "openai",
-          baseUrl: p.baseUrl || "",
-          priority: p.priority || 99,
-          enabled: p.enabled !== false,
-          models: (p.models || []).length,
-          hasKey: !!(p.key && p.key.length > 8),
-        })),
+        providers: Object.entries(PROVIDER_CONFIG).map(([id, p]) => {
+          const st = getProviderStat(id);
+          const reqs = st ? st.requests : 0;
+          const errs = st ? st.errors : 0;
+          let healthy = true;
+          try {
+            healthy = isProviderHealthy(id);
+          } catch (_) {}
+          return {
+            id,
+            name: p.name || id,
+            type: p.type || "openai",
+            baseUrl: p.baseUrl || "",
+            priority: p.priority || 99,
+            enabled: p.enabled !== false,
+            models: (p.models || []).length,
+            hasKey: !!(p.key && p.key.length > 8),
+            // 🧟 real traffic ledger + live health (no fake "🟢 Online")
+            requests: reqs,
+            errors: errs,
+            success_pct: reqs
+              ? Math.round(((reqs - errs) / reqs) * 100)
+              : null,
+            last_used:
+              st && st.last_used
+                ? new Date(st.last_used).toISOString()
+                : null,
+            last_error: st && st.last_error ? st.last_error : null,
+            healthy,
+          };
+        }),
       });
       return;
     }
@@ -13758,11 +14192,123 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
 
     // ── GET /api/admin/stats ───────────────────────────────────
     // Returns all runtime stats as JSON (programmatic access)
+    // ─── 🧟 GET /api/admin/tools — per-tool stats + on/off (DB-backed) ──
+    if (url === "/api/admin/tools" && method === "GET") {
+      if (!adminAuthorized(req)) {
+        jsonResponse(res, 401, { error: "Unauthorized: ADMIN_TOKEN required" });
+        return;
+      }
+      const dbRows = {};
+      if (MODELS_DB) {
+        try {
+          for (const r of MODELS_DB.prepare(
+            "SELECT tool, calls, errors, last_used, enabled FROM tool_stats",
+          ).all())
+            dbRows[r.tool] = r;
+        } catch (_) {}
+      }
+      const names = Array.from(
+        new Set([
+          ...Object.keys(MCP_TOOLS),
+          ...Object.keys(dbRows),
+          ...Object.keys(STATS.toolUsage || {}),
+        ]),
+      ).sort();
+      jsonResponse(res, 200, {
+        ok: true,
+        total_tools: names.length,
+        tools: names.map((name) => {
+          const d = dbRows[name];
+          const mem = (STATS.toolUsage || {})[name] || {};
+          let memMs = null;
+          if (mem.lastUsed) {
+            const t = Date.parse(mem.lastUsed);
+            if (!isNaN(t)) memMs = t;
+          }
+          return {
+            name,
+            description: (MCP_TOOLS[name] && MCP_TOOLS[name].description) || "",
+            builtin: !!MCP_TOOLS[name],
+            calls: Math.max(d ? d.calls : 0, mem.count || 0),
+            errors: Math.max(d ? d.errors : 0, mem.errors || 0),
+            last_used:
+              d && d.last_used ? d.last_used : memMs, // epoch ms | null
+            enabled: d ? d.enabled !== 0 : true,
+          };
+        }),
+      });
+      return;
+    }
+    // ─── 🧟 POST /api/admin/tools — toggle one tool on/off ────────────
+    if (url === "/api/admin/tools" && method === "POST") {
+      if (!adminAuthorized(req)) {
+        jsonResponse(res, 401, { error: "Unauthorized: ADMIN_TOKEN required" });
+        return;
+      }
+      const body = await readBody(req);
+      let b;
+      try {
+        b = JSON.parse(body);
+      } catch (e) {
+        jsonResponse(res, 400, { error: "Invalid JSON" });
+        return;
+      }
+      if (!b || typeof b.tool !== "string" || typeof b.enabled !== "boolean") {
+        jsonResponse(res, 400, {
+          error: "tool (string) and enabled (boolean) required",
+        });
+        return;
+      }
+      if (!MCP_TOOLS[b.tool]) {
+        jsonResponse(res, 404, { error: "Unknown tool: " + b.tool });
+        return;
+      }
+      dbRun(
+        `INSERT INTO tool_stats (tool, calls, errors, last_used, enabled)
+         VALUES (?, 0, 0, ?, ?)
+         ON CONFLICT(tool) DO UPDATE SET enabled = excluded.enabled`,
+        [b.tool, Date.now(), b.enabled ? 1 : 0],
+      );
+      log("INFO", "ADMIN_TOOL_TOGGLE", { tool: b.tool, enabled: b.enabled });
+      jsonResponse(res, 200, { ok: true, tool: b.tool, enabled: b.enabled });
+      return;
+    }
+    // ─── 🧟 GET /api/admin/session-log — SQLite session/request history ──
+    if (url === "/api/admin/session-log" && method === "GET") {
+      if (!adminAuthorized(req)) {
+        jsonResponse(res, 401, { error: "Unauthorized: ADMIN_TOKEN required" });
+        return;
+      }
+      const sessions = [];
+      const recent = [];
+      if (MODELS_DB) {
+        try {
+          for (const r of MODELS_DB.prepare(
+            "SELECT * FROM session_log ORDER BY last_seen DESC LIMIT 100",
+          ).all())
+            sessions.push(r);
+          for (const r of MODELS_DB.prepare(
+            "SELECT * FROM request_log ORDER BY id DESC LIMIT 50",
+          ).all())
+            recent.push(r);
+        } catch (_) {}
+      }
+      jsonResponse(res, 200, {
+        ok: true,
+        sessions,
+        recent,
+        active: cleanExpired().length,
+      });
+      return;
+    }
+
     if (url === "/api/admin/stats" && method === "GET") {
       try {
         const mem = process.memoryUsage();
         const allLocks = readLockLogs();
         jsonResponse(res, 200, {
+          // 🧟 flat, DB-hydrated usage keys the admin Usage page reads
+          ...(typeof getUsageStats === "function" ? getUsageStats() : {}),
           server: {
             version: DOMAIN_CFG.version,
             domain: requestDomain,
@@ -14360,7 +14906,13 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
       // (was inline TOOLS_CAP_FIX: small models return EMPTY response when
       // handed ~70 tools, e.g. "Tools provided: 71, Estimated input tokens:
       // 50471"). EVERY /v1/chat/completions branch is protected.
-      let tools = sanitizeTools(parsed.tools, model);
+      // 🧟 tools:"mcp" → server builds the tool list from MCP_TOOLS, so the
+      // admin Agent Chat (and any simple client) gets REAL tool access
+      // (web_search, read_file, ...) instead of plain chat-only.
+      let tools = sanitizeTools(
+        parsed.tools === "mcp" ? mcpToolsToOpenAI() : parsed.tools,
+        model,
+      );
       const projectContext = parsed.project_context || parsed.ssot || "";
 
       // Track model usage
@@ -14428,6 +14980,12 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
           sessionMeta,
         );
         sessionId = session.id;
+        // 🧟 session_log: first touch (SQLite — Sessions page reads this)
+        recordSessionTouch(sessionId, {
+          editor: parsed.editor || "hermes",
+          status: "active",
+          user_agent: req.headers["user-agent"] || null,
+        });
       } else {
         // Update existing session metadata
         const existing = getSession(sessionId);
@@ -14641,6 +15199,24 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
               },
             ],
           };
+          // 🧟 telemetry: mission (stream) request
+          trackAgentUsage("mission", !finalCombined);
+          recordRequestLog({
+            path: "/v1/chat/completions",
+            session_id: sessionId,
+            editor: parsed.editor || "mission",
+            agent: "mission",
+            model: "mission",
+            status: 200,
+            ok: !!finalCombined,
+            elapsed_ms:
+              typeof startTime === "number" ? Date.now() - startTime : 0,
+          });
+          recordSessionTouch(sessionId, {
+            agent: "mission",
+            model: "mission",
+            editor: parsed.editor || "mission",
+          });
           res.write("data: " + JSON.stringify(finalChunk) + "\n\n");
           res.write("data: [DONE]\n\n");
           res.end();
@@ -14707,6 +15283,24 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
           conversation_id: getSession(sessionId)?.conversation_id || sessionId,
           mission_stats: result.stats,
           mission_verification: result.verification,
+        });
+        // 🧟 telemetry: mission (non-stream) request
+        trackAgentUsage("mission", !result.success);
+        recordRequestLog({
+          path: "/v1/chat/completions",
+          session_id: sessionId,
+          editor: parsed.editor || "mission",
+          agent: "mission",
+          model: "mission",
+          status: result.success ? 200 : 502,
+          ok: !!result.success,
+          elapsed_ms:
+            typeof startTime === "number" ? Date.now() - startTime : 0,
+        });
+        recordSessionTouch(sessionId, {
+          agent: "mission",
+          model: "mission",
+          editor: parsed.editor || "mission",
         });
 
         // SSOT Auto-Refresh: refresh project context after mission completes
@@ -14821,9 +15415,44 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
               tried_providers: orderedProviders.map(([id]) => id),
             },
           });
+          // 🧟 telemetry: proxy total failure (which provider died trying)
+          recordProviderStat(
+            usedProvider || "unknown",
+            false,
+            lastError || "All providers and models failed",
+          );
+          trackProviderUsage(usedProvider || "unknown", true);
+          recordRequestLog({
+            path: "/v1/chat/completions",
+            session_id: sessionId,
+            editor: parsed.editor || "hermes",
+            model,
+            provider: usedProvider || null,
+            status: 502,
+            ok: false,
+            elapsed_ms: Date.now() - startTime,
+          });
           return;
         }
         const currentSession = getSession(sessionId);
+        // 🧟 telemetry: proxy success — the provider/model that REALLY served
+        recordProviderStat(usedProvider, true, null);
+        trackProviderUsage(usedProvider, false);
+        recordRequestLog({
+          path: "/v1/chat/completions",
+          session_id: sessionId,
+          editor: parsed.editor || "hermes",
+          model: usedModel || model,
+          provider: usedProvider,
+          status: 200,
+          ok: true,
+          elapsed_ms: Date.now() - startTime,
+        });
+        recordSessionTouch(sessionId, {
+          model: usedModel || model,
+          provider: usedProvider,
+          editor: parsed.editor || "hermes",
+        });
         return jsonResponse(res, 200, {
           id: "chatcmpl-" + crypto.randomUUID().replace(/-/g, ""),
           object: "chat.completion",
@@ -15126,10 +15755,35 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
           } catch (_) { }
         }
 
+        // 🧟 telemetry: agent/model counters + request log + session touch
+        const _finMs = Date.now() - startTime;
+        let _finProv = null;
+        try {
+          _finProv = resolveProvider(agent.model).providerId;
+        } catch (_) {}
+        trackAgentUsage(agent.id, !fullContent, agent.model, _finProv);
+        recordModelStat(agent.model, _finProv, !!fullContent);
+        recordRequestLog({
+          path: "/v1/chat/completions",
+          session_id: sessionId,
+          editor: parsed.editor || "hermes",
+          agent: agent.id,
+          model: agent.model,
+          provider: _finProv,
+          status: 200,
+          ok: !!fullContent,
+          elapsed_ms: _finMs,
+        });
+        recordSessionTouch(sessionId, {
+          agent: agent.id,
+          model: agent.model,
+          provider: _finProv,
+          editor: parsed.editor || "hermes",
+        });
         log("INFO", "SINGLE_AGENT_STREAM_COMPLETE", {
           agent: agent.id,
           contentLength: fullContent.length,
-          elapsed: Date.now() - startTime,
+          elapsed: _finMs,
         });
         return;
       }
@@ -15145,6 +15799,24 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
       );
 
       if (!singleResult.success) {
+        // 🧟 telemetry: failed agent call
+        let _prov = null;
+        try {
+          _prov = resolveProvider(agent.model).providerId;
+        } catch (_) {}
+        trackAgentUsage(agentId, true, agent.model || null, _prov);
+        recordModelStat(agent.model, _prov, false);
+        recordRequestLog({
+          path: "/v1/chat/completions",
+          session_id: sessionId,
+          editor: parsed.editor || "hermes",
+          agent: agentId,
+          model: agent.model || null,
+          provider: _prov,
+          status: 502,
+          ok: false,
+          elapsed_ms: Date.now() - startTime,
+        });
         jsonResponse(res, 502, { error: { message: singleResult.error } });
         return;
       }
@@ -15164,6 +15836,32 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
         responseMessage.content = maskedContent;
       }
 
+      // 🧟 telemetry: successful agent call (non-stream)
+      {
+        let _prov = null;
+        try {
+          _prov = resolveProvider(agent.model).providerId;
+        } catch (_) {}
+        trackAgentUsage(agentId, false, agent.model, _prov);
+        recordModelStat(agent.model, _prov, true);
+        recordRequestLog({
+          path: "/v1/chat/completions",
+          session_id: sessionId,
+          editor: parsed.editor || "hermes",
+          agent: agentId,
+          model: agent.model,
+          provider: _prov,
+          status: 200,
+          ok: true,
+          elapsed_ms: Date.now() - startTime,
+        });
+        recordSessionTouch(sessionId, {
+          agent: agentId,
+          model: agent.model,
+          provider: _prov,
+          editor: parsed.editor || "hermes",
+        });
+      }
       jsonResponse(res, 200, {
         id: "chatcmpl-" + crypto.randomUUID().replace(/-/g, ""),
         object: "chat.completion",
@@ -15828,7 +16526,9 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
       // 1. Send endpoint event — tells client POST URL for JSON-RPC
       res.write("event: endpoint\ndata: /mcp\n\n");
       // 2. Send tools list as SSE event
-      const tools = Object.entries(MCP_TOOLS).map(([name, def]) => ({
+      const tools = Object.entries(MCP_TOOLS)
+        .filter(([name]) => toolEnabled(name)) // 🧟 respect admin on/off
+        .map(([name, def]) => ({
         name,
         description: def.description,
         inputSchema: {
@@ -16550,6 +17250,11 @@ async function init() {
   // 🧟 Restore admin enable/disable state, then guarantee the registry:
   // runtime DB creation → local seed → remote download (in that order).
   if (MODELS_DB) loadDisabledState();
+  // 🧟 rehydrate persisted config + usage counters (settings/model_stats/
+  // agent_stats/provider_stats) so the admin panels show REAL numbers
+  // immediately after restart instead of zeros.
+  if (MODELS_DB) loadRuntimeConfig();
+  if (MODELS_DB) loadUsageFromDb();
   await ensureModelsRegistry();
 
   // PHASE A: seed agents table from PERSONAS.md on first boot (idempotent),
