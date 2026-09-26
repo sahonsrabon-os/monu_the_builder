@@ -27,3 +27,7 @@ external mcp/
 .DS_Store
 *.swp
 !registry.db
+
+# ── অপ্রয়োজনীয় ফাইল আশ্রয় (কখনও ট্র্যাক/পুশ হবে না) ──
+tests/Unnecessary/
+*.zip

@@ -117,15 +117,25 @@ for (let i = sliceLineNo; i < lines.length; i++) {
 const block = src.slice(sIdx, endIdx);
 assert("B0  api.js থেকে আসল ব্লক extract হয়েছে", block.length > 200, block.split("\n").length + " লাইন");
 
-// হেল্পার: resolveProvider-এর exactOnly আচরণের ছায়া-প্রতিলিপি
-function stubResolveProvider(providerMap, model, exactOnly) {
-  for (const [id, p] of Object.entries(providerMap)) {
-    if ((p.models || []).includes(model)) return { providerId: id, config: p };
+// ─── আসল resolveProvider + তার হেল্পাররা api.js থেকেই extract করা হয় ───
+// (পুরনো stub = প্রডাকশন লজিকের অনুকুল ছায়া-প্রতিলিপি ছিল — ডিজাইনের বাইরের
+//  ওয়াটারমার্ক। এখন কপি নয়, আসল কোডই টেস্টে চলছে।)
+function extractFn(name) {
+  const start = src.indexOf("function " + name + "(");
+  if (start < 0) throw new Error("extractFn: not found in api.js: " + name);
+  const open = src.indexOf("{", start);
+  let depth = 0, end = -1;
+  for (let i = open; i < src.length; i++) {
+    const c = src[i];
+    if (c === "{") depth++;
+    else if (c === "}") { depth--; if (depth === 0) { end = i + 1; break; } }
   }
-  if (exactOnly) return null;
-  const firstId = Object.keys(providerMap)[0];
-  return { providerId: firstId, config: providerMap[firstId], matchType: "fallback" };
+  if (end < 0) throw new Error("extractFn: unbalanced braces for " + name);
+  return src.slice(start, end);
 }
+const rpSrc = ["resolveProvider", "getModelName", "getApiModelName", "firstEnabledProviderId"]
+  .map(extractFn)
+  .join("\n");
 
 function runBlock(resolveProvider, agentModel, toolsArg) {
   const agent = { id: "probe", model: agentModel };
@@ -146,7 +156,13 @@ const PROVIDERS = {
   ollama: { name: "Ollama", priority: 5, local: true, models: ["llama3.1:8b"] },
   custom_2: { name: "Custom-2", priority: 10, custom: true, models: ["phi3:mini"] },
 };
-const rp = (m, e) => stubResolveProvider(PROVIDERS, m, e);
+// আসল resolveProvider চালাই — PROVIDER_CONFIG হিসেবে টেস্টের PROVIDERS বসানো
+const realResolveProvider = new Function(
+  "PROVIDER_CONFIG",
+  "DISABLED_MODELS",
+  rpSrc + "\nreturn resolveProvider;",
+)(PROVIDERS, new Set());
+const rp = (m, e) => realResolveProvider(m, e);
 
 // B1. custom_ provider = লোকাল → 5 টুল
 const r1 = runBlock(rp, "phi3:mini");
