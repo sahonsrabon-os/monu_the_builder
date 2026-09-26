@@ -8,7 +8,7 @@ Regenerate after adding/removing tools: `node tools/gen-openai-docs.js`.
 |---|------|-------------|---------|-------|--------|
 | 1 | `agent_mission` | Execute a mission with all agents in parallel | Y | 0 | 0 |
 | 2 | `agent_single` | Execute with a single agent | Y | 0 | 0 |
-| 3 | `append_syllabus` | Append a knowledge entry to the project syllabus.md — the shared learning log ALL agents read (append-only; never overwrites). Use when you learn something new worth keeping. | Y | 1 | 0 |
+| 3 | `append_syllabus` | Append a knowledge entry to the project syllabus.md — the shared learning log ALL agents read (append-only; never overwrites). Use when you learn something new worth keeping. | Y | 2 | 0 |
 | 4 | `browse_cdp` | Headless-browse a URL via Chrome DevTools Protocol over a PIPE (zero HTTP control channel — no port, no websocket). Fetches a page with headless Chrome and returns its text, HTML, title, or a screenshot. Use for reading local or remote web pages. | Y | 0 | 0 |
 | 5 | `call_agent` | Call another agent for a specific sub-task. Use when the task needs specialized knowledge from another agent (e.g., security review, bug hunting, performance tuning). | Y | 0 | 0 |
 | 6 | `db_list_tables` | List tables in the configured database (MySQL/SQLite/PostgreSQL). Config from env vars ONLY (DB_*). Cross-platform. | Y | 1 | 0 |
@@ -17,7 +17,7 @@ Regenerate after adding/removing tools: `node tools/gen-openai-docs.js`.
 | 9 | `env_get` | Read an environment variable by name. Config is env-driven (never hardcoded). Values of KEY/SECRET/PASSWORD/TOKEN/AUTH variables are hidden unless reveal_secrets=true. | Y | 1 | 0 |
 | 10 | `exec` | Run a shell command cross-platform in any folder. Windows uses PowerShell, Linux/macOS uses bash (override via EXEC_SHELL_WIN / EXEC_SHELL_LINUX env). Config from env vars ONLY (EXEC_SHELL_WIN, EXEC_SHELL_LINUX, EXEC_TIMEOUT, EXEC_MAX_BUFFER). | Y | 0 | 0 |
 | 11 | `get_memory` | Retrieve session memory | Y | 0 | 0 |
-| 12 | `get_working_dir` | Get current MCP working directory | Y | 1 | 0 |
+| 12 | `get_working_dir` | Get current MCP working directory | Y | 2 | 0 |
 | 13 | `glob` | Find files by glob pattern inside the MCP working dir (e.g. '**/*.{js,ts}') | Y | 1 | 0 |
 | 14 | `grep` | Search file contents with a regex or plain text pattern inside the MCP working dir (bounded depth). Returns matching file paths + line snippets. | Y | 0 | 0 |
 | 15 | `http_request` | Make an HTTP request (GET/POST/PUT/PATCH/DELETE) using Node built-in http/https. No external deps. Config: HTTP_TIMEOUT env (ms). Cross-platform. | Y | 0 | 0 |
