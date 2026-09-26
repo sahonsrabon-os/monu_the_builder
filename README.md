@@ -3,7 +3,7 @@
 ![Version](https://img.shields.io/badge/version-3.2.1-7c3aed)
 ![Platform](https://img.shields.io/badge/platform-Linux%20x86--64-2563eb)
 ![Node](https://img.shields.io/badge/Node-%E2%89%A5%2018-10b981)
-![MCP%20tools](https://img.shields.io/badge/MCP%20tools-35-f59e0b)
+![MCP%20tools](https://img.shields.io/badge/MCP%20tools-36-f59e0b)
 ![Agents](https://img.shields.io/badge/agents-10-ec4899)
 
 > **Where evidence meets conversation** — a zero-dependency Node.js server that speaks
@@ -36,7 +36,7 @@ Architected by **Monu — The Builder** (Mission Barisal persona).
 │  api.js — transport resolver · agent router · anti-dote chain      │
 │  ┌──────────────┐  ┌────────────────┐  ┌────────────────────────┐  │
 │  │ MCP tool bus │  │ evidence gate  │  │ SQLite telemetry       │  │
-│  │ 35 tools     │  │ 6-step chain   │  │ requests·sessions·     │  │
+│  │ 36 tools     │  │ 6-step chain   │  │ requests·sessions·     │  │
 │  │ on/off switch│  │ fail-open      │  │ providers·usage        │  │
 │  └──────────────┘  └────────────────┘  └────────────────────────┘  │
 └───────────┬──────────────────────────────┬─────────────────────────┘
@@ -67,12 +67,16 @@ DB** — change it live from **Admin → Agent Manager** (`Change Model` → `Sa
 | `team-heart` | Team Heart - Jara | general | `mistral/leanstral-1-5` |
 | `customer-experience-specialist` | Customer Experience Specialist | customer-experience | `gpt-oss:120b` |
 | `ecommerce-operations-analyst` | E-Commerce Operations Analyst | ecommerce-operations | `qwen3:free` |
-| `bug-hunter` | Bug Hunter - Jewel | debugging | `llama3.1:8b` |
-| `code-guru` | Code Guru - Monu | architecture | `qwen3.8-27b:free` |
+| `bug-hunter` | Bug Hunter - Jewel | debugging | `qwen/qwen3.8-27b` |
+| `code-guru` | Code Guru - Monu | architecture | `deepseek-r1:7b` |
 | `perf-wizard` | Performance Wizard - Rashed | performance | `nemotron-3-nano:30b` |
 | `qa-tyrant` | Quality Tyrant - Mojnu | quality | `glm-4.7-flash:free` |
 | `security-hero` | Security Hero - Bablu | security | `north-mini-code:free` |
 | `llama-local-test` | Llama Local Test *(demo, priority 99)* | test harness | `llama-local` (local socket) |
+
+> Mappings are live DB values shown as a snapshot (2026-09-26). The DB is the source
+> of truth - edit in Admin -> Agent Manager; `docs/openai-schema.json` regenerates
+> from it via `tools/gen-openai-docs.js`.
 
 A virtual `mission` model runs the multi-agent debate path
 (`POST /api/mission`). Calling any agent through the OpenAI API is just
@@ -80,16 +84,16 @@ A virtual `mission` model runs the multi-agent debate path
 
 ---
 
-## MCP Tools (35)
+## MCP Tools (36)
 
 One registry, one enable/disable switch, four transports — `tools/list` and
 `tools/call` behave identically everywhere. The full table with descriptions lives in
 [`docs/openai-tools.md`](docs/openai-tools.md); the machine-readable OpenAI
-function-calling conversion of all 35 tools is [`docs/openai-schema.json`](docs/openai-schema.json).
+function-calling conversion of all 36 tools is [`docs/openai-schema.json`](docs/openai-schema.json).
 
 | Group | Tools |
 |-------|-------|
-| Agents & missions | `agent_mission` · `agent_single` · `call_agent` · `get_memory` |
+| Agents & missions | `agent_mission` · `agent_single` · `call_agent` · `get_memory` · `append_syllabus` |
 | Files & workspace | `read_file` · `write_file` · `delete_file` · `rename_file` · `list_directory` · `glob` · `grep` · `set_working_dir` · `get_working_dir` · `read_ssot` |
 | Shell & system | `terminal` · `exec` · `system_info` · `env_get` |
 | Web & HTTP | `web_search` · `http_request` · `browse_cdp` · `open_browser` |
@@ -98,12 +102,14 @@ function-calling conversion of all 35 tools is [`docs/openai-schema.json`](docs/
 | Screen & OCR (external) | `screen-recorder__screen_record_start/status/stop/screenshot` · `ocr__ocr_crop/image/screenshot` |
 | Voice (external) | `tts__tts_play/speak/voices` |
 
-Verified live: **35 tools, 9 lifetime tool calls, 0 tool errors** in the admin panel.
+Live registry: **36 tools, all enabled**. Call/error counters are runtime stats; the docs-vs-registry claim is re-verified on every run by `tests/docs-claims.test.js`.
 Disabling a tool drops it from `tools/list` and refuses `tools/call` at one choke
 point; re-enabling restores it.
 
 <img src="docs/evidence/mcp-tools-stats.jpeg" width="620" alt="MCP & Tools stats — 35 total tools, 0 errors">
-<img src="docs/evidence/mcp-tools-list-a.jpeg" width="620" alt="MCP tool list with per-tool toggles">
+<img src="docs/evidence/mcp-tools-list-b.jpeg" width="620" alt="Per-tool Enable/Disable toggles - MCP & Tools admin page">
+> Captures are point-in-time (35 tools when captured; the live count is 36 and is
+> re-verified by `tests/docs-claims.test.js`).
 
 ---
 
@@ -125,14 +131,14 @@ point; re-enabling restores it.
 
 ```bash
 curl http://localhost:3000/health
-# {"healthy":true,"version":"3.2.1","agents":10,"models":392,...}
+# {"healthy":true,"version":"3.2.1","agents":10,"models":<live>,...}
 ```
 
 ### Models (real provider catalog for IDEs)
 
 ```bash
 curl http://localhost:3000/api/v0/models
-# {"data":[{"id":"llama-local","owned_by":"local_llm"}, ... 404 models ...]}
+# {"data":[{"id":"llama-local","owned_by":"local_llm"}, ... <live> models ...]}
 ```
 
 ### Chat with an agent (OpenAI format — model = agent id)
@@ -152,7 +158,7 @@ curl -X POST http://localhost:3000/v1/chat/completions \
 ```bash
 printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' \
   | nc -U /tmp/zombiecoder/mcp.sock
-# {"jsonrpc":"2.0","id":1,"result":{"tools":[ ...35 tools with inputSchema... ]}}
+# {"jsonrpc":"2.0","id":1,"result":{"tools":[ ...36 tools with inputSchema... ]}}
 ```
 
 ### Local bridge (no auth header, any client)
@@ -210,9 +216,9 @@ that every agent and any OpenAI SDK client can share:
 | Key | Contents |
 |-----|----------|
 | `contract` | gateway / local-bridge / MCP endpoints, auth rules, request & response shapes |
-| `models` | the full provider catalog (404 model ids across 9 providers) |
+| `models` | the full provider catalog (ids grouped by provider; counts sync from the DB and drift - regenerated by `tools/gen-openai-docs.js`) |
 | `agents` | agent id → mapped model routing table (10 agents) |
-| `tools` | all **35 MCP tools converted to OpenAI function-calling format** (`type:"function"` + JSON-Schema `parameters` taken from the MCP `inputSchema`) |
+| `tools` | all **36 MCP tools converted to OpenAI function-calling format** (`type:"function"` + JSON-Schema `parameters` taken from the MCP `inputSchema`) |
 | `usage` | how to attach `tools`, how agent routing works, the local default |
 
 **Proof it works** — the schema's own `tools` array, sent to the local model:
@@ -291,7 +297,9 @@ CUSTOM_PROVIDER_5_MODELS=llama-local
 ## Evidence
 
 Same-day captures from this machine. Screenshots live in `docs/evidence/`; logs in
-`logs/` (server) and the bridge stdout.
+`logs/` (server) and the bridge stdout. Counts in this section (models, providers,
+calls) are point-in-time values that drift with DB sync; the enforced claims live
+in `tests/docs-claims.test.js`.
 
 **1. Server health**
 
@@ -337,19 +345,19 @@ llama-server v0.5.0-dev (build 11146) · n_ctx 16384 · RSS 2405 MB
  "agent":{"id":"llama-local-test","name":"Llama Local Test","role":"test harness"}}
 ```
 
-**7. Provider credentials refreshed and proven (three independent calls)**
+**7. Provider credentials re-verified — three independent live calls (2026-09-26)**
 
-```
-model "gemini-flash"      → provider gemini   → "GEMINI-OK"     (key rotated; old key was 401)
-model "qwen/qwen3.8-27b"  → provider groq     → "GROQ-OK"       (old key was project-blocked)
-model "qwen2:0.5b"        → provider custom_3 → "NGROK-OK!"     (Colab Ollama tunnel alive)
+```json
+{"model":"gemini-flash","provider":"gemini","content":"OK"}
+{"model":"qwen/qwen3.8-27b","provider":"groq","content":"OK"}
+{"model":"qwen2:0.5b","provider":"custom_3","content":"Okay."}
 ```
 
 **8. Shared schema tools round-trip over MCP UDS**
 
 ```bash
 printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | nc -U /tmp/zombiecoder/mcp.sock
-# tools over UDS: 35 · every tool carries inputSchema
+# tools over UDS: 36 · every tool carries inputSchema
 ```
 
 **9. Session telemetry row (DB-backed)**
@@ -359,9 +367,10 @@ printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | nc -U /t
  "status":"active","requests":6,"user_agent":"curl/8.5.0"}
 ```
 
-**10. Admin console during verification:** `0 errors, 0 dropped`.
+**10. Admin MCP & Tools stats:** `9 lifetime tool calls, 0 tool errors` (capture above).
 
 <img src="docs/evidence/providers-local-llm.jpeg" width="660" alt="Providers table — custom_5 / local_llm row with request stats">
+<img src="docs/evidence/mcp-tools-list-a.jpeg" width="660" alt="Providers table - 8 providers, 346 models, custom_3 REQ 1 / ERR 1 counters">
 <img src="docs/evidence/agents-llama-local.jpeg" width="660" alt="Agent card — Llama Local Test mapped to llama-local">
 
 ---
@@ -423,9 +432,13 @@ monu_the_builder/
 ├── docs/                  # openai-schema.json · evidence screenshots · guides
 ├── doc/                   # long-form documentation
 ├── agent/ · cache/ · logs/
+├── tests/ · Test/          # live test suites + archived test material
+├── external tools/ · external mcp/  # php-broker, OCR/screen/TTS servers
+├── tools/                  # gen-openai-docs.js (docs from the live registry)
 ├── registry.seed.json     # model/provider seed (text)
 ├── registry.db            # same seed as binary snapshot (fresh-install path)
-└── start.js · domain-config.js
+├── start-local-mcp.js      # standalone MCP starter
+└── domain-config.js        # env-driven domain/identity config
 ```
 
 ---

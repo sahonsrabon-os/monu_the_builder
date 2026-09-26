@@ -88,7 +88,7 @@
 //   11770  | handleMessage() — 8-step processing pipeline
 //   11987  | shutdown() — Graceful shutdown + cleanup
 // ---------+--------------------------------------------------------------------------
-// Total: ~11970 lines · Zero external dependencies · 10 MCP tools · 4 transports
+// Total: ~19100 lines · Zero external dependencies · 36 MCP tools (26 gateway + 10 external) · 4 transports
 // Section: OS-Aware Auto-Setup (line 153) creates .missionbarisal/ at runtime
 //          with version.json, mcp-config.json, vscode.json, jetbrains.json, editor-config.json
 // =============================================================================
@@ -582,7 +582,7 @@ const THREE_FILE_MEMORY_PROMPT = `📁 YOUR MEMORY SYSTEM — You have THREE fil
 - Memory → maintain conversation continuity
 - If info is NOT in any of these 3 files → say "এই তথ্য বর্তমানে আমার স্মৃতিতে নেই, আমি ওয়েব সার্চ করে দেখছি" then search
 - NEVER overwrite or delete these files — only append new knowledge to syllabus
-- When you learn something new, it should be saved to syllabus.md for future use`;
+- When you learn something new, save it with the append_syllabus(topic, summary) tool (append-only — it lands in syllabus.md for future use)`;
 
 const INTENT_EXTRACT_PROMPT = `You are an intent analyzer. Extract the core intent from the user input.
 Return ONLY valid JSON in this exact format:
@@ -9171,7 +9171,11 @@ function buildThreeFileContext(projectDir, sessionId) {
         syllabusContent +
         "\n--- END SYLLABUS ---\n" +
         "\n\nSESSION TOOLS & SYSTEM IDENTITY & ETHICS (injected every session):\n" +
-        "- TOOLS AVAILABLE: read_file, write_file, list_directory, glob, grep, terminal, exec, db_query, web_search, http_request, open_browser, browse_cdp, agent_single, agent_mission, call_agent, get_memory, read_ssot, get_working_dir, set_working_dir, env_get, system_info, remote_mcp_call, delete_file, rename_file\n" +
+        // 🧟 SSOT FIX: never hardcode the tool list — derive from the registry
+        // so the header can never drift from MCP_TOOLS (was missing db_list_tables)
+        "- TOOLS AVAILABLE: " +
+        Object.keys(MCP_TOOLS).sort().join(", ") +
+        "\n" +
         "- SYSTEM IDENTITY: You are a Mission Barisal agent (ZombieCoder) owned by Sahon Srabon (Barisal, Bangladesh). You are NOT a generic assistant. Follow the context above exactly.\n" +
         "- ETHICS: Evidence-driven, proof-first. Never hallucinate. If you lack proof say 'আমার কাছে প্রমাণ নেই'. Never hide errors. Code in English, chat with users in Bengali (Barishali style). No emojis in code.\n" +
         "--- END SESSION TOOLS & IDENTITY & ETHICS ---\n"
@@ -9695,6 +9699,31 @@ const MCP_TOOLS = {
       "Read the current SSOT.md (Single Source of Truth) file — contains auto-detected project info",
     params: {},
     required: [],
+  },
+  append_syllabus: {
+    description:
+      "Append a knowledge entry to the project syllabus.md — the shared learning log ALL agents read (append-only; never overwrites). Use when you learn something new worth keeping.",
+    params: {
+      topic: { type: "string", description: "Entry title / topic" },
+      summary: {
+        type: "string",
+        description: "What was learned (markdown allowed)",
+      },
+      source: {
+        type: "string",
+        description: "Origin of the knowledge (Web Search / docs / code / ...)",
+      },
+      keyPoints: {
+        type: "array",
+        items: { type: "string" },
+        description: "Key takeaways (string is split on newlines/commas too)",
+      },
+      project_dir: {
+        type: "string",
+        description: "Project dir (defaults to current MCP working dir)",
+      },
+    },
+    required: ["topic", "summary"],
   },
   list_directory: {
     description: "List contents of a directory",
@@ -10590,6 +10619,43 @@ async function executeMcpTool(tool, args) {
           {
             type: "text",
             text: "SSOT not found. Run set_working_dir first to auto-generate project context.",
+          },
+        ],
+      };
+    }
+    case "append_syllabus": {
+      const topic = String(args.topic || "").trim();
+      const summary = String(args.summary || args.content || "").trim();
+      if (!topic || !summary) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "append_syllabus: both topic and summary are required",
+            },
+          ],
+        };
+      }
+      let kp = args.keyPoints || args.key_points || [];
+      if (typeof kp === "string") {
+        kp = kp.split(/[,\n]/).map((s) => s.trim()).filter(Boolean);
+      }
+      const ok = writeSyllabus(
+        args.project_dir || args.projectDir || mcpWorkingDir,
+        topic,
+        {
+          source: args.source || "Agent Session",
+          summary,
+          keyPoints: kp,
+        },
+      );
+      return {
+        content: [
+          {
+            type: "text",
+            text: ok
+              ? "Syllabus entry appended: " + topic
+              : "append_syllabus failed — see SYLLABUS_WRITE_FAIL in log",
           },
         ],
       };

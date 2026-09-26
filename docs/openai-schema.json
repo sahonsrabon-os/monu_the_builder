@@ -2,8 +2,8 @@
   "schema_version": "1.0",
   "title": "Mission Barisal — OpenAI-compatible shared schema",
   "description": "Single OpenAI-compatible manifest consumed by every Mission Barisal agent and by any OpenAI SDK client: chat/models contract + all MCP tools converted to OpenAI function-calling format + agent-to-model routing map. Generated from the LIVE server (not hand-written).",
-  "generated_utc": "2026-09-26T02:21:46Z",
-  "generator": "local-llm-bridge/README evidence pipeline (see docs/evidence)",
+  "generated_utc": "2026-09-26T05:14:13Z",
+  "generator": "tools/gen-openai-docs.js (live gateway)",
   "contract": {
     "gateway": {
       "base_url": "http://localhost:3000/v1",
@@ -46,6 +46,12 @@
   },
   "models": [
     {
+      "id": "deepseek-v4-flash-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
       "id": "mimo-v2.5-free",
       "object": "model",
       "provider": "OpenCode",
@@ -58,247 +64,19 @@
       "kind": "provider"
     },
     {
+      "id": "hy3-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
       "id": "nemotron-3-ultra-free",
       "object": "model",
       "provider": "OpenCode",
       "kind": "provider"
     },
     {
-      "id": "ling-3.0-flash-fin-free",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "mimo-v2.6-flash-free",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "muse-spark-1.2-contributor-free",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "muse-spark-1.3-contributor-free",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "nemotron-3.5-lightning-free",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "jev-1.13-free",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "test",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "test-novita-dsf4.1",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "space-bunny-free",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "jev-1.13",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-fable-5-1",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-haiku-4-5",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-5-5",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-sonnet-5",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-v4.1-flash",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-v4-pro",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.1-pro",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.5-flash-lite",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.8-flash",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-5.3",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-5.3-flash",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-5.3-codex",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-5.3-codex-spark",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-5.4-mini",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-5.4-nano",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-5.5",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-5.5-pro",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-6-astra",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-6-sol",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-6-luna",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-5.6-terra",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "grok-4.7",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "grok-build-0.1",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "kimi-k2.7-code",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "kimi-k3",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "minimax-m3",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "muse-spark-1.3",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3.6-plus",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3.8-flash",
-      "object": "model",
-      "provider": "OpenCode",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3.8-max",
+      "id": "north-mini-code-free",
       "object": "model",
       "provider": "OpenCode",
       "kind": "provider"
@@ -322,19 +100,19 @@
       "kind": "provider"
     },
     {
-      "id": "whisper-large-v3-turbo",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
-      "id": "meta-llama/llama-prompt-guard-2-22m",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
       "id": "meta-llama/llama-prompt-guard-2-86m",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "openai/gpt-oss-20b",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "canopylabs/orpheus-arabic-saudi",
       "object": "model",
       "provider": "Groq",
       "kind": "provider"
@@ -352,19 +130,19 @@
       "kind": "provider"
     },
     {
-      "id": "canopylabs/orpheus-arabic-saudi",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
-      "id": "openai/gpt-oss-20b",
+      "id": "meta-llama/llama-prompt-guard-2-22m",
       "object": "model",
       "provider": "Groq",
       "kind": "provider"
     },
     {
       "id": "openai/gpt-oss-safeguard-20b",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "whisper-large-v3-turbo",
       "object": "model",
       "provider": "Groq",
       "kind": "provider"
@@ -934,12 +712,6 @@
       "kind": "provider"
     },
     {
-      "id": "axon-1.8-pro:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
       "id": "bge-multilingual-gemma2:free",
       "object": "model",
       "provider": "custom_4",
@@ -1294,12 +1066,6 @@
       "kind": "provider"
     },
     {
-      "id": "deepseek-v4.1-flash:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
       "id": "deliberate:free",
       "object": "model",
       "provider": "custom_4",
@@ -1331,12 +1097,6 @@
     },
     {
       "id": "dreamshaper:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "embeddinggemma-300m:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -1900,6 +1660,12 @@
       "kind": "provider"
     },
     {
+      "id": "leanstral-1-5:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
       "id": "lfm-2.5-2.6b:free",
       "object": "model",
       "provider": "custom_4",
@@ -2194,13 +1960,19 @@
       "kind": "provider"
     },
     {
-      "id": "qwen3-embedding-0.6b:free",
+      "id": "qwen3-next-80b-a3b-instruct:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
     },
     {
-      "id": "qwen3-next-80b-a3b-instruct:free",
+      "id": "qwen3.5-4b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3.6-35b-a3b:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -2499,13 +2271,13 @@
       "id": "bug-hunter",
       "name": "Bug Hunter - Jewel",
       "role": "debugging",
-      "model": "llama3.1:8b"
+      "model": "qwen/qwen3.8-27b"
     },
     {
       "id": "code-guru",
       "name": "Code Guru - Monu",
       "role": "architecture",
-      "model": "llama-local"
+      "model": "deepseek-r1:7b"
     },
     {
       "id": "llama-local-test",
@@ -2709,6 +2481,45 @@
           "type": "object",
           "properties": {},
           "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "append_syllabus",
+        "description": "Append a knowledge entry to the project syllabus.md — the shared learning log ALL agents read (append-only; never overwrites). Use when you learn something new worth keeping.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "topic": {
+              "type": "string",
+              "description": "Entry title / topic"
+            },
+            "summary": {
+              "type": "string",
+              "description": "What was learned (markdown allowed)"
+            },
+            "source": {
+              "type": "string",
+              "description": "Origin of the knowledge (Web Search / docs / code / ...)"
+            },
+            "keyPoints": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Key takeaways (string is split on newlines/commas too)"
+            },
+            "project_dir": {
+              "type": "string",
+              "description": "Project dir (defaults to current MCP working dir)"
+            }
+          },
+          "required": [
+            "topic",
+            "summary"
+          ]
         }
       }
     },
@@ -3360,7 +3171,7 @@
     }
   ],
   "usage": {
-    "chat_with_tool": "POST body.tools = $ref tools (optionally sliced — gateway caps at15 per request)",
+    "chat_with_tool": "POST body.tools = $ref tools (optionally sliced — gateway caps at 15 per request)",
     "agent_routing": "model = <agent id> resolves to that agent's mapped provider model",
     "local_default": "model = \"llama-local\" served by local-llm-bridge over UDS"
   }

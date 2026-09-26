@@ -388,6 +388,66 @@ const proxyForwardsTools =
   src.includes('finish_reason: proxyToolCalls.length ? "tool_calls" : "stop"');
 assert("D14 প্রক্সি রেসপন্সে tool_calls forward + dynamic finish_reason", proxyForwardsTools);
 
+// D15 — হেডারের TOOLS AVAILABLE লিস্ট ডায়নামিক (SSOT: রেজিস্ট্রি থেকে derive,
+//   হার্ডকোড লিস্ট নয় — নতুন টুল যোগ হলেও হেডার নিজে থেকে আপডেট হবে)
+const dynamicHeader =
+  src.includes('Object.keys(MCP_TOOLS).sort().join(", ")') &&
+  !src.includes("- TOOLS AVAILABLE: read_file, write_file, list_directory");
+assert(
+  "D15 এজেন্ট-হেডার টুল-লিস্ট = Object.keys(MCP_TOOLS) (কোনো হার্ডকোড লিস্ট নেই)",
+  dynamicHeader,
+  "registry-derived",
+);
+
+// D16 — append_syllabus টুল রেজিস্ট্রিতে + ডিসপ্যাচে (ডক-অডিটের মিসম্যাচ ফিক্স:
+//   হেডার rule-5 যে টুলটা চায় সেটা সত্যিই আছে কিনা)
+const hasAppendEntry =
+  /append_syllabus:\s*\{[\s\S]{0,1500}required:\s*\["topic",\s*"summary"\]/.test(src);
+const hasAppendCase = src.includes('case "append_syllabus":');
+assert(
+  "D16 append_syllabus: MCP_TOOLS entry + executeMcpTool case আছে",
+  hasAppendEntry && hasAppendCase,
+  "entry=" + hasAppendEntry + ", case=" + hasAppendCase,
+);
+
+// D17 — append_syllabus case-এর আচরণ (D6-র মতো extract+eval, stub writeSyllabus):
+//   keyPoints স্ট্রিং হলে স্প্লিট, required মিসে গেলে writeSyllabus কলই হয় না
+{
+  const cs = src.indexOf('case "append_syllabus":');
+  const ce = src.indexOf('case "list_directory": {', cs);
+  let blockOk = false, a = "", b = "";
+  if (cs >= 0 && ce > cs) {
+    const block = src.slice(src.indexOf(":", cs) + 1, ce).trim(); // "{ ... }"
+    const fn = new Function(
+      "args", "writeSyllabus", "mcpWorkingDir", "log",
+      "return (function run(args, writeSyllabus, mcpWorkingDir, log) " + block +
+        ")(args, writeSyllabus, mcpWorkingDir, log);",
+    );
+    let cap = null;
+    const outA = fn(
+      { topic: "T1", summary: "S1", source: "Web Search", keyPoints: "a, b\nc" },
+      (dir, topic, entry) => { cap = { dir, topic, entry }; return true; },
+      "/wd", () => {},
+    );
+    a = (cap && cap.topic === "T1" && Array.isArray(cap.entry.keyPoints) &&
+         cap.entry.keyPoints.join("|") === "a|b|c" && /appended: T1/.test(outA.content[0].text))
+      ? "ok" : JSON.stringify(cap) + "|" + outA.content[0].text;
+    let called = false;
+    const outB = fn(
+      { topic: "T2" },
+      () => { called = true; return true; },
+      "/wd", () => {},
+    );
+    b = (!called && /required/.test(outB.content[0].text)) ? "ok" : "called=" + called;
+    blockOk = a === "ok" && b === "ok";
+  }
+  assert(
+    "D17 append_syllabus: keyPoints split + required-guard (stubbed eval)",
+    blockOk,
+    "keypoints=" + a + ", guard=" + b,
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 console.log("\n══════════════════════════════════════════════════════════");
 console.log("  TEST: local tool cap + custom_ provider existence");
