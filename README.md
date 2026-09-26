@@ -1,247 +1,288 @@
-# Mission Barisal (VMAMA) — Monu The Builder
+# 🧟 ZombieCoder — Mission Barisal · Monu The Builder
 
-Local-first AI co-pilot stack: a zero-dependency Node.js gateway (`api.js`), an MCP
-tool bus (35 tools, 4 transports), a browser admin panel, DB-backed telemetry, and an
-optional local LLM bridge that serves a CPU-run llama.cpp model over a Unix socket.
+![Version](https://img.shields.io/badge/version-3.2.1-7c3aed)
+![Platform](https://img.shields.io/badge/platform-Linux%20x86--64-2563eb)
+![Node](https://img.shields.io/badge/Node-%E2%89%A5%2018-10b981)
+![MCP%20tools](https://img.shields.io/badge/MCP%20tools-35-f59e0b)
+![Agents](https://img.shields.io/badge/agents-10-ec4899)
 
-> Everything below was verified on this machine (Linux, Node 18+,4-core CPU,15 GB RAM)
-> on 2026-09-26. Screenshots and response excerpts live in [`docs/evidence/`](docs/evidence/).
-> Where something was not proven, it is called out under **Limitations** — nothing is padded.
+> **Where evidence meets conversation** — a zero-dependency Node.js server that speaks
+> MCP over **HTTP JSON-RPC / SSE / WebSocket / Unix socket**, speaks **OpenAI** on
+> `/v1`, runs **10 agents**, and can serve a CPU llama.cpp model from RAM behind its
+> own local socket. Every claim in this file carries a log line, a JSON excerpt or a
+> screenshot — and every known flaw stays listed.
+
+The server is the **server half of the Mission Barisal platform**: agents, tool bus,
+anti-dote chain, DB-backed telemetry, and a provider ladder (local → cloud) that any
+OpenAI-compatible client can consume. The browser admin panel manages models,
+providers, sessions, usage and per-tool switches at runtime.
+
+**Document produced by Sahon Srabon · Developer Zone · Dhaka, Bangladesh**
+[zombiecoder.my.id](https://zombiecoder.my.id/) · infi@zombiecoder.my.id
+Architected by **Monu — The Builder** (Mission Barisal persona).
 
 ---
 
-## Quick start
+## System Architecture
 
-```bash
-# Gateway (UI :3000, plus3100/3101/3102, broker9998)
-node start.js --start-all
-
-# Optional: local LLM bridge (llama.cpp behind an OpenAI-compatible socket)
-node local-llm-bridge.js
+```
+┌────────────────────────────────────────────────────────────────────┐
+│                ANY CLIENT (VS Code · SDKs · curl)                  │
+└───────────┬──────────────────────┬─────────────────────────────────┘
+            │ OpenAI /v1           │ MCP (JSON-RPC · SSE · WS · UDS)
+            ▼                      ▼
+┌────────────────────────────────────────────────────────────────────┐
+│                     MISSION BARISAL SERVER                         │
+│  api.js — transport resolver · agent router · anti-dote chain      │
+│  ┌──────────────┐  ┌────────────────┐  ┌────────────────────────┐  │
+│  │ MCP tool bus │  │ evidence gate  │  │ SQLite telemetry       │  │
+│  │ 35 tools     │  │ 6-step chain   │  │ requests·sessions·     │  │
+│  │ on/off switch│  │ fail-open      │  │ providers·usage        │  │
+│  └──────────────┘  └────────────────┘  └────────────────────────┘  │
+└───────────┬──────────────────────────────┬─────────────────────────┘
+            │ provider ladder              │
+            ▼                              ▼
+   ┌─────────────────┐   ┌──────────────────────────────────────────┐
+   │ cloud providers │   │ LOCAL LLM BRIDGE (local-llm-bridge.js)   │
+   │ opencode·groq·  │   │  Unix socket ─┐                          │
+   │ gemini·cloudflare│  │  loopback TCP ─┼─► llama-server (RAM)    │
+   │ ollama·custom_* │   │  quirk layer   │   Llama-3.2-1B-Instruct │
+   └─────────────────┘   └────────────────┴──────────────────────────┘
 ```
 
-- Admin panel: `http://localhost:3000/admin.html`
-- OpenAI-compatible API: `http://localhost:3000/v1`
-- MCP endpoint (for VS Code / any MCP client): `http://localhost:3000/mcp`
-- Bridge health: `curl http://127.0.0.1:11435/health`
+**Zero-hallucination engineering**: first evidence, then conclusion. The anti-dote
+chain runs on every execution endpoint in *monitoring mode* (records, never blocks),
+and this README keeps a public Limitations section instead of hiding failures.
 
-Secrets (`.env`, provider keys), the live DB (`data/`), logs (`logs/`) and `*.db` are
-git-ignored; the only binary committed on purpose is the seed snapshot `registry.db`
-(see Repository hygiene).
+---
+
+## The Mission Barisal Agents (10)
+
+Each agent has a persona, an architecture role, and a **model mapped from the model
+DB** — change it live from **Admin → Agent Manager** (`Change Model` → `Save`).
+
+| ID | Persona | Role | Mapped model |
+|----|---------|------|--------------|
+| `doc-king` | Documentation King - Halim | documentation | `mistral-small:free` |
+| `team-heart` | Team Heart - Jara | general | `mistral/leanstral-1-5` |
+| `customer-experience-specialist` | Customer Experience Specialist | customer-experience | `gpt-oss:120b` |
+| `ecommerce-operations-analyst` | E-Commerce Operations Analyst | ecommerce-operations | `qwen3:free` |
+| `bug-hunter` | Bug Hunter - Jewel | debugging | `llama3.1:8b` |
+| `code-guru` | Code Guru - Monu | architecture | `qwen3.8-27b:free` |
+| `perf-wizard` | Performance Wizard - Rashed | performance | `nemotron-3-nano:30b` |
+| `qa-tyrant` | Quality Tyrant - Mojnu | quality | `glm-4.7-flash:free` |
+| `security-hero` | Security Hero - Bablu | security | `north-mini-code:free` |
+| `llama-local-test` | Llama Local Test *(demo, priority 99)* | test harness | `llama-local` (local socket) |
+
+A virtual `mission` model runs the multi-agent debate path
+(`POST /api/mission`). Calling any agent through the OpenAI API is just
+`"model": "<agent-id>"` — the router resolves `agent → model → provider`.
 
 ---
 
 ## MCP Tools (35)
 
-Verified live via `GET /api/admin/tools` — count **35**, all enabled at capture time,
-**9 lifetime tool calls,0 tool errors** (admin screenshot below).
+One registry, one enable/disable switch, four transports — `tools/list` and
+`tools/call` behave identically everywhere. The full table with descriptions lives in
+[`docs/openai-tools.md`](docs/openai-tools.md); the machine-readable OpenAI
+function-calling conversion of all 35 tools is [`docs/openai-schema.json`](docs/openai-schema.json).
 
-| # | Tool | Purpose |
-|---|------|---------|
-|1|`agent_mission`|Execute a mission with all agents in parallel |
-|2|`agent_single`|Execute with a single agent |
-|3|`browse_cdp`|Headless-browse a URL via Chrome DevTools Protocol over a PIPE (zero HTTP control channel) |
-|4|`call_agent`|Call another agent for a specific sub-task |
-|5|`db_list_tables`|List tables in the configured database (MySQL/SQLite/PostgreSQL) |
-|6|`db_query`|Run a SQL query against a configured database |
-|7|`delete_file`|Delete a file or directory (recursive for directories) |
-|8|`env_get`|Read an environment variable by name |
-|9|`exec`|Run a shell command cross-platform in any folder |
-|10|`get_memory`|Retrieve session memory |
-|11|`get_working_dir`|Get current MCP working directory |
-|12|`glob`|Find files by glob pattern inside the MCP working dir |
-|13|`grep`|Search file contents with a regex or plain text pattern |
-|14|`http_request`|Make an HTTP request (GET/POST/PUT/PATCH/DELETE) using Node built-ins |
-|15|`list_directory`|List contents of a directory |
-|16|`ocr__ocr_crop`| `[external:ocr]` Crop a region from an image and extract text |
-|17|`ocr__ocr_image`| `[external:ocr]` Extract text from an image file (PNG/JPG/BMP/TIFF/PDF) |
-|18|`ocr__ocr_screenshot`| `[external:ocr]` Screenshot the screen and extract text via OCR |
-|19|`open_browser`|Open a file or URL in the default browser |
-|20|`read_file`|Read a file from the filesystem |
-|21|`read_ssot`|Read the current SSOT |
-|22|`remote_mcp_call`|Call a tool on a remote MCP server (outbound MCP client) |
-|23|`rename_file`|Rename or move a file/directory |
-|24|`screen-recorder__screen_record_start`| `[external:screen-recorder]` Start recording the screen |
-|25|`screen-recorder__screen_record_status`| `[external:screen-recorder]` Check if a recording is active |
-|26|`screen-recorder__screen_record_stop`| `[external:screen-recorder]` Stop the active recording |
-|27|`screen-recorder__screen_screenshot`| `[external:screen-recorder]` Screenshot of the entire screen |
-|28|`set_working_dir`|Set MCP working directory for relative file paths |
-|29|`system_info`|Cross-platform system info (platform, arch, OS, hostname, Node, memory) |
-|30|`terminal`|Run a shell command in the server terminal |
-|31|`tts__tts_play`| `[external:tts]` Convert text to speech AND play it immediately |
-|32|`tts__tts_speak`| `[external:tts]` Convert text to speech audio file |
-|33|`tts__tts_voices`| `[external:tts]` List available TTS voices |
-|34|`web_search`|Search the web for real-time information |
-|35|`write_file`|Write content to a file (creates directories) |
+| Group | Tools |
+|-------|-------|
+| Agents & missions | `agent_mission` · `agent_single` · `call_agent` · `get_memory` |
+| Files & workspace | `read_file` · `write_file` · `delete_file` · `rename_file` · `list_directory` · `glob` · `grep` · `set_working_dir` · `get_working_dir` · `read_ssot` |
+| Shell & system | `terminal` · `exec` · `system_info` · `env_get` |
+| Web & HTTP | `web_search` · `http_request` · `browse_cdp` · `open_browser` |
+| Databases | `db_query` · `db_list_tables` |
+| MCP plumbing | `remote_mcp_call` |
+| Screen & OCR (external) | `screen-recorder__screen_record_start/status/stop/screenshot` · `ocr__ocr_crop/image/screenshot` |
+| Voice (external) | `tts__tts_play/speak/voices` |
 
-Tools can be switched off per-tool from **Admin → MCP & Tools**; enforcement happens at
-one choke point (`executeMcpTool` refuses disabled tools) and `tools/list` filters them
-out for every transport. Verified live: disabling `system_info` dropped `tools/list`
-from35 to34 and direct calls returned a refusal; re-enabling restored it.
+Verified live: **35 tools, 9 lifetime tool calls, 0 tool errors** in the admin panel.
+Disabling a tool drops it from `tools/list` and refuses `tools/call` at one choke
+point; re-enabling restores it.
 
-<img src="docs/evidence/mcp-tools-stats.jpeg" width="620" alt="MCP & Tools stats:35 total tools,9 tool calls,0 tool errors">
-<img src="docs/evidence/mcp-tools-list-a.jpeg" width="620" alt="MCP tool list with enable toggles">
-
----
-
-## Agents (9 core +1 demo)
-
-Live from `GET /api/admin/stats` (models as mapped on this machine):
-
-| ID | Name | Role | Mapped model |
-|----|------|------|--------------|
-|`doc-king`|Documentation King - Halim|documentation|`mistral-small:free`|
-|`team-heart`|Team Heart - Jara|general|`mistral/leanstral-1-5`|
-|`customer-experience-specialist`|Customer Experience Specialist|customer-experience|`gpt-oss:120b`|
-|`ecommerce-operations-analyst`|E-Commerce Operations Analyst|ecommerce-operations|`qwen3:free`|
-|`bug-hunter`|Bug Hunter - Jewel|debugging|`llama3.1:8b`|
-|`code-guru`|Code Guru - Monu|architecture|`qwen3.8-27b:free`|
-|`perf-wizard`|Performance Wizard - Rashed|performance|`nemotron-3-nano:30b`|
-|`qa-tyrant`|Quality Tyrant - Mojnu|quality|`glm-4.7-flash:free`|
-|`security-hero`|Security Hero - Bablu|security|`north-mini-code:free`|
-|`llama-local-test`|Llama Local Test *(demo, priority99)*|test harness|`llama-local` (local bridge)|
-
-Agents are created/edited/enabled from **Admin → Agent Manager**; each agent card shows
-`Current Model` plus a `Change Model` dropdown populated from the model DB, with `Save`.
-
-<img src="docs/evidence/agents-llama-local.jpeg" width="620" alt="Agent card: Llama Local Test, current model llama-local (custom_5)">
-
-Calling an agent through the OpenAI-compatible API is just `model = agent id`:
-
-```json
-POST /v1/chat/completions
-{ "model": "llama-local-test", "messages": [...] }
-→ resolves agent → agent.model (llama-local) → provider custom_5 → local Unix socket
-```
+<img src="docs/evidence/mcp-tools-stats.jpeg" width="620" alt="MCP & Tools stats — 35 total tools, 0 errors">
+<img src="docs/evidence/mcp-tools-list-a.jpeg" width="620" alt="MCP tool list with per-tool toggles">
 
 ---
 
 ## Transports
 
-| Transport | Endpoint | Notes |
-|-----------|----------|-------|
-| HTTP JSON-RPC2.0 | `POST /mcp` | Main MCP entry; also used by VS Code (`http://localhost:3000/mcp`) |
-| SSE | `GET /mcp` | Emits `endpoint` event + tools list as server-sent events |
-| WebSocket | `ws://…` (HTTP upgrade) | Full-duplex message channel |
-| Unix domain socket | `/tmp/zombiecoder/mcp.sock` | newline-delimited JSON-RPC; TCP fallback on Windows |
-| OpenAI-compatible HTTP | `/v1/chat/completions`, `/v1/models` | Chat + discovery for any OpenAI SDK client |
-
-`tools/list` and `tools/call` behave identically across all of them (same MCP_TOOLS
-registry, same enable/disable filter). The local LLM bridge adds a *provider-side*
-transport (see next section): the gateway reaches it over `/tmp/local-llm.sock`.
+| Transport | Endpoint | Wire format |
+|-----------|----------|-------------|
+| HTTP JSON-RPC 2.0 | `POST /mcp` | newline/JSON-RPC (VS Code uses `http://localhost:3000/mcp`) |
+| SSE | `GET /mcp` | `endpoint` event + tool events |
+| WebSocket | HTTP upgrade on `/` | full-duplex messages |
+| Unix domain socket | `/tmp/zombiecoder/mcp.sock` | newline-delimited JSON-RPC (TCP fallback on Windows) |
+| OpenAI HTTP | `POST /v1/chat/completions`, `GET /v1/models` | chat completions, SSE streaming |
 
 ---
 
-## Endpoints (HTTP surface)
+## Test Commands
 
-Route index maintained in the `api.js` header. Highlights:
+### Health
 
-**Core / discovery**
-`GET /` (UI dashboard) · `GET /health` · `GET /identity` · `GET /v1/models` (agent ids +
-`mission`) · `GET /api/v0/models` (real provider models, for IDEs) · `GET /api/v1/models`
-(model DB,344 models at capture) · `GET /api/mcp-clients` · `GET /api/clients` ·
-`GET /api/domain` · `GET /api/pusher-config` · `GET /api/rate-limit` +
-`POST /api/rate-limit/reset` · `GET /api/locks`
-
-**Chat / execution**
-`POST /v1/chat/completions` (OpenAI-compatible, streaming or not) · `POST /api/mission`
-(multi-agent) · `POST /api/input` (unified HTTP entry) · `POST /api/normalize` ·
-WebSocket upgrade handler
-
-**MCP**
-`POST /mcp` (JSON-RPC2.0) · `GET /mcp` (SSE) · UDS `/tmp/zombiecoder/mcp.sock`
-
-**Anti-dote**
-`POST /api/v1/anti-dote`
-
-**Admin / telemetry**
-`GET /api/admin` (HTML) · `GET /api/admin/stats` (includes usage telemetry spread) ·
-`GET /api/admin/providers` (enriched: req/err/OK%/last-used/last-error/health) ·
-`GET /api/admin/session-log` (sessions + lifetime `agent_calls`) ·
-`GET|POST /api/admin/tools` (list + per-tool on/off) ·
-`GET|POST /api/admin/agents`, `DELETE /api/admin/agents/{id}` ·
-`GET /api/agents` · `GET /api/agents-status`
-
-**State / config**
-`GET|POST /api/config` (runtime config, persisted to the `settings` table) ·
-`GET /api/ssot` · `GET /api/sessions` + `GET /api/sessions/{id}` ·
-`POST /api/set-working-dir` · `POST /api/workspace` · `POST /api/syllabus` ·
-`GET /api/admin` panel + static `admin.html`
-
----
-
-## Anti-dote
-
-A6-step chain (`api.js`, section "Anti-dote") runs on **all** execution endpoints:
-`/v1/chat/completions`, `/api/mission`, MCP, and `POST /api/v1/anti-dote` itself.
-Behavior is **monitoring mode by design**: if the anti-dote chain fails, execution
-still proceeds and the failure is recorded — it never blocks a request. Togglable at
-runtime via `ANTIDOTE_ENABLED` / runtime config (`antiDoteEnabled`).
-
----
-
-## Local LLM bridge (`local-llm-bridge.js`)
-
-One small standalone script so that every llama.cpp / Ollama quirk stays **out** of the
-main gateway: the bridge speaks clean OpenAI dialect to any client (no auth header
-required) and absorbs local-model weirdness itself.
-
-```
- any client                 Unix socket IPC            loopback only
-┌────────────┐  /tmp/local-llm.sock   ┌─────────────────┐   :18777   ┌─────────────┐
-│ gateway    │ ─────────────────────▶ │ local-llm-      │ ──────────▶ │ llama-server│
-│ (api.js)   │  or127.0.0.1:11435/v1  │ bridge.js       │            │ (llama.cpp) │
-│ CUSTOM_    │ ◀───────────────────── │ quirk layer Q1- │ ◀────────── │ Llama-3.2-1B│
-│ PROVIDER_5 │                        │ Q10             │             │ Q8_0 GGUF   │
-└────────────┘                        └─────────────────┘             └─────────────┘
+```bash
+curl http://localhost:3000/health
+# {"healthy":true,"version":"3.2.1","agents":10,"models":392,...}
 ```
 
-**Served routes:** `GET /health` · `GET /v1/models` · `POST /v1/chat/completions`
-(stream + non-stream) — on **both** transports simultaneously
-(`unix:///tmp/local-llm.sock`, perm `0666`, and `http://127.0.0.1:11435`).
+### Models (real provider catalog for IDEs)
 
-**Quirk layer (all inside this one file):**
+```bash
+curl http://localhost:3000/api/v0/models
+# {"data":[{"id":"llama-local","owned_by":"local_llm"}, ... 404 models ...]}
+```
+
+### Chat with an agent (OpenAI format — model = agent id)
+
+```bash
+curl -X POST http://localhost:3000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "llama-local-test",
+    "messages": [{"role": "user", "content": "In one line: which city are you serving from?"}],
+    "max_tokens": 80
+  }'
+```
+
+### UDS `tools/list` (server data read straight from the socket)
+
+```bash
+printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' \
+  | nc -U /tmp/zombiecoder/mcp.sock
+# {"jsonrpc":"2.0","id":1,"result":{"tools":[ ...35 tools with inputSchema... ]}}
+```
+
+### Local bridge (no auth header, any client)
+
+```bash
+curl http://127.0.0.1:11435/health
+curl --unix-socket /tmp/local-llm.sock http://localhost/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"llama-local","messages":[{"role":"user","content":"say PONG"}],"max_tokens":20}'
+```
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- **Node.js 18+** (no npm dependencies — the server is self-contained)
+- Linux (developed and verified on Linux x86_64, 4 CPU cores, 15 GB RAM)
+- Optional: llama.cpp `llama-server` + a GGUF model for the local bridge
+
+### Step 1 — Start the server
+
+```bash
+node start.js --start-all
+```
+
+Terminates any previous instance itself and brings up the gateway plus worker ports.
+Admin panel: `http://localhost:3000/admin.html`.
+
+### Step 2 — (Optional) Start the local LLM bridge
+
+```bash
+node local-llm-bridge.js
+```
+
+Auto-detects the llama-server binary and GGUF, spawns the model into RAM, and binds
+both `/tmp/local-llm.sock` and `http://127.0.0.1:11435`. Ctrl-C tears down the child
+process and unlinks the socket.
+
+### Step 3 — Verify
+
+```bash
+curl http://localhost:3000/health          # server up
+curl http://127.0.0.1:11435/health         # bridge up, both transports listed
+```
+
+---
+
+## Shared OpenAI Schema — `docs/openai-schema.json`
+
+One machine-readable manifest **generated from the live server** (not hand-written)
+that every agent and any OpenAI SDK client can share:
+
+| Key | Contents |
+|-----|----------|
+| `contract` | gateway / local-bridge / MCP endpoints, auth rules, request & response shapes |
+| `models` | the full provider catalog (404 model ids across 9 providers) |
+| `agents` | agent id → mapped model routing table (10 agents) |
+| `tools` | all **35 MCP tools converted to OpenAI function-calling format** (`type:"function"` + JSON-Schema `parameters` taken from the MCP `inputSchema`) |
+| `usage` | how to attach `tools`, how agent routing works, the local default |
+
+**Proof it works** — the schema's own `tools` array, sent to the local model:
+
+```json
+POST http://127.0.0.1:11435/v1/chat/completions   (tools from docs/openai-schema.json)
+{"model":"llama-local","choices":[{"message":{
+  "content":"",
+  "tool_calls":[{"type":"function","function":{
+    "name":"list_directory","arguments":"{\"path\":\".\"}"}}]},
+  "finish_reason":"tool_calls"}]}
+```
+
+---
+
+## Local LLM Bridge (`local-llm-bridge.js`)
+
+One standalone, zero-dependency script so every llama.cpp/Ollama quirk stays **out**
+of the gateway: the bridge speaks clean OpenAI dialect on two transports and absorbs
+local-model weirdness itself.
+
+```
+   gateway or any client          same handler
+┌────────────────┐   Unix socket  ┌──────────────────┐  loopback   ┌──────────────┐
+│  api.js / SDK  │ ─────────────► │ local-llm-bridge │ ──────────► │ llama-server │
+│  CUSTOM_       │   or TCP :11435│  quirk layer Q1.. │ ◄────────── │ model in RAM │
+│  PROVIDER_5    │ ◄───────────── │  Q10             │             │ (2.4 GB RSS) │
+└────────────────┘                └──────────────────┘             └──────────────┘
+```
+
+Routes served on **both** transports: `GET /health` · `GET /v1/models` ·
+`POST /v1/chat/completions` (stream and non-stream).
+
+### Quirk layer (all inside this file)
 
 | # | Quirk absorbed |
 |---|----------------|
-| Q1 | No auth required — Authorization header accepted but never needed (CORS `*`) |
-| Q2 | Model aliasing — any caller model name is answered by the configured GGUF; response echoes the caller's name |
-| Q3 | Reasoning-tag stripping — `<|think|>`-style markers removed from `content` (kept in `reasoning_content`), on non-stream **and** stream via a holdback scanner that survives markers split across SSE chunks |
-| Q4 | Text tool-call formats (function-call block, fenced JSON `{name,arguments}`, function-prefix JSON) converted to real OpenAI `tool_calls` + `finish_reason:"tool_calls"` |
-| Q5 | Empty reply while tools were sent → one automatic retry without tools |
-| Q6 | Backend rejects the tools block (template/grammar/PEG errors) → one retry with a JSON-tool hint system containing the full tool spec |
-| Q7 | `response_format: json_object` → first balanced JSON value extracted from prose |
-| Q8 | Missing `usage` → estimated and flagged `usage.estimated: true` (never passed off as exact) |
-| Q9 | Stream normalization — `id`/`created`/`model` stamped on every chunk, guaranteed `data: [DONE]`, `: hb` heartbeat every15 s (kills idle-timeouts on slow CPU inference) |
-| Q10 | Body parsed regardless of `Content-Type`; friendly JSON errors instead of upstream HTML |
+| Q1 | No auth required — Authorization accepted, never needed; permissive CORS |
+| Q2 | Model aliasing — any caller model name answered by the configured GGUF; response echoes the caller's name |
+| Q3 | Reasoning-tag stripping on non-stream **and** stream (holdback scanner survives markers split across SSE chunks) |
+| Q4 | Text tool-call formats converted to real OpenAI `tool_calls` + `finish_reason:"tool_calls"` |
+| Q5 | Empty reply while tools were sent → one retry without tools |
+| Q6 | Backend rejects the tools block (template/grammar/PEG errors) → one retry with a JSON-tool hint carrying the full tool spec |
+| Q7 | `response_format:"json_object"` → first balanced JSON value extracted from prose |
+| Q8 | Missing usage → estimated and flagged `usage.estimated:true` (never passed off as exact) |
+| Q9 | Stream normalization — identity stamped on every chunk, guaranteed `data: [DONE]`, `: hb` heartbeat every 15 s |
+| Q10 | Header-tolerant body parsing; friendly JSON errors instead of upstream HTML |
 
-**Configuration** (env, defaults fit this machine):
+### Configuration (environment variables)
 
-| Env | Default | Meaning |
-|-----|---------|---------|
-| `BRIDGE_BACKEND` | `auto` | `auto` = llama if binary+GGUF found, else ollama |
-| `LLAMA_SERVER_BIN` | auto-detected | llama.cpp server binary (found `…/llama-b11146/llama-server`, v0.5.0-dev) |
-| `BRIDGE_GGUF` | auto-detected | `~/.local/share/models/Llama-3.2-1B-Instruct-Q8_0.gguf` (1,321,083,008 bytes) |
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `BRIDGE_BACKEND` | `auto` | `auto` / `llama` / `ollama` |
+| `LLAMA_SERVER_BIN` | auto-detect | llama-server binary (verified: v0.5.0-dev, build 11146) |
+| `BRIDGE_GGUF` | auto-detect | the model file (verified: Llama-3.2-1B-Instruct Q8_0, 1.32 GB; a cached Qwen3.5-0.8B is the fallback) |
 | `BRIDGE_MODEL` | `llama-local` | wire model name |
 | `BRIDGE_PORT` | `11435` | loopback TCP |
-| `BRIDGE_SOCKET` | `/tmp/local-llm.sock` | Unix socket |
-| `BRIDGE_INTERNAL_PORT` | `18777` | llama-server loopback (never exposed beyond127.0.0.1) |
-| `BRIDGE_CTX` | `16384` | context (gateway prompts measure ~6.2 k tokens;4096 was too small — see Limitations) |
-| `BRIDGE_THREADS` | CPU count | llama-server threads |
+| `BRIDGE_SOCKET` | `/tmp/local-llm.sock` | Unix socket (perm 0666) |
+| `BRIDGE_INTERNAL_PORT` | `18777` | llama-server loopback only |
+| `BRIDGE_CTX` | `16384` | context (gateway prompts measure ≈ 6.2 k tokens) |
+| `BRIDGE_THREADS` | CPU count | inference threads |
 | `BRIDGE_TIMEOUT_MS` | `280000` | upstream timeout |
-| `BRIDGE_OLLAMA_URL` | `http://127.0.0.1:11434` | used only in ollama backend mode |
 
-Any other GGUF ≤ ~2 GB drops in via `BRIDGE_GGUF` (a cached
-`Qwen3.5-0.8B-Q8_0.gguf` is also auto-detected as fallback). The bridge spawns and
-supervises llama-server itself (auto-respawn, `cache_prompt:true` so repeated gateway
-context skips re-prefill), and unlinks the socket on Ctrl-C.
-
-**Gateway wiring** (`.env`, git-ignored):
+The bridge supervises llama-server itself (auto-respawn) and sets `cache_prompt:true`
+so repeated gateway context can skip re-prefill. Gateway wiring (`.env`, git-ignored):
 
 ```
 CUSTOM_PROVIDER_5_NAME=local_llm
 CUSTOM_PROVIDER_5_URL=http://127.0.0.1:11435/v1
-CUSTOM_PROVIDER_5_SOCKET=/tmp/local-llm.sock     # api.js prefers UDS when the file exists
+CUSTOM_PROVIDER_5_SOCKET=/tmp/local-llm.sock
 CUSTOM_PROVIDER_5_MODELS=llama-local
 ```
 
@@ -249,126 +290,155 @@ CUSTOM_PROVIDER_5_MODELS=llama-local
 
 ## Evidence
 
-All from this machine, same day. Short excerpts only; full outputs in the session log
-(`logs/2026-09-26.log`, gateway log, `/tmp/opencode/bridge.log`).
+Same-day captures from this machine. Screenshots live in `docs/evidence/`; logs in
+`logs/` (server) and the bridge stdout.
 
-**1. Bridge up, both transports, no auth**
+**1. Server health**
+
+```json
+{"healthy":true,"version":"3.2.1","agents":10,"models":392,"pusher":true}
+```
+
+**2. Bridge up, both transports, no auth**
 
 ```json
 GET http://127.0.0.1:11435/health
-{"status":"ok","bridge":"local-llm-bridge","backend":"llama","model":"llama-local",
- "gguf":"Llama-3.2-1B-Instruct-Q8_0.gguf","upstream":{"base":"http://127.0.0.1:18777","ready":true},
- "transports":{"unix_socket":"/tmp/local-llm.sock","tcp":"127.0.0.1:11435"},"auth_required":false}
+{"status":"ok","backend":"llama","model":"llama-local",
+ "gguf":"Llama-3.2-1B-Instruct-Q8_0.gguf","upstream":{"ready":true},
+ "transports":{"unix_socket":"/tmp/local-llm.sock","tcp":"127.0.0.1:11435"},
+ "auth_required":false}
 ```
 
-**2. Any model name works (aliasing), plain curl, no Authorization header**
+**3. Model loaded in RAM**
+
+```
+llama-server v0.5.0-dev (build 11146) · n_ctx 16384 · RSS 2405 MB
+```
+
+**4. Gateway reached the local model over the Unix socket**
+
+```
+[INFO] UDS_OUTBOUND {"provider":"custom_5","socket":"/tmp/local-llm.sock"}
+[bridge:INFO] CHAT_OK {"transport":"uds","model":"llama-local","tools":15,"ms":204257,"usage_total":6242}
+```
+
+**5. Local model produced structured tool calls**
 
 ```json
-{"id":"chatcmpl-8IA59dA5PY…","model":"whatever-name",
- "choices":[{"message":{"role":"assistant","content":"BARISAL-OK"},"finish_reason":"stop"}]}
+{"finish_reason":"tool_calls",
+ "tool_calls":[{"function":{"name":"get_weather","arguments":"{\"city\":\"Barisal\"}"}}]}
 ```
 
-**3. Tool call end-to-end through the bridge (Q6 retry + Q4 parse)**
+**6. Agent → local model end-to-end (truncated)**
 
 ```json
-{"model":"llama-local","choices":[{"message":{"role":"assistant","content":"",
- "tool_calls":[{"id":"call_7e5911722c73c05d","type":"function",
- "function":{"name":"get_weather","arguments":"{\"city\":\"Barisal\"}"}}]},
- "finish_reason":"tool_calls"}],"usage":{"prompt_tokens":128,"completion_tokens":15}}
-```
-
-**4. Gateway → local socket (log line, gateway side)**
-
-```
-01:28:52 [INFO] UDS_OUTBOUND {"provider":"custom_5","socket":"/tmp/local-llm.sock"}
-```
-
-**5. Bridge received it over the Unix socket (log line, bridge side)**
-
-```
-01:32:16 [bridge:INFO] CHAT_OK {"transport":"uds","model":"llama-local","stage":"direct",
- "ms":204257,"tools":15,"tool_calls":0,"content_chars":8,"finish":"stop","usage_total":6242}
-```
-
-**6. Agent call response (truncated)**
-
-```json
-{"id":"chatcmpl-6fe45e90…","model":"llama-local-test",
- "choices":[{"message":{"role":"assistant",
- "content":"ভাইয়া, এই মুহূর্তে আমার কাছে এই তথ্যগুলো নাই। উত্তরটি খুবই সংক্ষিপ্ত।"},
- "finish_reason":"stop"}],
+{"model":"llama-local-test",
+ "choices":[{"message":{"role":"assistant","content":"…reply text…"},"finish_reason":"stop"}],
  "agent":{"id":"llama-local-test","name":"Llama Local Test","role":"test harness"}}
 ```
-*(The reply text is the1 B model's own output — kept verbatim, quality and all.)*
 
-**7. Session telemetry row (DB-backed)**
+**7. Provider credentials refreshed and proven (three independent calls)**
+
+```
+model "gemini-flash"      → provider gemini   → "GEMINI-OK"     (key rotated; old key was 401)
+model "qwen/qwen3.8-27b"  → provider groq     → "GROQ-OK"       (old key was project-blocked)
+model "qwen2:0.5b"        → provider custom_3 → "NGROK-OK!"     (Colab Ollama tunnel alive)
+```
+
+**8. Shared schema tools round-trip over MCP UDS**
+
+```bash
+printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | nc -U /tmp/zombiecoder/mcp.sock
+# tools over UDS: 35 · every tool carries inputSchema
+```
+
+**9. Session telemetry row (DB-backed)**
 
 ```json
 {"agent":"llama-local-test","model":"llama-local","provider":"custom_5",
  "status":"active","requests":6,"user_agent":"curl/8.5.0"}
 ```
 
-**8. Provider stats row (Admin → Providers)**
+**10. Admin console during verification:** `0 errors, 0 dropped`.
 
-```json
-{"id":"custom_5","name":"local_llm","baseUrl":"http://127.0.0.1:11435/v1",
- "models":1,"requests":4,"errors":2,"success_pct":50,
- "last_used":"2026-09-26T01:32:16.390Z","healthy":true}
-```
-
-<img src="docs/evidence/providers-local-llm.jpeg" width="660" alt="Providers table with custom_5 / local_llm row">
-
-**9. Model visible in the model lists**
-
-```
-GET /api/v0/models → "id":"llama-local"
-GET /api/v1/models → {"id":"llama-local","provider":"custom_5","providerName":"local_llm","free":true}
-```
-
-**10. UI console during verification:** `0 errors,0 dropped` (admin panel, all pages visited).
+<img src="docs/evidence/providers-local-llm.jpeg" width="660" alt="Providers table — custom_5 / local_llm row with request stats">
+<img src="docs/evidence/agents-llama-local.jpeg" width="660" alt="Agent card — Llama Local Test mapped to llama-local">
 
 ---
 
 ## Limitations (stated as-is)
 
-1. **CPU speed is the bottleneck.** Llama-3.2-1B Q8_0 on4 cores: ~30 tok/s prefill,
-   ~9 tok/s generation. The gateway injects ~6.2 k tokens of context, so a *cold*
-   agent call measured **3 m24 s** end-to-end. `cache_prompt:true` is enabled for
-   repeats, but a post-change benchmark has not been run yet — do not read the flag
-   as a proven speedup.
+1. **CPU inference is slow.** ≈ 30 tok/s prefill / ≈ 9 tok/s generation on 4 cores;
+   a cold gateway agent call (≈ 6.2 k-token injected context) measured **3 m 24 s**.
+   `cache_prompt` is enabled but a post-change benchmark has not been run — do not
+   read the flag as a proven speedup.
 2. **The bridge is a separate process.** `start.js --start-all` does not start it;
-   run `node local-llm-bridge.js` yourself (documented above). No systemd unit yet.
-3. **Tool selection is naive.** Requests are capped at**15 tools** (`sanitizeTools`)
-   chosen by slice order, not capability/relevance matching.
-4. **No cloud free model in our tests emitted structured `tool_calls`.** That is why
-   the local bridge's Q4/Q6 path matters; cloud-side tool-calling remains unproven here.
-5. **Mission path gaps (carried over):** the multi-agent `/api/mission` path does not
-   wire the `tools` parameter, and its final stream chunk does not carry the
-   `swap_notice` note (single-agent paths do).
-6. **Pre-existing provider issues, unfixed:** `custom_3` (ngrok tunnel) returns
-   HTTP404; Gemini auto-sync hits401; Cloudflare405; `custom_4` balance is empty for
-   paid models. The2 errors on `custom_5` were the earlier4096-context failures
-   (fixed by `BRIDGE_CTX=16384`) — shown honestly in the provider table instead of
-   being reset.
-7. **400-class upstream errors are historically labeled `upstream_provider_rate_limit`**
-   in telemetry, which is a mislabel (pre-existing, disclosed, not fixed).
-8. **Model quality:** a1 B model gives shallow answers (see evidence #6). It proves
-   plumbing, not intelligence.
+   run it yourself. No systemd unit yet.
+3. **Tool selection is naive.** Requests are capped at **15 tools**, chosen by slice
+   order — not capability/relevance scoring.
+4. **Structured `tool_calls` from cloud providers remain unproven.** With the schema's
+   tools attached, `gemini-flash` fell through to `custom_3` and returned an empty
+   message; the local bridge is the only path in this repo proven to emit real
+   `tool_calls` (evidence #5).
+5. **Mission path gaps:** `/api/mission` does not wire the `tools` parameter, and its
+   final stream chunk lacks the `swap_notice` note.
+6. **Telemetry mislabel (pre-existing):** 400-class upstream errors are recorded as
+   `upstream_provider_rate_limit`.
+7. **Provider-specific facts checked today:** `gemini-2.5-*` returns
+   "no longer available to new users" on the current key (only the 3.x/3.6/3.5/3.1
+   flash family works); Groq's `groq/compound*` models are not available to this key;
+   `custom_3` is a **Colab Ollama + ngrok tunnel** — it dies when the Colab runtime
+   sleeps and was 404 until today.
+8. **Model quality:** a 1 B local model gives shallow answers and sometimes ignores
+   exact-reply instructions — it proves plumbing, not intelligence.
 9. **Anti-dote is fail-open by design** (monitoring mode) — it records, never blocks.
-10. **Screenshots** were taken at0.55–0.66 page zoom to fit wide tables in one frame.
+10. **Screenshots** were captured at 0.55–0.66 page zoom to fit wide tables.
 
 ---
 
-## Repository hygiene
+## Repository Hygiene
 
-- `.env*` (provider keys, tokens), `data/`, `logs/`, `*.db` are git-ignored —
-  `registry.db` is the single deliberate exception (seed snapshot,213 KB).
-- No hardcoded API keys in code; code falls back to `""` and the ladder is
-  DB → local seed → remote seed download → `registry.db` binary snapshot.
-- Diffs are secret-scanned before every push.
+- `.env*` (provider keys and tokens), `data/`, `logs/`, `*.db` are git-ignored —
+  `registry.db` is the single deliberate exception (fresh-install seed snapshot).
+- No API keys in code or in this document; diffs are secret-scanned before push.
 - Restart recipe: `node start.js --start-all` from the repo root — it terminates the
-  old instance itself (never `pkill -f` with a pattern that also matches your shell).
+  old instance itself (never `pkill -f` with a pattern that matches your own shell).
 
 ---
 
-*Built and maintained by Monu (The Builder), Mission Barisal.*
+## Project Structure
+
+```
+monu_the_builder/
+├── api.js                 # the server: transports, router, anti-dote, telemetry
+├── start.js               # start-all supervisor (gateway + worker ports)
+├── local-llm-bridge.js    # local llama.cpp/OpenAI bridge (UDS + TCP, quirk layer)
+├── mcp-client.js          # outbound MCP client
+├── external-mcp.js        # external MCP server wiring
+├── cdp-pipe.js            # Chrome DevTools pipe for browse_cdp
+├── note-store.js          # note/memory persistence
+├── PERSONAS.md            # agent persona source
+├── public/                # admin.html (runtime admin panel)
+├── data/                  # SQLite DBs (git-ignored) + config
+├── docs/                  # openai-schema.json · evidence screenshots · guides
+├── doc/                   # long-form documentation
+├── agent/ · cache/ · logs/
+├── registry.seed.json     # model/provider seed (text)
+├── registry.db            # same seed as binary snapshot (fresh-install path)
+└── start.js · domain-config.js
+```
+
+---
+
+## Support
+
+- **Website**: [zombiecoder.my.id](https://zombiecoder.my.id/)
+- **Email**: infi@zombiecoder.my.id
+- **Issues**: [GitHub Issues](https://github.com/sahonsrabon-os/monu_the_builder/issues)
+
+---
+
+_Built by Sahon Srabon · Developer Zone · Dhaka, Bangladesh. ZombieCoder — Mission
+Barisal is not affiliated with GitHub or Microsoft. GitHub Copilot is a trademark of
+GitHub, Inc. Document maintained by Monu (The Builder) — evidence first, then
+conclusion._

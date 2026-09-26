@@ -1,0 +1,3367 @@
+{
+  "schema_version": "1.0",
+  "title": "Mission Barisal — OpenAI-compatible shared schema",
+  "description": "Single OpenAI-compatible manifest consumed by every Mission Barisal agent and by any OpenAI SDK client: chat/models contract + all MCP tools converted to OpenAI function-calling format + agent-to-model routing map. Generated from the LIVE server (not hand-written).",
+  "generated_utc": "2026-09-26T02:21:46Z",
+  "generator": "local-llm-bridge/README evidence pipeline (see docs/evidence)",
+  "contract": {
+    "gateway": {
+      "base_url": "http://localhost:3000/v1",
+      "endpoints": [
+        "POST /v1/chat/completions",
+        "GET /v1/models"
+      ],
+      "auth": "none required while ADMIN_TOKEN is unset",
+      "stream": "SSE chunks + terminal data: [DONE]"
+    },
+    "local_bridge": {
+      "base_url": "http://127.0.0.1:11435/v1",
+      "unix_socket": "/tmp/local-llm.sock",
+      "endpoints": [
+        "POST /v1/chat/completions",
+        "GET /v1/models",
+        "GET /health"
+      ],
+      "auth": "none (any local client)"
+    },
+    "mcp": {
+      "http_jsonrpc": "POST /mcp",
+      "sse": "GET /mcp",
+      "websocket": "HTTP upgrade on /",
+      "uds": "/tmp/zombiecoder/mcp.sock"
+    },
+    "request_shape": {
+      "model": "string (provider model id OR agent id)",
+      "messages": "array",
+      "stream": "boolean",
+      "tools": "array (this file: tools)",
+      "temperature": "number (optional)",
+      "max_tokens": "integer (optional)"
+    },
+    "response_shape": {
+      "object": "chat.completion",
+      "choices[].message": "{role, content, tool_calls?}",
+      "usage": "{prompt_tokens, completion_tokens, total_tokens}"
+    }
+  },
+  "models": [
+    {
+      "id": "mimo-v2.5-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "big-pickle",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "nemotron-3-ultra-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "ling-3.0-flash-fin-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "mimo-v2.6-flash-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "muse-spark-1.2-contributor-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "muse-spark-1.3-contributor-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "nemotron-3.5-lightning-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "jev-1.13-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "test",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "test-novita-dsf4.1",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "space-bunny-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "jev-1.13",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-fable-5-1",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-haiku-4-5",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-5-5",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-5",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v4.1-flash",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v4-pro",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.1-pro",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.5-flash-lite",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.8-flash",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.3",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.3-flash",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.3-codex",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.3-codex-spark",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.4-mini",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.4-nano",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.5",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.5-pro",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-6-astra",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-6-sol",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-6-luna",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "grok-4.7",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "grok-build-0.1",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "kimi-k2.7-code",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "kimi-k3",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "minimax-m3",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "muse-spark-1.3",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3.6-plus",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3.8-flash",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3.8-max",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "openai/gpt-oss-120b",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen/qwen3.8-27b",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "allam-2-7b",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "whisper-large-v3-turbo",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "meta-llama/llama-prompt-guard-2-22m",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "meta-llama/llama-prompt-guard-2-86m",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "whisper-large-v3",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "canopylabs/orpheus-v1-english",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "canopylabs/orpheus-arabic-saudi",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "openai/gpt-oss-20b",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "openai/gpt-oss-safeguard-20b",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-flash",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-pro",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-lite",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-classic",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-2.5-flash",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-2.5-pro",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-2.5-flash-preview-tts",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-2.5-pro-preview-tts",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemma-4-26b-a4b-it",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemma-4-31b-it",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-flash-latest",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-flash-lite-latest",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-pro-latest",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-2.5-flash-lite",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-2.5-flash-image",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3-flash-preview",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.1-pro-preview",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.1-pro-preview-customtools",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.1-flash-lite-preview",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.1-flash-lite",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3-pro-image-preview",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3-pro-image",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "nano-banana-pro-preview",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.1-flash-image-preview",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.1-flash-image",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.1-flash-lite-image",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.5-flash",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.5-flash-lite",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-omni-flash-preview",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-omni-1.1-flash",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.5-transcribe",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.6-flash",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.7-flash",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.8-flash",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "lyria-3-clip-preview",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "lyria-3-pro-preview",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "lyria-3.5",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.1-flash-tts-preview",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.8-flash-tts",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.8-flash-lite-tts",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-robotics-er-2-preview",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-2.5-computer-use-preview-10-2025",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "antigravity-preview-05-2026",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "antigravity-preview-09-2026",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "antigravity-preview-latest",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "deep-research-max-preview-04-2026",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "deep-research-preview-04-2026",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "deep-research-pro-preview-12-2025",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-embedding-001",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-embedding-2-preview",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-embedding-2",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "aqa",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "veo-3.1-generate-preview",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "veo-3.1-fast-generate-preview",
+      "object": "model",
+      "provider": "Gemini",
+      "kind": "provider"
+    },
+    {
+      "id": "cloudflare:default",
+      "object": "model",
+      "provider": "Cloudflare",
+      "kind": "provider"
+    },
+    {
+      "id": "nemotron-3-super",
+      "object": "model",
+      "provider": "Ollama",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.2",
+      "object": "model",
+      "provider": "Ollama",
+      "kind": "provider"
+    },
+    {
+      "id": "kimi-k2.7-code",
+      "object": "model",
+      "provider": "Ollama",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-oss:20b",
+      "object": "model",
+      "provider": "Ollama",
+      "kind": "provider"
+    },
+    {
+      "id": "minimax-m2.7",
+      "object": "model",
+      "provider": "Ollama",
+      "kind": "provider"
+    },
+    {
+      "id": "kimi-k3",
+      "object": "model",
+      "provider": "Ollama",
+      "kind": "provider"
+    },
+    {
+      "id": "gemma4:31b",
+      "object": "model",
+      "provider": "Ollama",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-oss:120b",
+      "object": "model",
+      "provider": "Ollama",
+      "kind": "provider"
+    },
+    {
+      "id": "nemotron-3-nano:30b",
+      "object": "model",
+      "provider": "Ollama",
+      "kind": "provider"
+    },
+    {
+      "id": "nemotron-3-ultra",
+      "object": "model",
+      "provider": "Ollama",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.3",
+      "object": "model",
+      "provider": "Ollama",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v4-pro:0813",
+      "object": "model",
+      "provider": "Ollama",
+      "kind": "provider"
+    },
+    {
+      "id": "minimax-m3",
+      "object": "model",
+      "provider": "Ollama",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v4.1-flash",
+      "object": "model",
+      "provider": "Ollama",
+      "kind": "provider"
+    },
+    {
+      "id": "mistral-large-3:675b",
+      "object": "model",
+      "provider": "Ollama",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.3-flash",
+      "object": "model",
+      "provider": "Ollama",
+      "kind": "provider"
+    },
+    {
+      "id": "kimi-k2.6",
+      "object": "model",
+      "provider": "Ollama",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-r1:7b",
+      "object": "model",
+      "provider": "custom_3",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen2:0.5b",
+      "object": "model",
+      "provider": "custom_3",
+      "kind": "provider"
+    },
+    {
+      "id": "gemma4:31b",
+      "object": "model",
+      "provider": "custom_3",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-oss:120b",
+      "object": "model",
+      "provider": "custom_3",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-oss:20b",
+      "object": "model",
+      "provider": "custom_3",
+      "kind": "provider"
+    },
+    {
+      "id": "nemotron-3-nano:30b",
+      "object": "model",
+      "provider": "custom_3",
+      "kind": "provider"
+    },
+    {
+      "id": "nemotron-3-super",
+      "object": "model",
+      "provider": "custom_3",
+      "kind": "provider"
+    },
+    {
+      "id": "nemotron-3-ultra",
+      "object": "model",
+      "provider": "custom_3",
+      "kind": "provider"
+    },
+    {
+      "id": "nemotron-3.5-lightning-30b-a3b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "laguna-xs-2.1:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "absolutereality:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "agnes-2.0-flash:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "albedobase-xl-31:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "albedobase-xl-sdxl:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "allam-2-7b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "amponyxl:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "anything-v5:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "anything-xl",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "aura-1:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "autismmix-sdxl",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "axon-1.8-flash:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "axon-1.8-lightning:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "axon-1.8-pro:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "bge-multilingual-gemma2:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-fable-5",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-fable-5.1",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-fable-5.1[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-fable-5[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-haiku-4-5-20251001",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-haiku-4-5-20251001[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4-5",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4-5-thinking",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4-5-thinking[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4-5[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4-6-thinking",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4-6-thinking[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4-7-thinking",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4-7-thinking[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4-8-thinking",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4-8-thinking[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4.6",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4.6[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4.7",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4.7[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4.8",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4.8[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-5",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-5-thinking",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-5-thinking[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-5.5",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-5.5[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-5[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-4-5-thinking",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-4-5-thinking[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-4-5[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-4-6-thinking",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-4-6-thinking[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-4.5",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-4.6",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-4.6[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-5",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-5-thinking",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-5-thinking[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-5[1m]",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "codestral-latest:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "custom-civitai",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "cyberrealistic-pony",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "cyberrealistic-pony:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-r1",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-r1-0528",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-r1-distill-qwen-32b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v3",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v3-0324",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v3.1-terminus",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v3.2",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v3.2-exp",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v4-flash",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v4-flash-0731",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v4-flash:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v4-pro",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v4-pro-0813",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v4.1-flash",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v4.1-flash:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "deliberate:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "diffusiongemma-26b-a4b-it:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "dots-3-note-preview:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "dreamshaper-v8",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "dreamshaper-xl",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "dreamshaper:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "embeddinggemma-300m:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "epicrealism",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "flat-2d-animerge:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "flux-1-dev-runware",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "flux.1-schnell:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "flux.2-dev",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "flux.2-flex",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "flux.2-klein-4b",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "flux.2-klein-9b",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "flux.2-max",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "flux.2-pro",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "fustercluck:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-2.5-flash-lite",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-2.5-pro",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-2.5-pro-preview-tts",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-2.5-pro-thinking",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3-flash",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3-pro-preview",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.1-flash-image",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.1-flash-lite",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.1-pro",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.1-pro-preview",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.5-flash",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.5-flash-lite:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.6-flash",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.6-flash:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.7-flash",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.8-flash",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-embedding-001:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-embedding-2:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-robotics-er-2-preview:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gemma-4-26b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-4.5",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-4.5-flash:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-4.6",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-4.7",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-4.7-flash:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-4.7-thinking",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.1",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.2",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.3",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.3-flash",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.3-flash-search:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.3-flash:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-4o-image",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-4o:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.5",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.6-luna",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.6-sol",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.6-terra-y",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-6-astra",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-6-luna",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-6-sol",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-image-1",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-image-2",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-image-2.5",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-image-2.5-flare",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-image-2.5-sunburst",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-oss-20b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-oss-safeguard-20b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "granite-4.0-micro:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "grok-4.20-non-reasoning",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "grok-4.20-reasoning",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "grok-4.3",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "grok-4.5",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "grok-4.6",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "grok-4.7",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "grok-beta:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "hassaku-xl-illustrious",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "hy3",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "hy4-preview",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "icbinp-i-cant-believe-its-not-photography:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "ising-calibration-1.5-31b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "jev-1.13",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "jina-code-embeddings-0.5b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "jina-code-embeddings-1.5b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "jina-embeddings-v3:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "jina-embeddings-v4:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "jina-embeddings-v5-omni-nano:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "jina-embeddings-v5-omni-small:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "jina-embeddings-v5-text-nano:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "jina-embeddings-v5-text-small:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "juggernaut-xl",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "juggernaut-xl:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "k2-horizon:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "kimi-k2.5",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "kimi-k2.6",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "kimi-k2.7-code",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "kimi-k3",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "l3-70b-euryale-v2.1:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "l3-8b-stheno-v3.2:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "l3.3-ms-nevoria-70b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "laguna-s-2.1:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "lfm-2.5-2.6b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "ling-3.0-flash-fin:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "ling-3.0-flash-sante:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "llama-3.2-11b-vision:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "llama-4-maverick-17b-128e-instruct:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "longcat-2.0",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "lorellm:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "majicmix-realistic",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "manta-flash-1.0:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "manta-mini-1.0:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "mimo-v2.5",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "mimo-v2.5-pro",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "mimo-v2.6-flash",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "mimo-v2.6-pro",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "minimax-m2-her",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "minimax-m2.7",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "minimax-m2.7:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "minimax-m3",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "mistral-7b-instruct:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "mistral-nemotron:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "mistral-small",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "mistral-small-3.2:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "mistral-small:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "mn-violet-lotus-12b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "muse-glimmer-30b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "muse-spark-1.2-contributor",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "muse-spark-1.3-contributor",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "nemotron-3-nano-omni-30b-a3b-reasoning:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "nemotron-3-super-120b-a12b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "nemotron-3-ultra-550b-a55b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "nemotron-3.5-lightning:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "nemotron-nano-12b-v2-vl:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "nemotron-nano-9b-v2:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "north-mini-code:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "nova-3:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "nova-anime-xl:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "nova-furry-pony:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "nova-furry-xl",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "ntr-mix-il-noob-xl:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "or-glm-5.3",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "or-kimi-k3",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "pony-diffusion-v6-xl",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "pony-realism",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "prefect-pony:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "quiet-goodnight-xl:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen-sea-lion-v4-32b-it:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen-sea-lion-v4.5-27b-it:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen2.5-coder-32b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen2.5-vl-7b-instruct-awq:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3-embedding-0.6b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3-next-80b-a3b-instruct:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3.7-max",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3.8-27b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3.8-flash",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3.8-flash-next:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3.8-max",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwq-32b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "realistic-vision-v6",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "rev-animated",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "rev-animated:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "riva-translate-4b-instruct-v2:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "sapphira-l3.3-70b-0.1:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "sea-lion-e5-embedding-600m:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "sea-lion-modernbert-embedding-300m:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "sea-lion-modernbert-embedding-600m:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "sensenova-6.8-flash-lite:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "sonar:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "space-bunny-alpha:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "step-3.7-flash:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "swamponyxl:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "swe-1-6-slow:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "text-embedding-3-large",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "tunix-pony:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "typhoon-v2.5-30b-a3b-instruct:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "villanova-2b-2512-preview-apnea-ft:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "wai-cute-pony:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "wai-nsfw-illustrious-sdxl",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "wai-nsfw-illustrious-sdxl:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "whisper-large-v3-turbo:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "whisper-large-v3:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "whisper-tiny-en:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "whisper:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "llama-local",
+      "object": "model",
+      "provider": "local_llm",
+      "kind": "provider"
+    },
+    {
+      "id": "mission",
+      "object": "model",
+      "provider": "mission-barisal",
+      "kind": "provider"
+    },
+    {
+      "id": "mission:doc-king",
+      "object": "model",
+      "provider": "mission-barisal",
+      "kind": "provider"
+    },
+    {
+      "id": "mission:team-heart",
+      "object": "model",
+      "provider": "mission-barisal",
+      "kind": "provider"
+    },
+    {
+      "id": "mission:customer-experience-specialist",
+      "object": "model",
+      "provider": "mission-barisal",
+      "kind": "provider"
+    },
+    {
+      "id": "mission:ecommerce-operations-analyst",
+      "object": "model",
+      "provider": "mission-barisal",
+      "kind": "provider"
+    },
+    {
+      "id": "mission:bug-hunter",
+      "object": "model",
+      "provider": "mission-barisal",
+      "kind": "provider"
+    },
+    {
+      "id": "mission:code-guru",
+      "object": "model",
+      "provider": "mission-barisal",
+      "kind": "provider"
+    },
+    {
+      "id": "mission:llama-local-test",
+      "object": "model",
+      "provider": "mission-barisal",
+      "kind": "provider"
+    },
+    {
+      "id": "mission:perf-wizard",
+      "object": "model",
+      "provider": "mission-barisal",
+      "kind": "provider"
+    },
+    {
+      "id": "mission:qa-tyrant",
+      "object": "model",
+      "provider": "mission-barisal",
+      "kind": "provider"
+    },
+    {
+      "id": "mission:security-hero",
+      "object": "model",
+      "provider": "mission-barisal",
+      "kind": "provider"
+    }
+  ],
+  "agents": [
+    {
+      "id": "doc-king",
+      "name": "Documentation King - Halim",
+      "role": "documentation",
+      "model": "mistral-small:free"
+    },
+    {
+      "id": "team-heart",
+      "name": "Team Heart - Jara",
+      "role": "general",
+      "model": "mistral/leanstral-1-5"
+    },
+    {
+      "id": "customer-experience-specialist",
+      "name": "Customer Experience Specialist",
+      "role": "customer-experience",
+      "model": "gpt-oss:120b"
+    },
+    {
+      "id": "ecommerce-operations-analyst",
+      "name": "E-Commerce Operations Analyst",
+      "role": "ecommerce-operations",
+      "model": "qwen3:free"
+    },
+    {
+      "id": "bug-hunter",
+      "name": "Bug Hunter - Jewel",
+      "role": "debugging",
+      "model": "llama3.1:8b"
+    },
+    {
+      "id": "code-guru",
+      "name": "Code Guru - Monu",
+      "role": "architecture",
+      "model": "llama-local"
+    },
+    {
+      "id": "llama-local-test",
+      "name": "Llama Local Test",
+      "role": "test harness",
+      "model": "llama-local"
+    },
+    {
+      "id": "perf-wizard",
+      "name": "Performance Wizard - Rashed",
+      "role": "performance",
+      "model": "nemotron-3-nano:30b"
+    },
+    {
+      "id": "qa-tyrant",
+      "name": "Quality Tyrant - Mojnu",
+      "role": "quality",
+      "model": "glm-4.7-flash:free"
+    },
+    {
+      "id": "security-hero",
+      "name": "Security Hero - Bablu",
+      "role": "security",
+      "model": "north-mini-code:free"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "read_file",
+        "description": "Read a file from the filesystem",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "File path (relative to MCP working dir or absolute)"
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "write_file",
+        "description": "Write content to a file (creates directories)",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "File path (relative to MCP working dir or absolute)"
+            },
+            "content": {
+              "type": "string",
+              "description": "Content"
+            }
+          },
+          "required": [
+            "path",
+            "content"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "set_working_dir",
+        "description": "Set MCP working directory for relative file paths",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "directory": {
+              "type": "string",
+              "description": "Absolute path to working directory"
+            }
+          },
+          "required": [
+            "directory"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_working_dir",
+        "description": "Get current MCP working directory",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "web_search",
+        "description": "Search the web for real-time information",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "agent_mission",
+        "description": "Execute a mission with all agents in parallel",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "string",
+              "description": "User input"
+            },
+            "session_id": {
+              "type": "string",
+              "description": "Optional session ID"
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "agent_single",
+        "description": "Execute with a single agent",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "string",
+              "description": "User input"
+            },
+            "agent_id": {
+              "type": "string",
+              "description": "Agent ID"
+            },
+            "session_id": {
+              "type": "string",
+              "description": "Optional session ID"
+            }
+          },
+          "required": [
+            "input",
+            "agent_id"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_memory",
+        "description": "Retrieve session memory",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "description": "Session ID"
+            },
+            "agent_id": {
+              "type": "string",
+              "description": "Optional: per-agent memory"
+            }
+          },
+          "required": [
+            "session_id"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "read_ssot",
+        "description": "Read the current SSOT.md (Single Source of Truth) file — contains auto-detected project info",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "list_directory",
+        "description": "List contents of a directory",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Directory path (relative to MCP working dir or absolute)"
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "open_browser",
+        "description": "Open a file or URL in the default browser (uses xdg-open/open/start)",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "target": {
+              "type": "string",
+              "description": "File path or URL to open in the browser (e.g., /abs/path/file.html or http://localhost:3000)"
+            }
+          },
+          "required": [
+            "target"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "browse_cdp",
+        "description": "Headless-browse a URL via Chrome DevTools Protocol over a PIPE (zero HTTP control channel — no port, no websocket). Fetches a page with headless Chrome and returns its text, HTML, title, or a screenshot. Use for reading local or remote web pages.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "Absolute URL to open: http://, https:// or file://"
+            },
+            "action": {
+              "type": "string",
+              "description": "What to return: text (default, readable page text) | html | title | screenshot (base64 png)"
+            },
+            "timeout_ms": {
+              "type": "number",
+              "description": "Load timeout in milliseconds (default 20000)"
+            }
+          },
+          "required": [
+            "url"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "call_agent",
+        "description": "Call another agent for a specific sub-task. Use when the task needs specialized knowledge from another agent (e.g., security review, bug hunting, performance tuning).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "agent_id": {
+              "type": "string",
+              "description": "Target agent ID: code-guru (architecture), bug-hunter (debugging), security-hero (security), perf-wizard (performance), doc-king (documentation), qa-tyrant (quality)"
+            },
+            "task": {
+              "type": "string",
+              "description": "The specific sub-task to delegate to this agent"
+            },
+            "context": {
+              "type": "string",
+              "description": "Optional context or background information for the sub-task"
+            }
+          },
+          "required": [
+            "agent_id",
+            "task"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "terminal",
+        "description": "Run a shell command in the server terminal (cwd = MCP working dir). Returns stdout/stderr/exit code. Windows: PowerShell 5.1; Linux/macOS: bash.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "command": {
+              "type": "string",
+              "description": "Shell command to execute"
+            },
+            "cwd": {
+              "type": "string",
+              "description": "Optional working directory (default: MCP working dir)"
+            }
+          },
+          "required": [
+            "command"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "delete_file",
+        "description": "Delete a file or directory (recursive for directories)",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "File/directory path (relative to MCP working dir or absolute)"
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "rename_file",
+        "description": "Rename or move a file/directory",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "description": "Source path (relative to MCP working dir or absolute)"
+            },
+            "to": {
+              "type": "string",
+              "description": "Destination path (relative to MCP working dir or absolute)"
+            }
+          },
+          "required": [
+            "from",
+            "to"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "grep",
+        "description": "Search file contents with a regex or plain text pattern inside the MCP working dir (bounded depth). Returns matching file paths + line snippets.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Pattern to search (regex allowed)"
+            },
+            "include": {
+              "type": "string",
+              "description": "Optional glob filter, e.g. '**/*.js' or 'src/**' (default: all files)"
+            },
+            "maxResults": {
+              "type": "number",
+              "description": "Optional cap on matches (default 50)"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "glob",
+        "description": "Find files by glob pattern inside the MCP working dir (e.g. '**/*.{js,ts}')",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "type": "string",
+              "description": "Glob pattern (relative to working dir)"
+            }
+          },
+          "required": [
+            "pattern"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "db_query",
+        "description": "Run a SQL query against a configured database (MySQL/SQLite/PostgreSQL). Config comes from env vars ONLY (DB_TYPE, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, DB_SQLITE_PATH, DB_TIMEOUT, PHP_BIN). MySQL/PostgreSQL use a PHP PDO bridge (db-bridge.php); SQLite uses Node built-in node:sqlite. Cross-platform (Windows/Linux/macOS).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "SQL query to execute (SELECT/INSERT/UPDATE/DELETE/DDL)"
+            },
+            "database": {
+              "type": "string",
+              "description": "Optional DB name override (default: DB_NAME env)"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "db_list_tables",
+        "description": "List tables in the configured database (MySQL/SQLite/PostgreSQL). Config from env vars ONLY (DB_*). Cross-platform.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "database": {
+              "type": "string",
+              "description": "Optional DB name override (default: DB_NAME env)"
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "exec",
+        "description": "Run a shell command cross-platform in any folder. Windows uses PowerShell, Linux/macOS uses bash (override via EXEC_SHELL_WIN / EXEC_SHELL_LINUX env). Config from env vars ONLY (EXEC_SHELL_WIN, EXEC_SHELL_LINUX, EXEC_TIMEOUT, EXEC_MAX_BUFFER).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "command": {
+              "type": "string",
+              "description": "Shell command to execute"
+            },
+            "cwd": {
+              "type": "string",
+              "description": "Optional working directory (absolute or relative to MCP working dir)"
+            },
+            "timeout": {
+              "type": "number",
+              "description": "Optional timeout in ms (default from env EXEC_TIMEOUT, 30000)"
+            },
+            "env": {
+              "type": "object",
+              "description": "Optional extra environment variables to pass"
+            }
+          },
+          "required": [
+            "command"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "http_request",
+        "description": "Make an HTTP request (GET/POST/PUT/PATCH/DELETE) using Node built-in http/https. No external deps. Config: HTTP_TIMEOUT env (ms). Cross-platform.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "Full URL (http:// or https://)"
+            },
+            "method": {
+              "type": "string",
+              "description": "HTTP method (default GET)"
+            },
+            "headers": {
+              "type": "object",
+              "description": "Optional request headers"
+            },
+            "body": {
+              "type": "string",
+              "description": "Optional request body (raw string)"
+            },
+            "timeout": {
+              "type": "number",
+              "description": "Optional timeout in ms (default from env HTTP_TIMEOUT, 30000)"
+            }
+          },
+          "required": [
+            "url"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "env_get",
+        "description": "Read an environment variable by name. Config is env-driven (never hardcoded). Values of KEY/SECRET/PASSWORD/TOKEN/AUTH variables are hidden unless reveal_secrets=true.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "description": "Environment variable name (e.g. DB_NAME, PORT, EXEC_TIMEOUT)"
+            },
+            "reveal_secrets": {
+              "type": "boolean",
+              "description": "Set true to reveal values of secret-looking variables"
+            }
+          },
+          "required": [
+            "key"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "system_info",
+        "description": "Get cross-platform system info: platform, arch, OS, hostname, Node version, cwd, uptime, memory, non-secret env var names, and the configured DB config (values masked).",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "remote_mcp_call",
+        "description": "Call a tool on a remote MCP server (outbound MCP client). Use this to invoke tools exposed by connected remote MCP servers.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "server": {
+              "type": "string",
+              "description": "Remote MCP server name (see /api/mcp-remote)"
+            },
+            "tool": {
+              "type": "string",
+              "description": "Remote tool name to call"
+            },
+            "args": {
+              "type": "object",
+              "description": "Arguments for the remote tool"
+            }
+          },
+          "required": [
+            "server",
+            "tool"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "ocr__ocr_image",
+        "description": "[external:ocr] Extract text from an image file (PNG, JPG, BMP, TIFF, PDF). Uses Tesseract OCR. Supports Bengali + English.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute path to the image file"
+            },
+            "langs": {
+              "type": "string",
+              "description": "Tesseract language codes (default: eng). E.g. 'eng', 'ben', 'eng+ben+ara'"
+            },
+            "preprocess": {
+              "type": "string",
+              "enum": [
+                "none",
+                "threshold",
+                "sharpen",
+                "denoise"
+              ],
+              "description": "Image preprocessing mode (default: none)"
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "ocr__ocr_screenshot",
+        "description": "[external:ocr] Take a screenshot of the screen and extract text via OCR. Uses ffmpeg x11grab + Tesseract.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "region": {
+              "type": "string",
+              "description": "Capture region: 'full' (default), or 'WxH+X+Y' (e.g. '1920x1080+0+0')"
+            },
+            "langs": {
+              "type": "string",
+              "description": "Tesseract language codes (default: eng)"
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "ocr__ocr_crop",
+        "description": "[external:ocr] Crop a region from an image and extract text. Useful for reading specific parts of screenshots.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Path to source image"
+            },
+            "x": {
+              "type": "number",
+              "description": "X offset (pixels)"
+            },
+            "y": {
+              "type": "number",
+              "description": "Y offset (pixels)"
+            },
+            "width": {
+              "type": "number",
+              "description": "Crop width (pixels)"
+            },
+            "height": {
+              "type": "number",
+              "description": "Crop height (pixels)"
+            },
+            "langs": {
+              "type": "string",
+              "description": "Tesseract language codes"
+            }
+          },
+          "required": [
+            "path",
+            "x",
+            "y",
+            "width",
+            "height"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "screen-recorder__screen_screenshot",
+        "description": "[external:screen-recorder] Take a screenshot of the entire screen or a specific region. Returns file path.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "region": {
+              "type": "string",
+              "description": "Capture region: 'full' (default) or 'WxH+X+Y' (e.g. '800x600+100+200')"
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "png",
+                "jpg"
+              ],
+              "description": "Output format (default: png)"
+            },
+            "output": {
+              "type": "string",
+              "description": "Custom output path (optional, auto-generated if empty)"
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "screen-recorder__screen_record_start",
+        "description": "[external:screen-recorder] Start recording the screen. Returns recording ID. Use screen_record_stop to stop.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "duration": {
+              "type": "number",
+              "description": "Max recording duration in seconds (default: 300 = 5 min). Auto-stops."
+            },
+            "fps": {
+              "type": "number",
+              "description": "Frames per second (default: 15). Lower = smaller file."
+            },
+            "region": {
+              "type": "string",
+              "description": "Record region: 'full' (default) or 'WxH+X+Y'"
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "mp4",
+                "webm",
+                "mkv"
+              ],
+              "description": "Output format (default: mp4)"
+            },
+            "output": {
+              "type": "string",
+              "description": "Custom output path (optional)"
+            },
+            "audio": {
+              "type": "boolean",
+              "description": "Record system audio (default: false). Requires PulseAudio."
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "screen-recorder__screen_record_stop",
+        "description": "[external:screen-recorder] Stop the active screen recording. Returns the file path and duration.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "recording_id": {
+              "type": "string",
+              "description": "Recording ID to stop (from screen_record_start). If empty, stops the most recent."
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "screen-recorder__screen_record_status",
+        "description": "[external:screen-recorder] Check if a screen recording is active. Lists all active recordings.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "tts__tts_speak",
+        "description": "[external:tts] Convert text to speech audio file. Uses Microsoft Edge TTS (free, no API key). Default voice: Bengali female (bn-BD-NabanitaNeural).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "Text to convert to speech"
+            },
+            "voice": {
+              "type": "string",
+              "description": "Voice name (default: bn-BD-NabanitaNeural)"
+            },
+            "rate": {
+              "type": "string",
+              "description": "Speech rate (default: '+0%')"
+            },
+            "output": {
+              "type": "string",
+              "description": "Custom output path (optional)"
+            }
+          },
+          "required": [
+            "text"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "tts__tts_voices",
+        "description": "[external:tts] List available TTS voices. Filter by language.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "lang": {
+              "type": "string",
+              "description": "Filter by language code (e.g. 'bn', 'en')"
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "tts__tts_play",
+        "description": "[external:tts] Convert text to speech AND play it immediately.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "Text to speak"
+            },
+            "voice": {
+              "type": "string",
+              "description": "Voice name"
+            },
+            "rate": {
+              "type": "string",
+              "description": "Speech rate"
+            }
+          },
+          "required": [
+            "text"
+          ]
+        }
+      }
+    }
+  ],
+  "usage": {
+    "chat_with_tool": "POST body.tools = $ref tools (optionally sliced — gateway caps at15 per request)",
+    "agent_routing": "model = <agent id> resolves to that agent's mapped provider model",
+    "local_default": "model = \"llama-local\" served by local-llm-bridge over UDS"
+  }
+}
