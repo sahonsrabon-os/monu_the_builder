@@ -104,6 +104,12 @@ const path = require("path");
 const netModule = require("net");
 const os = require("os");
 const externalMcp = require("./external-mcp.js");
+const {
+  slimSyllabus,
+  slimSSOT,
+  compactToolsText,
+} = require("./tools/context-slimmer.js");
+const { makeAliasResolver } = require("./tools/model-alias.js");
 const { loadAgentFiles, getAgentById, listAgentIds } = require("./agent");
 
 // ─── Domain Configuration (per-server identity) ──────────────
@@ -746,6 +752,7 @@ function getApiModelName(m) {
 // Previously searched all providers, causing Groq's fallback alias
 // to route through OpenCode's primary path (wrong apiModel).
 function resolveApiModel(publicModelName, providerId) {
+  publicModelName = applyModelAlias(publicModelName); // public alias -> canonical
   // 1. Search within specific provider (if providerId given)
   if (providerId && PROVIDER_CONFIG[providerId]) {
     const p = PROVIDER_CONFIG[providerId];
@@ -1539,6 +1546,13 @@ function getDisabledModelRows() {
   }
 }
 
+// 🧟 P1 display alias (MODEL_ALIASES env, format public:canonical — e.g.
+// zombie-mini:llama-local). Applied BEFORE provider resolution so a public
+// name always lands on the canonical id (S6): the normalizer sync prunes
+// custom-provider entries the upstream does not report, so the alias map is
+// the only place a public name may live.
+const applyModelAlias = makeAliasResolver(process.env.MODEL_ALIASES || "");
+
 function resolveProvider(model, exactOnly) {
   // 🧟 GUARD: Reject template/placeholder model names (e.g. "{{model}}")
   // These come from misconfigured clients and cause massive PROXY_FAIL storms
@@ -1550,6 +1564,7 @@ function resolveProvider(model, exactOnly) {
       matchType: "template_guard",
     };
   }
+  model = applyModelAlias(model); // public alias -> canonical id
 
   const allNames = new Map();
   // Sort by priority (lower number = higher priority) so OpenCode (priority:1) wins over Groq (priority:2)
@@ -9176,11 +9191,32 @@ function getSSOTContext(clientCtx) {
 }
 
 /**
+ * 2026-09-27 context alignment: check the SSOT file AFTER the user's input and
+ * send only the sections that answer THIS input (plus a short overview when
+ * nothing matches). The full blueprint stays on disk — the model reads it with
+ * read_file when a deeper answer needs it (awareness, not bulk).
+ */
+function buildSSOTExcerpt(sessionId, userInput) {
+  try {
+    const dir = getEffectiveDir(sessionId) || mcpWorkingDir || path.resolve(".");
+    const excerpt = slimSSOT(readSSOT(dir), userInput || "");
+    if (!excerpt) return "";
+    return (
+      "\n\nPROJECT SSOT (relevant excerpt — the full blueprint is at .zombiecoder/SSOT.md):\n" +
+      excerpt +
+      "\n--- END SSOT EXCERPT ---\n"
+    );
+  } catch (e) {
+    return "";
+  }
+}
+
+/**
  * Read syllabus.md, memory.json, and recent session context
  * from the project's .zombiecoder/agents/ directory.
  * Returns a formatted string or empty string if nothing found.
  */
-function buildThreeFileContext(projectDir, sessionId) {
+function buildThreeFileContext(projectDir, sessionId, userInput) {
   try {
     const dir =
       projectDir ||
@@ -9190,11 +9226,14 @@ function buildThreeFileContext(projectDir, sessionId) {
     // Per user requirement (syllabus 8.6): inject ONLY the syllabus
     // (learned knowledge). Session memory + archives are loaded
     // separately via getAgentMemory history — no duplication, less tokens.
+    // 2026-09-27 context alignment: inject only input-relevant syllabus
+    // entries under a char budget (full file stays reachable via read_file).
     const syllabusContent = readSyllabus(dir);
     if (syllabusContent) {
+      const slim = slimSyllabus(syllabusContent, userInput || "");
       return (
         "\n\nAGENT SYLLABUS (learned knowledge — ALWAYS check this first):\n" +
-        syllabusContent +
+        slim +
         "\n--- END SYLLABUS ---\n" +
         "\n\nSESSION TOOLS & SYSTEM IDENTITY & ETHICS (injected every session):\n" +
         // 🧟 SSOT FIX: never hardcode the tool list — derive from the registry
@@ -9266,7 +9305,8 @@ async function executeSingleAgent(
   }
 
   const ssotCtx = getSSOTContext(projectContext);
-  const threeFileCtx = buildThreeFileContext(null, sessionId);
+  const ssotFileCtx = buildSSOTExcerpt(sessionId, userInput);
+  const threeFileCtx = buildThreeFileContext(null, sessionId, userInput);
 
   // 🧟 FIX-002: Detect if client (extension) already provides mission context
   const firstMsg = messages[0];
@@ -9312,7 +9352,7 @@ async function executeSingleAgent(
           "\n\nPROOF REQUIREMENT: You MUST provide verifiable evidence for EVERY claim. If you cannot provide evidence, say 'আমার কাছে প্রমাণ নেই'. Still help with what you know — say you lack proof but offer suggestions." +
           extraRules +
           "\n\n🔧 TOOLS AVAILABLE (call these via tool calls — do NOT just describe them):\n" +
-          buildToolsDescription(MCP_TOOLS) +
+          compactToolsText(MCP_TOOLS) +
           "- Use web_search for real-time information.\n" +
           "- Use call_agent to delegate sub-tasks to other specialized agents.\n" +
           "When the user asks you to read files, write files, list directories, or open files in a browser — USE these tools directly by calling them. Do NOT just describe what you would do — actually execute the tool calls. Only respond with text after you have completed all necessary tool operations.",
@@ -9327,9 +9367,10 @@ async function executeSingleAgent(
           mandatoryCtx +
           extraRules +
           ssotCtx +
+          ssotFileCtx +
           threeFileCtx +
           "\n\n🔧 TOOLS AVAILABLE (call these via tool calls — do NOT just describe them):\n" +
-          buildToolsDescription(MCP_TOOLS) +
+          compactToolsText(MCP_TOOLS) +
           "- Use web_search for real-time information.\n" +
           "- Use call_agent to delegate sub-tasks to other specialized agents (e.g., call bug-hunter for debugging, security-hero for security review).\n" +
           "When the user asks you to read files, write files, list directories, or open files in a browser — USE these tools directly by calling them. Do NOT just describe what you would do — actually execute the tool calls. Only respond with text after you have completed all necessary tool operations.",
@@ -15742,7 +15783,12 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
         }
 
         const ssotCtx = getSSOTContext(projectContext);
-        const threeFileCtx = buildThreeFileContext(null, sessionId);
+        const ssotFileCtx = buildSSOTExcerpt(sessionId, userMsgContent);
+        const threeFileCtx = buildThreeFileContext(
+          null,
+          sessionId,
+          userMsgContent,
+        );
 
         // 🧟 FIX-002: Detect if client (extension) already provides mission context
         // The extension's buildSystemMessage() sends a system message with persona + SSOT + syllabus.
@@ -15801,6 +15847,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
                 mandatoryCtx2 +
                 extraRules +
                 ssotCtx +
+                ssotFileCtx +
                 threeFileCtx,
             };
 

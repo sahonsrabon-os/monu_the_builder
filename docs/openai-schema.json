@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "title": "Mission Barisal — OpenAI-compatible shared schema",
   "description": "Single OpenAI-compatible manifest consumed by every Mission Barisal agent and by any OpenAI SDK client: chat/models contract + all MCP tools converted to OpenAI function-calling format + agent-to-model routing map. Generated from the LIVE server (not hand-written).",
-  "generated_utc": "2026-09-26T19:27:01Z",
+  "generated_utc": "2026-09-26T22:03:18Z",
   "generator": "tools/gen-openai-docs.js (live gateway)",
   "contract": {
     "gateway": {
@@ -100,31 +100,7 @@
       "kind": "provider"
     },
     {
-      "id": "whisper-large-v3",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
-      "id": "openai/gpt-oss-safeguard-20b",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
-      "id": "meta-llama/llama-prompt-guard-2-22m",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
-      "id": "openai/gpt-oss-20b",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
-      "id": "canopylabs/orpheus-v1-english",
+      "id": "whisper-large-v3-turbo",
       "object": "model",
       "provider": "Groq",
       "kind": "provider"
@@ -136,13 +112,37 @@
       "kind": "provider"
     },
     {
-      "id": "whisper-large-v3-turbo",
+      "id": "openai/gpt-oss-safeguard-20b",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "canopylabs/orpheus-v1-english",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "meta-llama/llama-prompt-guard-2-22m",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "whisper-large-v3",
       "object": "model",
       "provider": "Groq",
       "kind": "provider"
     },
     {
       "id": "canopylabs/orpheus-arabic-saudi",
+      "object": "model",
+      "provider": "Groq",
+      "kind": "provider"
+    },
+    {
+      "id": "openai/gpt-oss-20b",
       "object": "model",
       "provider": "Groq",
       "kind": "provider"
@@ -622,12 +622,6 @@
       "kind": "provider"
     },
     {
-      "id": "llama3.1:8b",
-      "object": "model",
-      "provider": "custom_3",
-      "kind": "provider"
-    },
-    {
       "id": "nemotron-3.5-lightning-30b-a3b:free",
       "object": "model",
       "provider": "custom_4",
@@ -641,6 +635,12 @@
     },
     {
       "id": "absolutereality:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "agnes-2.5-flash:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -682,6 +682,12 @@
       "kind": "provider"
     },
     {
+      "id": "atria-dawn-preview:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
       "id": "aura-1:free",
       "object": "model",
       "provider": "custom_4",
@@ -694,7 +700,19 @@
       "kind": "provider"
     },
     {
+      "id": "axon-1.8-flash:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
       "id": "axon-1.8-lightning:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "axon-1.8-pro:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -1048,7 +1066,19 @@
       "kind": "provider"
     },
     {
+      "id": "deepseek-v4-pro:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
       "id": "deepseek-v4.1-flash",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v4.1-flash:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -1108,6 +1138,42 @@
       "kind": "provider"
     },
     {
+      "id": "flux-1.1-pro-ultra:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "flux-1.1-pro:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "flux.1-dev:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "flux.1-kontext-dev:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "flux.1-kontext-max:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "flux.1-kontext-pro:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
       "id": "flux.1-schnell:free",
       "object": "model",
       "provider": "custom_4",
@@ -1121,6 +1187,12 @@
     },
     {
       "id": "flux.2-flex",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "flux.2-flex:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -1145,6 +1217,12 @@
     },
     {
       "id": "flux.2-pro",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "flux.2-pro:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -1276,6 +1354,12 @@
       "kind": "provider"
     },
     {
+      "id": "gemma-4-31b-it:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
       "id": "glm-4.5",
       "object": "model",
       "provider": "custom_4",
@@ -1331,6 +1415,18 @@
     },
     {
       "id": "glm-5.3-flash",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.3-flash-search:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.3-flash:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -1421,6 +1517,12 @@
     },
     {
       "id": "gpt-image-2.5-sunburst",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-oss-120b:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -1600,6 +1702,12 @@
       "kind": "provider"
     },
     {
+      "id": "kimi-k2.6:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
       "id": "kimi-k2.7-code",
       "object": "model",
       "provider": "custom_4",
@@ -1642,7 +1750,19 @@
       "kind": "provider"
     },
     {
+      "id": "ling-3.0-flash-vl:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
       "id": "llama-3.2-11b-vision:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "llama-4-maverick-17b-128e-instruct:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -1673,6 +1793,12 @@
     },
     {
       "id": "mimo-v2.5-pro",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "mimo-v2.5:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -1792,6 +1918,18 @@
       "kind": "provider"
     },
     {
+      "id": "nex-n2.5-mini:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "nex-n2.5-pro:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
       "id": "north-mini-code:free",
       "object": "model",
       "provider": "custom_4",
@@ -1864,6 +2002,18 @@
       "kind": "provider"
     },
     {
+      "id": "qwen-image-edit:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen-image:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
       "id": "qwen-sea-lion-v4-32b-it:free",
       "object": "model",
       "provider": "custom_4",
@@ -1888,13 +2038,55 @@
       "kind": "provider"
     },
     {
+      "id": "qwen3-embedding-0.6b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3-embedding-4b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3-embedding-8b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3-reranker-0.6b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3-reranker-8b:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
       "id": "qwen3.5-4b:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
     },
     {
+      "id": "qwen3.6-plus:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
       "id": "qwen3.7-max",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3.8-27b:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -1907,6 +2099,12 @@
     },
     {
       "id": "qwen3.8-flash-next:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3.8-flash:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -1979,12 +2177,6 @@
     },
     {
       "id": "space-bunny-alpha:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "step-3.7-flash:free",
       "object": "model",
       "provider": "custom_4",
       "kind": "provider"
@@ -2068,6 +2260,12 @@
       "kind": "provider"
     },
     {
+      "id": "z-image-turbo:free",
+      "object": "model",
+      "provider": "custom_4",
+      "kind": "provider"
+    },
+    {
       "id": "llama-local",
       "object": "model",
       "provider": "local_llm",
@@ -2139,7 +2337,7 @@
       "id": "doc-king",
       "name": "Documentation King - Halim",
       "role": "documentation",
-      "model": "mistral-small:free"
+      "model": "llama-local"
     },
     {
       "id": "team-heart",
@@ -2151,19 +2349,19 @@
       "id": "customer-experience-specialist",
       "name": "Customer Experience Specialist",
       "role": "customer-experience",
-      "model": "gpt-oss:120b"
+      "model": "llama-local"
     },
     {
       "id": "ecommerce-operations-analyst",
       "name": "E-Commerce Operations Analyst",
       "role": "ecommerce-operations",
-      "model": "qwen3:free"
+      "model": "llama-local"
     },
     {
       "id": "bug-hunter",
       "name": "Bug Hunter - Jewel",
       "role": "debugging",
-      "model": "llama-local"
+      "model": "qwen2:0.5b"
     },
     {
       "id": "code-guru",
@@ -2175,19 +2373,19 @@
       "id": "perf-wizard",
       "name": "Performance Wizard - Rashed",
       "role": "performance",
-      "model": "nemotron-3-nano:30b"
+      "model": "llama-local"
     },
     {
       "id": "qa-tyrant",
       "name": "Quality Tyrant - Mojnu",
       "role": "quality",
-      "model": "glm-4.7-flash:free"
+      "model": "llama-local"
     },
     {
       "id": "security-hero",
       "name": "Security Hero - Bablu",
       "role": "security",
-      "model": "north-mini-code:free"
+      "model": "llama-local"
     }
   ],
   "tools": [

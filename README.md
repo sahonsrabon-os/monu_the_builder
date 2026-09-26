@@ -63,19 +63,21 @@ DB** — change it live from **Admin → Agent Manager** (`Change Model` → `Sa
 
 | ID | Persona | Role | Mapped model |
 |----|---------|------|--------------|
-| `doc-king` | Documentation King - Halim | documentation | `mistral-small:free` |
+| `doc-king` | Documentation King - Halim | documentation | `llama-local` |
 | `team-heart` | Team Heart - Jara | general | `llama-local` |
-| `customer-experience-specialist` | Customer Experience Specialist | customer-experience | `gpt-oss:120b` |
-| `ecommerce-operations-analyst` | E-Commerce Operations Analyst | ecommerce-operations | `qwen3:free` |
+| `customer-experience-specialist` | Customer Experience Specialist | customer-experience | `llama-local` |
+| `ecommerce-operations-analyst` | E-Commerce Operations Analyst | ecommerce-operations | `llama-local` |
 | `bug-hunter` | Bug Hunter - Jewel | debugging | `llama-local` |
-| `code-guru` | Code Guru - Monu | architecture | `qwen2:0.5b` |
-| `perf-wizard` | Performance Wizard - Rashed | performance | `nemotron-3-nano:30b` |
-| `qa-tyrant` | Quality Tyrant - Mojnu | quality | `glm-4.7-flash:free` |
-| `security-hero` | Security Hero - Bablu | security | `north-mini-code:free` |
+| `code-guru` | Code Guru - Monu | architecture | `llama-local` |
+| `perf-wizard` | Performance Wizard - Rashed | performance | `llama-local` |
+| `qa-tyrant` | Quality Tyrant - Mojnu | quality | `llama-local` |
+| `security-hero` | Security Hero - Bablu | security | `llama-local` |
 
-> Mappings are live DB values shown as a snapshot (2026-09-26). The DB is the source
-> of truth - edit in Admin -> Agent Manager; `docs/openai-schema.json` regenerates
-> from it via `tools/gen-openai-docs.js`.
+> Mappings are live DB values shown as a snapshot (2026-09-27 — all nine agents
+> run on the local model `llama-local`, public alias `zombie-mini`, per the
+> 2026-09-27 alignment). The DB is the source of truth - edit in Admin ->
+> Agent Manager; `docs/openai-schema.json` regenerates from it via
+> `tools/gen-openai-docs.js`.
 
 A virtual `mission` model runs the multi-agent debate path
 (`POST /api/mission`). Calling any agent through the OpenAI API is just
@@ -367,7 +369,7 @@ have to repeat.
 
 | # | Proposal | Verdict |
 |---|----------|---------|
-| P1 | Display alias `Zombie Mini` for the local model (branding fit). | **Logical as an alias / display name only** — never rename the canonical id (S6). Awaiting decision. |
+| P1 | Display alias `Zombie Mini` for the local model (branding fit). | **Implemented 2026-09-27** — public name `zombie-mini` maps to the canonical id `llama-local` via the `MODEL_ALIASES` env (resolved in `tools/model-alias.js` before provider routing, so it survives the normalizer prune); pinned catalog row carries the display name `Zombie Mini`. Canonical id untouched (S6). See Addendum below. |
 | P2 | Aggregate `/v1/models` from both backends (llama + ollama) behind one port and route by model name. | Logical; needs multi-upstream bridge work — today the bridge picks one backend at a time. |
 | P3 | **Lazy boot:** serve the model list first, probe both entry points, then load ONLY the selected model into RAM on first use (evict the previous one). | **Required by the RAM budget** — the current 8 B model alone holds ≈ 8.5 GB RSS on a 15 GB machine; loading everything at once would OOM. Cost: the first call pays ~20 s of model load. |
 | P4 | Dual-face transport: the Unix socket is the memory-to-memory data path with no header ceremony; loopback TCP is the metadata face (health / models / identity handshake) for clients that expect a TCP handshake. | Accepted principle, partially implemented — both transports already serve `/health` and `/v1/models` with `auth_required:false`. |
@@ -402,6 +404,46 @@ have to repeat.
   sanitizer fixture, not a gateway tool — `executeMcpTool` correctly answers
   "Tool not found" for unknown names; (d) model selection now logs `HINT_NO_MATCH`
   instead of silently falling back to the newest file.
+
+### Addendum — 2026-09-27 (P1 alias, context alignment, real execution)
+
+- **P1 landed:** public model name `zombie-mini` resolves to the canonical id
+  `llama-local` through the `MODEL_ALIASES` env (`tools/model-alias.js`, applied at
+  the top of `resolveProvider` / `resolveApiModel` in `api.js`), and a pinned catalog
+  row carries the display name `Zombie Mini`. The alias cannot live in the provider
+  model list: `runNormalizerSync` prunes any entry the upstream does not report, and
+  llama.cpp reports only its loaded model — so the alias map is applied before
+  routing instead. Live proof: `PROXY_ROUTE primaryProvider:custom_5` →
+  `UDS_OUTBOUND socket=/tmp/local-llm.sock` → bridge `REQ model=llama-local`
+  (upstream always canonical, S6) → 1.4 s local reply, no cloud hop.
+- **S8 — precision context (latency alignment):** the system prompt no longer ships
+  bulk. `tools/context-slimmer.js` injects (1) the syllabus as an index of titles
+  plus only input-matched entries under a 1500-char budget (live file 10 638 →
+  ~2 070 chars), (2) the SSOT checked after every user input as a relevance excerpt
+  (≤ 900 chars, `buildSSOTExcerpt`), and (3) tool prose as names + parameter names
+  only — full schemas already travel in the request's `tools` argument
+  (`compactToolsText`). Full files stay on disk for `read_file` retrieval:
+  awareness, not dumps.
+- **Already in place, verified (no change needed):** last-ten history in RAM
+  (`MAX_HISTORY`, default 10) and every message archived per session+agent
+  (`saveAgentMemory` + `archiveSession` — evidence: `data/<session>/<agent>.json`
+  entries `["user","assistant"]` after each run).
+- **Measured after alignment:** first agent round 147.9 s → **13.75 s**; prompt
+  5 674 → **2 739 tokens** (−52 %).
+- **Real daily-tools execution** (non-stream, server-side): 5 × `MCP_CALL` —
+  `write_file` → `read_file` → `list_directory` → `exec (uname -s)` → retry-list;
+  `data/daily-check.txt` really contains `content barisal-ok` on disk; full loop
+  221 s under desktop load. The first attempt had returned HTTP 502 at the 300 s
+  per-call limit because machine load cut prompt prefill to 32.8 tok/s and the
+  1 B peg-format retry doubled the call — `OLLAMA_TIMEOUT_MS` raised
+  300000 → 600000 in `.env` (documented inline).
+- **Honest caveats:** the 1 B still shows known quirks (JSON schema passed as
+  arguments on some calls, a trailing ` directory` glued onto a list path,
+  peg-format rejects triggering retry/fallback — the stream smoke test fell back
+  to `qwen2:0.5b` once via `STREAM_ERROR_MODEL_FALLBACK`), and local latency
+  scales with machine load (the 13.75 s round measured at `load < 2`; the same
+  prefill took 112 s at `load ≈ 6`).
+- **Roster:** all nine agents mapped to `llama-local` in the DB.
 
 ---
 

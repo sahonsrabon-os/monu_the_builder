@@ -15,6 +15,7 @@
 // =============================================================================
 const fs = require("fs");
 const path = require("path");
+const { makeAliasResolver } = require("../tools/model-alias.js");
 
 const SRC = path.resolve(__dirname, "..", "api.js");
 const src = fs.readFileSync(SRC, "utf8");
@@ -157,11 +158,13 @@ const PROVIDERS = {
   custom_2: { name: "Custom-2", priority: 10, custom: true, models: ["phi3:mini"] },
 };
 // আসল resolveProvider চালাই — PROVIDER_CONFIG হিসেবে টেস্টের PROVIDERS বসানো
+// applyModelAlias = api.js-এর প্রোডাকশন হুক (MODEL_ALIASES) — আসল রিসলভারই দেওয়া হয়
 const realResolveProvider = new Function(
   "PROVIDER_CONFIG",
   "DISABLED_MODELS",
+  "applyModelAlias",
   rpSrc + "\nreturn resolveProvider;",
-)(PROVIDERS, new Set());
+)(PROVIDERS, new Set(), makeAliasResolver(process.env.MODEL_ALIASES || ""));
 const rp = (m, e) => realResolveProvider(m, e);
 
 // B1. custom_ provider = লোকাল → 5 টুল
