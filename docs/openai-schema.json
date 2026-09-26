@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "title": "Mission Barisal — OpenAI-compatible shared schema",
   "description": "Single OpenAI-compatible manifest consumed by every Mission Barisal agent and by any OpenAI SDK client: chat/models contract + all MCP tools converted to OpenAI function-calling format + agent-to-model routing map. Generated from the LIVE server (not hand-written).",
-  "generated_utc": "2026-09-26T17:40:05Z",
+  "generated_utc": "2026-09-26T18:01:06Z",
   "generator": "tools/gen-openai-docs.js (live gateway)",
   "contract": {
     "gateway": {
@@ -2146,12 +2146,6 @@
       "kind": "provider"
     },
     {
-      "id": "mission:llama-local-test",
-      "object": "model",
-      "provider": "mission-barisal",
-      "kind": "provider"
-    },
-    {
       "id": "mission:perf-wizard",
       "object": "model",
       "provider": "mission-barisal",
@@ -2206,12 +2200,6 @@
       "name": "Code Guru - Monu",
       "role": "architecture",
       "model": "qwen2:0.5b"
-    },
-    {
-      "id": "llama-local-test",
-      "name": "Llama Local Test",
-      "role": "test harness",
-      "model": "llama-local"
     },
     {
       "id": "perf-wizard",

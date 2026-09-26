@@ -8,7 +8,7 @@ Regenerate after adding/removing tools: `node tools/gen-openai-docs.js`.
 |---|------|-------------|---------|-------|--------|
 | 1 | `agent_mission` | Execute a mission with all agents in parallel | Y | 0 | 0 |
 | 2 | `agent_single` | Execute with a single agent | Y | 0 | 0 |
-| 3 | `append_syllabus` | Append a knowledge entry to the project syllabus.md — the shared learning log ALL agents read (append-only; never overwrites). Use when you learn something new worth keeping. | Y | 2 | 0 |
+| 3 | `append_syllabus` | Append a knowledge entry to the project syllabus.md — the shared learning log ALL agents read (append-only; never overwrites). Use when you learn something new worth keeping. | Y | 3 | 0 |
 | 4 | `browse_cdp` | Headless-browse a URL via Chrome DevTools Protocol over a PIPE (zero HTTP control channel — no port, no websocket). Fetches a page with headless Chrome and returns its text, HTML, title, or a screenshot. Use for reading local or remote web pages. | Y | 0 | 0 |
 | 5 | `call_agent` | Call another agent for a specific sub-task. Use when the task needs specialized knowledge from another agent (e.g., security review, bug hunting, performance tuning). | Y | 0 | 0 |
 | 6 | `db_list_tables` | List tables in the configured database (MySQL/SQLite/PostgreSQL). Config from env vars ONLY (DB_*). Cross-platform. | Y | 1 | 0 |

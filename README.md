@@ -72,7 +72,6 @@ DB** — change it live from **Admin → Agent Manager** (`Change Model` → `Sa
 | `perf-wizard` | Performance Wizard - Rashed | performance | `nemotron-3-nano:30b` |
 | `qa-tyrant` | Quality Tyrant - Mojnu | quality | `glm-4.7-flash:free` |
 | `security-hero` | Security Hero - Bablu | security | `north-mini-code:free` |
-| `llama-local-test` | Llama Local Test *(demo, priority 99)* | test harness | `llama-local` (local socket) |
 
 > Mappings are live DB values shown as a snapshot (2026-09-26). The DB is the source
 > of truth - edit in Admin -> Agent Manager; `docs/openai-schema.json` regenerates
@@ -147,7 +146,7 @@ curl http://localhost:3000/api/v0/models
 curl -X POST http://localhost:3000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "llama-local-test",
+    "model": "bug-hunter",
     "messages": [{"role": "user", "content": "In one line: which city are you serving from?"}],
     "max_tokens": 80
   }'
@@ -390,7 +389,9 @@ have to repeat.
 Same-day captures from this machine. Screenshots live in `docs/evidence/`; logs in
 `logs/` (server) and the bridge stdout. Counts in this section (models, providers,
 calls) are point-in-time values that drift with DB sync; the enforced claims live
-in `tests/docs-claims.test.js`.
+in `tests/docs-claims.test.js`. Evidence #6 and #9 capture the demo agent
+`llama-local-test`, which was removed from the roster and the seed snapshot on
+2026-09-27 (decision: test artifacts stay out of the client-facing model catalog).
 
 **1. Server health**
 
