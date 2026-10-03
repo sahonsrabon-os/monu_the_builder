@@ -38,7 +38,7 @@
     {
       "name": "Found a concrete model to bind",
       "status": "PASS",
-      "detail": "opencode/big-pickle"
+      "detail": "opencode/MODELS_DB"
     },
     {
       "name": "GET /api/admin/agents -> agent list",
@@ -58,7 +58,7 @@
     {
       "name": "Read-back shows new model bound",
       "status": "PASS",
-      "detail": "big-pickle"
+      "detail": "MODELS_DB"
     },
     {
       "name": "SQLite data/models.db reflects new binding",
@@ -128,7 +128,7 @@
   ],
   "notes": [
     "Admin page size: 107172 bytes",
-    "Binding target model: big-pickle (provider opencode)",
+    "Binding target model: MODELS_DB (provider opencode)",
     "Original doc-king model: qwen3.5-4b:free | persona: Technical Documentation & Knowledge",
     "Session provider observed: unknown",
     "Persona reply: "
@@ -136,6 +136,6 @@
   "artifacts": {
     "run_id": "ab372304",
     "agent_tested": "doc-king",
-    "bound_model": "big-pickle"
+    "bound_model": "MODELS_DB"
   }
 }

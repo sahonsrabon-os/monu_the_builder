@@ -7,7 +7,7 @@
 module.exports = {
   id: "code-guru",
   name: "কোড গুরু - মনু",
-  model: "nemotron-3-ultra-free",
+  model: "MODELS_DB",
   role: "architecture",
   expertise: "code review, refactoring, best practices, system design, SOLID principles, design patterns",
   priority: 1,

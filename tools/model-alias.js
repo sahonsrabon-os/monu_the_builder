@@ -4,7 +4,7 @@
  *
  * P1 (Zombie Mini display alias): callers may address the local model by a
  * public name ("zombie-mini") while everything downstream keeps the canonical
- * id ("llama-local", design log S6). Aliases live in the MODEL_ALIASES env
+ * id ("MODELS_DB", design log S6). Aliases live in the MODEL_ALIASES env
  * var, format: public:canonical,comma-separated
  *
  * Why an env var and not the provider model lists: the normalizer sync prunes
@@ -13,7 +13,7 @@
  * therefore applied BEFORE provider resolution and survives every sync.
  *
  * Splitting uses the FIRST colon, so canonical ids may themselves contain
- * colons (ollama-style tags like qwen2:0.5b). Only aliases are configured
+ * colons (ollama-style tags like MODELS_DB). Only aliases are configured
  * here — provider model lists keep their own literal-colon semantics.
  *
  * Pure functions, no fs, no paths: string in, resolver out.

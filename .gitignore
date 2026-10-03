@@ -31,3 +31,11 @@ external mcp/
 # ── অপ্রয়োজনীয় ফাইল আশ্রয় (কখনও ট্র্যাক/পুশ হবে না) ──
 tests/Unnecessary/
 *.zip
+
+# --- runtime artifacts: local only, never pushed ---
+nohup.out
+locks/
+# terminal transcript paste (leaks hostname + username)
+2.md
+# 404 scrape artifact
+skills/404__Not_Found.md

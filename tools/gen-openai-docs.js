@@ -38,10 +38,24 @@ function arg(name, fallback) {
   return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : fallback;
 }
 const CHECK = process.argv.includes("--check");
-const BASE = arg("--base", process.env.GATEWAY_BASE || "http://127.0.0.1:3000");
+const BASE = arg("--base", process.env.GATEWAY_BASE || "http://127.0.0.1:5000");
+
+// /api/admin/* requires x-admin-token whenever ADMIN_TOKEN is configured
+// (adminAuthorized() in api.js) — without it every admin fetch 401s.
+function loadAdminToken() {
+  if (process.env.ADMIN_TOKEN) return process.env.ADMIN_TOKEN.trim();
+  try {
+    const m = fs.readFileSync(path.join(ROOT, ".env"), "utf8").match(/^ADMIN_TOKEN=(.+)$/m);
+    if (m) return m[1].trim().replace(/^["']|["']$/g, "");
+  } catch (_) { /* no .env */ }
+  return "";
+}
+const ADMIN_TOKEN = loadAdminToken();
 
 async function getJSON(url) {
-  const res = await fetch(url, { headers: { accept: "application/json" } });
+  const headers = { accept: "application/json" };
+  if (ADMIN_TOKEN) headers["x-admin-token"] = ADMIN_TOKEN;
+  const res = await fetch(url, { headers });
   if (!res.ok) throw new Error(`GET ${url} -> HTTP ${res.status}`);
   return res.json();
 }
@@ -141,8 +155,13 @@ async function main() {
     if (stable(schema[k]) !== stable(expected[k])) stale.push(k);
   }
   const modelsDiffer = stable(schema.models) !== stable(liveModels);
+  // Calls/Errors are RUNTIME counters (README line: "Call/error counters are
+  // runtime stats"): every tools/call bumps them, so exact text compare would
+  // make --check fail seconds after regeneration. Compare semantic columns only.
+  const stripCounters = (md) =>
+    md.replace(/^(\| \d+ \|.*\| [YN] \|) \d+ \| \d+ \|$/gm, "$1 * | * |");
   const mdOld = fs.existsSync(TOOLS_MD_PATH) ? fs.readFileSync(TOOLS_MD_PATH, "utf8") : "";
-  const mdStale = mdOld !== mdNew;
+  const mdStale = stripCounters(mdOld) !== stripCounters(mdNew);
   if (mdStale) stale.push("openai-tools.md");
 
   if (CHECK) {

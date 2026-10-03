@@ -13,11 +13,14 @@
  *   - Unix domain socket : /tmp/local-llm.sock   (pure IPC, no network)
  *   - Loopback TCP       : 127.0.0.1:11435        (any HTTP client)
  *
- * GATEWAY WIRING (in /home/sahon/vs/.env):
- *   CUSTOM_PROVIDER_5_NAME=local_llm
- *   CUSTOM_PROVIDER_5_URL=http://127.0.0.1:11435/v1
- *   CUSTOM_PROVIDER_5_SOCKET=/tmp/local-llm.sock
- *   CUSTOM_PROVIDER_5_MODELS=llama-local
+ * GATEWAY WIRING (in /home/sahon/z/monu_the_builder/.env):
+*OLLAMA_BASE=http://127.0.0.1:11435/v1
+*OLLAMA_SOCKET=/tmp/local-llm.sock
+*OLLAMA_API_KEY=
+*OLLAMA_PRIORITY=1
+*OLLAMA_TYPE=openai
+*OLLAMA_MODELS=deepseek-r1:1.5b,llama3.2:3b
+
  * (api.js prefers the Unix socket when the file exists -> UDS_OUTBOUND)
  *
  * QUIRK LAYER (every local oddity lives in this one file):
@@ -46,13 +49,13 @@
  *   BRIDGE_BACKEND        auto | llama | ollama   (default auto)
  *   LLAMA_SERVER_BIN      path to llama-server    (auto-detected)
  *   BRIDGE_GGUF           path to .gguf           (auto-detected)
- *   BRIDGE_MODEL          wire model name         (default llama-local)
+ *   BRIDGE_MODEL          wire model name         (default MODELS_DB)
  *   BRIDGE_PORT           loopback TCP port       (default 11435)
  *   BRIDGE_SOCKET         unix socket path        (default /tmp/local-llm.sock)
  *   BRIDGE_INTERNAL_PORT  llama-server loopback   (default 18777)
  *   BRIDGE_UPSTREAM_MODEL model name for backend  (default BRIDGE_MODEL)
  *   BRIDGE_OLLAMA_URL     ollama base             (default http://127.0.0.1:11434)
- *   BRIDGE_CTX            llama-server ctx size   (default 16384)
+ *   BRIDGE_CTX            llama-server ctx size   (default 8192)
  *   BRIDGE_THREADS        llama-server threads    (default cpu count)
  *   BRIDGE_TIMEOUT_MS     upstream timeout        (default 280000)
  *
@@ -184,20 +187,41 @@ const CFG = {
   backend: (process.env.BRIDGE_BACKEND || "auto").toLowerCase(),
   llamaBin: findLlamaServer(),
   gguf: detectGguf(),
-  model: process.env.BRIDGE_MODEL || "llama-local",
+  model: process.env.BRIDGE_MODEL || "deepseek-r1:1.5b,llama3.2:3b",
   port: parseInt(process.env.BRIDGE_PORT || "11435", 10),
   socket: process.env.BRIDGE_SOCKET || "/tmp/local-llm.sock",
   internalPort: parseInt(process.env.BRIDGE_INTERNAL_PORT || "18777", 10),
   upstreamModel:
-    process.env.BRIDGE_UPSTREAM_MODEL || process.env.BRIDGE_MODEL || "llama-local",
+    process.env.BRIDGE_UPSTREAM_MODEL || process.env.BRIDGE_MODEL || "MODELS_DB",
+  ollamaModels: [],
   ollamaUrl: process.env.BRIDGE_OLLAMA_URL || "http://127.0.0.1:11434",
-  ctx: parseInt(process.env.BRIDGE_CTX || "16384", 10),
+  ctx: parseInt(process.env.BRIDGE_CTX || "8192", 10),
   threads: parseInt(process.env.BRIDGE_THREADS || String(os.cpus().length), 10),
   timeoutMs: parseInt(process.env.BRIDGE_TIMEOUT_MS || "280000", 10),
 };
 
 if (CFG.backend === "auto") {
   CFG.backend = CFG.llamaBin && CFG.gguf ? "llama" : "ollama";
+}
+
+// 🧟 Self-reference guard: BRIDGE_OLLAMA_URL must point at the OLLAMA DAEMON
+// (default 11434) — never at THIS bridge (CFG.port). If it does, upstream
+// health polls our own /api/tags, never becomes ready, and start.js aborts
+// the whole gateway boot after BRIDGE_STARTUP_TIMEOUT_MS.
+if (CFG.backend === "ollama") {
+  try {
+    const declaredPort = Number(new URL(CFG.ollamaUrl).port) || 80;
+    if (declaredPort === CFG.port) {
+      log(
+        "WARN",
+        "OLLAMA_URL_SELF_REFERENCE",
+        { bad: CFG.ollamaUrl, fallback: "http://127.0.0.1:11434" },
+      );
+      CFG.ollamaUrl = "http://127.0.0.1:11434";
+    }
+  } catch (_) {
+    /* malformed URL → upstreamHealth() will report it */
+  }
 }
 
 const UPSTREAM_BASE =
@@ -487,10 +511,36 @@ function upstreamChat(payload) {
 
 function upstreamHealth() {
   return new Promise((resolve) => {
-    const req = http.get(UPSTREAM_BASE + "/health", { timeout: 3000 }, (res) => {
+    const isOllama = CFG.backend === "ollama";
+    const healthPath = isOllama ? "/api/tags" : "/health";
+    const req = http.get(UPSTREAM_BASE + healthPath, { timeout: 3000 }, (res) => {
       let buf = "";
       res.on("data", (d) => (buf += d));
-      res.on("end", () => resolve({ ok: res.statusCode === 200, body: buf }));
+      res.on("end", () => {
+        if (!isOllama || res.statusCode !== 200) {
+          resolve({ ok: res.statusCode === 200, body: buf });
+          return;
+        }
+        let models = [];
+        try {
+          models = JSON.parse(buf).models || [];
+        } catch (_) {}
+        CFG.ollamaModels = models
+          .map((model) => model.name || model.model)
+          .filter(Boolean);
+        if (
+          CFG.ollamaModels.length &&
+          !CFG.ollamaModels.includes(CFG.upstreamModel) &&
+          (!process.env.BRIDGE_UPSTREAM_MODEL || CFG.upstreamModel === "MODELS_DB")
+        ) {
+          CFG.upstreamModel = CFG.ollamaModels[0];
+          log("INFO", "OLLAMA_MODEL_RESOLVED", { model: CFG.upstreamModel });
+        }
+        resolve({
+          ok: CFG.ollamaModels.length > 0 && CFG.ollamaModels.includes(CFG.upstreamModel),
+          body: buf,
+        });
+      });
     });
     req.on("error", () => resolve({ ok: false, body: "" }));
     req.on("timeout", () => {
@@ -545,7 +595,7 @@ function spawnLlamaServer() {
     child = null;
     if (!shuttingDown) {
       respawnCount++;
-      const delay = respawnCount > 3 ? 30000 : 3000;
+      const delay = respawnCount > 3 ? 1000 : 1000;
       log("INFO", "respawn in " + delay / 1000 + "s (attempt " + respawnCount + ")");
       setTimeout(spawnLlamaServer, delay);
     }
@@ -608,7 +658,10 @@ function readBody(req, max) {
 // ── Non-stream pipeline (Q2/Q3/Q4/Q5/Q6/Q7/Q8) ───────────────
 function buildPayload(body, stream) {
   const p = {
-    model: CFG.upstreamModel,
+    model:
+      CFG.backend === "ollama" && CFG.ollamaModels.includes(body.model)
+        ? body.model
+        : CFG.upstreamModel,
     messages: body.messages,
     stream: !!stream,
     temperature: typeof body.temperature === "number" ? body.temperature : 0.7,
@@ -983,7 +1036,7 @@ async function handler(req, res) {
         status: "ok",
         bridge: "local-llm-bridge",
         backend: CFG.backend,
-        model: CFG.model,
+        model: CFG.backend === "ollama" ? CFG.upstreamModel : CFG.model,
         gguf: CFG.gguf && fs.existsSync(CFG.gguf) ? path.basename(CFG.gguf) : null,
         upstream: { base: UPSTREAM_BASE, ready: h.ok },
         transports: { unix_socket: CFG.socket, tcp: "127.0.0.1:" + CFG.port },
@@ -994,19 +1047,24 @@ async function handler(req, res) {
   }
 
   if (req.method === "GET" && url === "/v1/models") {
+    if (CFG.backend === "ollama" && CFG.ollamaModels.length === 0) {
+      await upstreamHealth();
+    }
+    const exposedModels =
+      CFG.backend === "ollama" && CFG.ollamaModels.length
+        ? CFG.ollamaModels
+        : [CFG.model];
     cors(res);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
         object: "list",
-        data: [
-          {
-            id: CFG.model,
+        data: exposedModels.map((model) => ({
+            id: model,
             object: "model",
             created: Math.floor(Date.now() / 1000),
             owned_by: "local-llm-bridge",
-          },
-        ],
+          })),
       }),
     );
     return;

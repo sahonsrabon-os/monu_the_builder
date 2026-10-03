@@ -13,7 +13,7 @@
 //       8  | Core Modules (require: http, https, crypto, fs, path, net, os)
 //      18  | Domain Configuration (detectDomain, getDomainConfig)
 //      25  | .env Loader (zero-dependency)
-//      50  | Config Constants (PORT, OPENCODE_BASE, LOG_DIR, DATA_DIR, etc.)
+//      50  | Config Constants (PORT, provider settings, LOG_DIR, DATA_DIR, etc.)
 //      63  | User-Agent Constant + ALLOWED_DIRS
 //      74  | Domain Detection (DETECTED_DOMAIN, DOMAIN_CFG)
 //      87  | Pusher Config (optional) + SSE Clients Map + UDS_PATH
@@ -145,11 +145,10 @@ const {
 })();
 
 // ─── Config ──────────────────────────────────────────────────
-const PORT = parseInt(process.env.PORT || "3000", 10);
+const PORT = parseInt(process.env.PORT || "5000", 10);
 // Unique per-process fingerprint — lets multi-instance tests prove that
 // two `node api.js` runs on one machine really are independent processes.
 const INSTANCE_ID = process.env.INSTANCE_ID || crypto.randomUUID();
-const OPENCODE_BASE = process.env.OPENCODE_BASE || "https://opencode.ai/zen/v1";
 const MAX_DEBATE_ROUNDS = parseInt(process.env.MAX_DEBATE_ROUNDS || "0", 10);
 const LOG_DIR = path.resolve(process.env.LOG_DIR || "./logs");
 const DATA_DIR = path.resolve(process.env.DATA_DIR || "./data");
@@ -157,9 +156,13 @@ const PERSONAS_FILE = path.resolve(
   process.env.PERSONAS_FILE || "./PERSONAS.md",
 );
 const SESSION_TTL_MS = parseInt(process.env.SESSION_TTL || "86400000", 10);
+const LOCAL_MAX_TOKENS = Math.max(
+  128,
+  parseInt(process.env.LOCAL_MAX_TOKENS || "1024", 10) || 1024,
+);
 const MAX_HISTORY = parseInt(process.env.MAX_HISTORY || "10", 10); // reduced from 20→10: 50k+ token history overwhelms free tier models
 const GIT_PERSONAS_URL = process.env.GIT_PERSONAS_URL || "";
-const OLLAMA_TIMEOUT_MS = parseInt(process.env.OLLAMA_TIMEOUT_MS || "300000", 10); // Local CPU model timeout (default 5 min)
+const OLLAMA_TIMEOUT_MS = parseInt(process.env.OLLAMA_TIMEOUT_MS || "500000", 10); // Local CPU model timeout (default 5 min)
 
 // ─── User-Agent Constant ────────────────────────────────────
 const USER_AGENT = "MissionBarisal-v3/1.0";
@@ -422,7 +425,7 @@ function autoSetupConfig() {
         "grep",
         "glob",
       ],
-      timeout: 300000,
+      timeout: 500000,
     },
     "vscode.json": {
       editor: "vscode",
@@ -569,8 +572,8 @@ const SYSTEM_IDENTITY = {
 
 const SYSTEM_IDENTITY_PROMPT = `⚠️ IDENTITY RULES — Your persona above IS your identity:
 1. Your name, character, and tone come ONLY from the persona text above.
-2. NEVER reveal your underlying model provider (OpenAI, DeepSeek, Google, etc.)
-3. NEVER claim to be from any AI company.
+2. If asked about the underlying model/provider, report configured metadata accurately when available.
+3. Never claim an affiliation that is not present in configured metadata.
 4. NEVER say "ZombieCoder Dev Agent" or any platform name as your identity — your identity is in the persona above.
 5. Always respond in Bengali unless the user explicitly requests English.
 6. Be truthful — never present assumptions as facts.
@@ -750,7 +753,7 @@ function getApiModelName(m) {
 // Resolve public model name to API provider model name (masking reverse)
 // providerId parameter added: searches within specific provider only.
 // Previously searched all providers, causing Groq's fallback alias
-// to route through OpenCode's primary path (wrong apiModel).
+  // to route through a provider's primary path (wrong apiModel).
 function resolveApiModel(publicModelName, providerId) {
   publicModelName = applyModelAlias(publicModelName); // public alias -> canonical
   // 1. Search within specific provider (if providerId given)
@@ -760,7 +763,7 @@ function resolveApiModel(publicModelName, providerId) {
     for (const m of p.models) {
       if (getModelName(m) === publicModelName) return getApiModelName(m);
     }
-    // If not found, search by apiModel (e.g. nemotron-3-ultra-free -> model-pro)
+    // If not found, search by apiModel (e.g. MODELS_DB -> model-pro)
     for (const m of p.models) {
       if (getApiModelName(m) === publicModelName) return getModelName(m);
     }
@@ -785,14 +788,14 @@ function resolveApiModel(publicModelName, providerId) {
 // Parses a comma-separated model env var into model entries.
 //   "model-a"            → string entry (no masking)
 //   "name:apiModel"      → { name, apiModel } masked pair
-function parseModelsEnv(str) {
+function parseModelsEnv(str, providerId) {
   if (!str || !str.trim()) return [];
   return str
     .split(",")
     .map((s) => s.trim())
-    .filter(Boolean)
+    .filter((entry) => Boolean(entry) && entry !== "MODELS_DB")
     .map((entry) => {
-      const idx = entry.indexOf(":");
+      const idx = providerId === "ollama" ? -1 : entry.indexOf(":");
       if (idx > 0) {
         return {
           name: entry.slice(0, idx).trim(),
@@ -809,20 +812,10 @@ function parseModelsEnv(str) {
 // competitionRouter: model -> provider -> API call -> normalize -> agent
 //
 // NO HARDCODED MODELS — every provider loads its model list from env:
-//   OPENCODE_MODELS, GROQ_MODELS, GEMINI_MODELS, CUSTOM_PROVIDER_N_MODELS
-// Priorities also come from env: OPENCODE_PRIORITY, GROQ_PRIORITY, ...
+//   GROQ_MODELS, GEMINI_MODELS, OLLAMA_MODELS, CUSTOM_PROVIDER_N_MODELS
+// Priorities also come from env: GROQ_PRIORITY, GEMINI_PRIORITY, ...
 const PROVIDER_CONFIG = {
-  opencode: {
-    name: "OpenCode",
-    baseUrl: process.env.OPENCODE_BASE || "https://opencode.ai/zen/v1",
-    key: process.env.OPENCODE_API_KEY || "",
-    priority: parseInt(process.env.OPENCODE_PRIORITY || "1", 10),
-    type: process.env.OPENCODE_TYPE || "openai",
-    models: parseModelsEnv(process.env.OPENCODE_MODELS || ""),
-  },
-  // ── Groq (Secondary Fallback) ────────────────────────────
-  // Acts as a pipeline provider — routes model names to their Groq equivalents.
-  // When OpenCode fails, Groq serves as fallback.
+  // ── Groq ─────────────────────────────────────────────────
   groq: {
     name: "Groq",
     baseUrl: process.env.GROQ_BASE || "https://api.groq.com/openai/v1",
@@ -831,8 +824,7 @@ const PROVIDER_CONFIG = {
     type: process.env.GROQ_TYPE || "openai",
     models: parseModelsEnv(process.env.GROQ_MODELS || ""),
   },
-  // ── Gemini (Tertiary) ──────────────────────────────────────
-  // Requires API key — OpenCode -> Groq -> Gemini fallback chain
+  // ── Gemini ────────────────────────────────────────────────
   gemini: {
     name: "Gemini",
     baseUrl:
@@ -843,20 +835,6 @@ const PROVIDER_CONFIG = {
     type: "gemini", // special: Gemini API (NOT OpenAI-compatible)
     models: parseModelsEnv(process.env.GEMINI_MODELS || ""),
   },
-  // ── Cloudflare (AI Gateway) ────────────────────────────
-  // OpenAI-compatible gateway. The account id is embedded in CF_BASE_URL,
-  // CF_API_TOKEN is used as the Bearer key, and models come from
-  // CF_PROVIDER_MODELS. Reads the same CF_* env vars the .env defines.
-  cloudflare: {
-    name: "Cloudflare",
-    baseUrl:
-      process.env.CF_BASE_URL ||
-      "https://api.cloudflare.com/client/v4/accounts/a23a4686369718f388aacac63c31d938/ai/v1",
-    key: process.env.CF_API_TOKEN || "",
-    priority: parseInt(process.env.CF_PRIORITY || "4", 10),
-    type: process.env.CF_TYPE || "openai",
-    models: parseModelsEnv(process.env.CF_PROVIDER_MODELS || ""),
-  },
   // ── Ollama (Local + Cloud LLM) ─────────────────────────
   // First-class provider (NOT a custom_N provider). Serves local models
   // pulled via `ollama pull` AND cloud models (when the Ollama server's
@@ -865,11 +843,12 @@ const PROVIDER_CONFIG = {
   // yields "cloud if API else local" behaviour automatically.
   ollama: {
     name: "Ollama",
-    baseUrl: process.env.OLLAMA_BASE || "https://ollama.com/v1",
+    baseUrl: process.env.OLLAMA_BASE || "http://127.0.0.1:11435",
+    socketPath: process.env.OLLAMA_SOCKET || "",
     key: process.env.OLLAMA_API_KEY || "",
-    priority: parseInt(process.env.OLLAMA_PRIORITY || "5", 10),
+    priority: parseInt(process.env.OLLAMA_PRIORITY || "", 10),
     type: process.env.OLLAMA_TYPE || "openai",
-    models: parseModelsEnv(process.env.OLLAMA_MODELS || ""),
+    models: parseModelsEnv(process.env.OLLAMA_MODELS || "", "ollama"),
     local: true,
   },
 };
@@ -1194,23 +1173,23 @@ function syncModelsToDb() {
 
 // Runtime env-var check → update models → sync into DB.
 // Env vars are the SINGLE SOURCE OF TRUTH: this re-reads the model list
-// env vars (OPENCODE_MODELS, GROQ_MODELS, GEMINI_MODELS,
+// env vars (GROQ_MODELS, GEMINI_MODELS, OLLAMA_MODELS,
 // CUSTOM_PROVIDER_N_MODELS) and re-syncs the current env state into the
 // SQLite models table. Callable at startup or on demand (e.g. after the
 // user edits .env) without a server restart.
 function syncEnvModelsToDb() {
   if (!MODELS_DB) return { ok: false, error: "sqlite unavailable" };
   const before = {
-    opencode: PROVIDER_CONFIG.opencode.models.length,
     groq: PROVIDER_CONFIG.groq.models.length,
     gemini: PROVIDER_CONFIG.gemini.models.length,
   };
   // Re-read env vars (single source of truth) and update PROVIDER_CONFIG.
-  PROVIDER_CONFIG.opencode.models = parseModelsEnv(
-    process.env.OPENCODE_MODELS || "",
-  );
   PROVIDER_CONFIG.groq.models = parseModelsEnv(process.env.GROQ_MODELS || "");
   PROVIDER_CONFIG.gemini.models = parseModelsEnv(process.env.GEMINI_MODELS || "");
+  PROVIDER_CONFIG.ollama.models = parseModelsEnv(
+    process.env.OLLAMA_MODELS || "",
+    "ollama",
+  );
   // Re-scan CUSTOM_PROVIDER_N_* env vars (adds new / updates existing).
   loadCustomProviders();
   const db = syncModelsToDb();
@@ -1218,9 +1197,9 @@ function syncEnvModelsToDb() {
   log("INFO", "ENV_MODELS_SYNCED", {
     before,
     after: {
-      opencode: PROVIDER_CONFIG.opencode.models.length,
       groq: PROVIDER_CONFIG.groq.models.length,
       gemini: PROVIDER_CONFIG.gemini.models.length,
+      ollama: PROVIDER_CONFIG.ollama.models.length,
     },
     db,
   });
@@ -1275,6 +1254,39 @@ function findModelInDb(name) {
   } catch (e) {
     return null;
   }
+}
+
+function reconcileAgentModels() {
+  if (!MODELS_DB) return { updated: 0 };
+  const available = new Set();
+  for (const [providerId, provider] of Object.entries(PROVIDER_CONFIG)) {
+    if (provider.enabled === false) continue;
+    for (const model of provider.models) {
+      if (DISABLED_MODELS.has(providerId + "::" + getModelName(model))) continue;
+      available.add(getModelName(model));
+      available.add(getApiModelName(model));
+    }
+  }
+  if (!available.size) return { updated: 0 };
+
+  const configuredDefault = getDefaultModel();
+  const fallbackModel = available.has(configuredDefault)
+    ? configuredDefault
+    : available.values().next().value;
+  const update = MODELS_DB.prepare(
+    "UPDATE agents SET model = ?, updated_at = ? WHERE id = ?",
+  );
+  let updated = 0;
+  for (const agent of MODELS_DB.prepare("SELECT id, model FROM agents").all()) {
+    const canonical = applyModelAlias(agent.model || "");
+    const model = available.has(canonical) ? canonical : fallbackModel;
+    if (model !== agent.model) {
+      update.run(model, Date.now(), agent.id);
+      updated++;
+    }
+  }
+  log("INFO", "AGENT_MODELS_RECONCILED", { updated, fallbackModel });
+  return { updated, fallbackModel };
 }
 
 // ─── API Normalizer: fetch live models from each provider ──
@@ -1481,7 +1493,7 @@ function getFallbackModel(excludeModel, triedModels) {
   const excludeSet = new Set(triedModels || []);
   if (excludeModel) excludeSet.add(excludeModel);
   const candidates = Object.values(PROVIDER_CONFIG)
-    .sort((a, b) => (a.priority || 999) - (b.priority || 999))
+    .sort((a, b) => (a.priority || 99) - (b.priority || 999))
     .flatMap((provider) => provider.models.map(getModelName));
   return candidates.find((candidate) => !excludeSet.has(candidate)) || null;
 }
@@ -1547,11 +1559,24 @@ function getDisabledModelRows() {
 }
 
 // 🧟 P1 display alias (MODEL_ALIASES env, format public:canonical — e.g.
-// zombie-mini:llama-local). Applied BEFORE provider resolution so a public
+// zombie-mini:MODELS_DB). Applied BEFORE provider resolution so a public
 // name always lands on the canonical id (S6): the normalizer sync prunes
 // custom-provider entries the upstream does not report, so the alias map is
 // the only place a public name may live.
-const applyModelAlias = makeAliasResolver(process.env.MODEL_ALIASES || "");
+const firstOllamaModel = PROVIDER_CONFIG.ollama.models[0];
+const ollamaDefaultApiModel = firstOllamaModel
+  ? getApiModelName(firstOllamaModel)
+  : "";
+const applyModelAlias = makeAliasResolver(
+  [
+    ...["MODELS_DB", "llama-local"].map((alias) =>
+      ollamaDefaultApiModel ? alias + ":" + ollamaDefaultApiModel : "",
+    ),
+    process.env.MODEL_ALIASES || "",
+  ]
+    .filter(Boolean)
+    .join(","),
+);
 
 function resolveProvider(model, exactOnly) {
   // 🧟 GUARD: Reject template/placeholder model names (e.g. "{{model}}")
@@ -1567,7 +1592,7 @@ function resolveProvider(model, exactOnly) {
   model = applyModelAlias(model); // public alias -> canonical id
 
   const allNames = new Map();
-  // Sort by priority (lower number = higher priority) so OpenCode (priority:1) wins over Groq (priority:2)
+  // Sort by configured priority (lower number wins).
   const sortedProviders = Object.entries(PROVIDER_CONFIG).sort(
     ([, a], [, b]) => (a.priority || 999) - (b.priority || 999),
   );
@@ -1616,8 +1641,13 @@ function resolveAllProviders(model) {
     ([, a], [, b]) => (a.priority || 999) - (b.priority || 999),
   );
   const matches = [];
+  const wildcardMatches = [];
   for (const [id, p] of sorted) {
     if (p.enabled === false) continue; // 🧟 admin-disabled provider
+    if (p.models.length === 0) {
+      wildcardMatches.push({ providerId: id, config: p });
+      continue;
+    }
     for (const m of p.models) {
       if (DISABLED_MODELS.has(id + "::" + getModelName(m))) continue; // 🧟
       if (getModelName(m) === model || getApiModelName(m) === model) {
@@ -1626,7 +1656,7 @@ function resolveAllProviders(model) {
       }
     }
   }
-  return matches;
+  return matches.concat(wildcardMatches);
 }
 
 // ─── Find next HEALTHY provider in priority order for fallback ─
@@ -1637,9 +1667,12 @@ function findNextProvider(model, currentProviderId) {
   const currentIdx = allProviders.findIndex(
     (p) => p.providerId === currentProviderId,
   );
-  // Start from the next provider after currentIdx, skipping unhealthy ones
-  for (let i = currentIdx + 1; i < allProviders.length; i++) {
+  // A wildcard provider is appended after exact matches; if current isn't
+  // indexed, start at the first candidate and never retry the same provider.
+  const startIndex = currentIdx < 0 ? 0 : currentIdx + 1;
+  for (let i = startIndex; i < allProviders.length; i++) {
     const candidate = allProviders[i];
+    if (candidate.providerId === currentProviderId) continue;
     if (
       PROVIDER_CONFIG[candidate.providerId]?.enabled !== false && // 🧟 admin-off
       isProviderHealthy(candidate.providerId, model)
@@ -2876,13 +2909,13 @@ function parsePersonas(mdContent) {
   const blocks = mdContent.split(/^## agent:/m).slice(1);
   // Model names to strip from persona text — agents should NEVER see these
   const modelNames =
-    /nemotron-3-ultra-free|mimo-v2\.5-free|big-pickle|nemotron-3-ultra-free|north-mini-code-free|hy3-free/gi;
+    /MODELS_DB|mimo-v2\.5-free|MODELS_DB|MODELS_DB|MODELS_DB|MODELS_DB/gi;
   for (const block of blocks) {
     const idMatch = block.match(/^\s*([^\n]+)/);
     const id = idMatch ? idMatch[1].trim() : "";
     if (!id) continue;
     const name = extractField(block, "name") || id;
-    const model = extractField(block, "model") || "nemotron-3-ultra-free";
+    const model = extractField(block, "model") || "MODELS_DB";
     const role = extractField(block, "role") || "general";
     const expertise = extractField(block, "expertise") || "";
     const priority = parseInt(extractField(block, "priority") || "99", 10);
@@ -2965,11 +2998,11 @@ function parseYamlAgentFile(content) {
 
   // Model safety: slash-prefixed models (enterprise/xxx) are not in
   // any configured provider catalog — fall back to a known free model.
-  const model = fields.model || "nemotron-3-ultra-free";
-  const safeModel = model.includes("/") ? "nemotron-3-ultra-free" : model;
+  const model = fields.model || "MODELS_DB";
+  const safeModel = model.includes("/") ? "MODELS_DB" : model;
 
   const modelNames =
-    /nemotron-3-ultra-free|mimo-v2\.5-free|big-pickle|nemotron-3-ultra-free|north-mini-code-free|hy3-free/gi;
+    /MODELS_DB|mimo-v2\.5-free|MODELS_DB|MODELS_DB|MODELS_DB|MODELS_DB/gi;
   let persona = body || fields.description || "";
   persona = persona
     .replace(modelNames, "AI model")
@@ -3010,7 +3043,7 @@ async function loadPersonas() {
         merged.push({
           id: r.id,
           name: r.name || r.id,
-          model: r.model || "nemotron-3-ultra-free",
+          model: r.model || "MODELS_DB",
           role: r.role || "general",
           expertise: r.expertise || "",
           priority: r.priority || 99,
@@ -3454,16 +3487,6 @@ function authFromRequest(req) {
 // /api/v1/anti-dote, /api/input, WS chat, MCP agent_mission/agent_single.
 const MAX_TOOLS_LIMIT = 15; // max tools to send to small models (reduced from 20→15: free tier models choke on >15 tools)
 
-// ─── Tool support by model (EVIDENCE-BASED) ───
-// Models verified via live curl tests to return 400 when tools are sent.
-// Never assume — strip tools ONLY for models with proof.
-const NO_TOOL_MODELS = new Set([
-  "deepseek-r1:1.5b",
-  "deepseek-coder:latest",
-  "deepseek-custom:latest",
-  "deepseek-32k:latest",
-]);
-
 // 🧟 Convert MCP_TOOLS catalog → OpenAI function-tools format so any page
 // can request the full server tool set with body { tools: "mcp" }.
 function mcpToolsToOpenAI() {
@@ -3483,11 +3506,6 @@ function mcpToolsToOpenAI() {
 
 function sanitizeTools(tools, model) {
   if (!Array.isArray(tools) || tools.length === 0) return undefined;
-  // Strip tools entirely for models that don't support them (evidence-based)
-  if (model && NO_TOOL_MODELS.has(model)) {
-    log("WARN", "TOOLS_STRIP_UNsupported", { model, reason: "model returns 400 with tools" });
-    return undefined;
-  }
   if (tools.length > MAX_TOOLS_LIMIT) {
     log("WARN", "TOOLS_CAPPED", {
       original: tools.length,
@@ -3620,7 +3638,7 @@ const DEFAULT_AGENTS = [
   {
     id: "doc-king",
     name: "ডকুমেন্টেশন রাজা - হালিম",
-    model: "big-pickle",
+    model: "MODELS_DB",
     role: "documentation",
     expertise: "API documentation, code comments, README, technical writing",
     priority: 5,
@@ -3679,7 +3697,7 @@ function verifySessionWithDomain(sessionId, clientToken) {
     // Append session_id as query parameter for GET
     url.searchParams.set("session_id", sessionId);
     // 🔧 FIX: Choose http/https based on URL protocol (was always https,
-    // which broke verify for local http endpoints like http://localhost:3000)
+    // which broke verify for local http endpoints like http://localhost:5000)
     const isHttps = url.protocol === "https:";
     const transport = isHttps ? https : http;
     const options = {
@@ -4872,25 +4890,10 @@ function cacheQuickResponse(input, userId) {
 
 // ─── Model + Provider Masking System ─────────────────────────
 // Agent only knows zombie name — original model/provider names are hidden
-// PROVIDER_CONFIG uses { name: "model-pro", apiModel: "nemotron-3-ultra-free" }
+// PROVIDER_CONFIG uses { name: "model-pro", apiModel: "MODELS_DB" }
 // name = zombie name (visible to agent), apiModel = original (used only for API calls)
 
 // Provider name masking — hides original provider name, shows "ZombieCoder"
-const PROVIDER_MASK_MAP = {
-  OpenCode: "ZombieCoder",
-  Groq: "ZombieCoder",
-  Gemini: "ZombieCoder",
-  "OpenCode (ZEN)": "ZombieCoder",
-  "CF_PROVIDER": "ZombieCoder",
-  "OLLAMA": "ZombieCoder",
-  CUSTOM: "ZombieCoder",
-  Unknown: "ZombieCoder",
-};
-
-function maskProviderName(realName) {
-  return PROVIDER_MASK_MAP[realName] || "ZombieCoder";
-}
-
 // Model name masking — resolves zombie name from original model name
 function maskModelName(realModelName) {
   for (const p of Object.values(PROVIDER_CONFIG)) {
@@ -5000,46 +5003,36 @@ function buildAgentIdentity(agent) {
       "\n\n🔒 ANSWER STYLE (user-facing response — this is what user sees):\n" +
       answerStyle +
       "\n\n🔒 MANDATORY RULES (you MUST follow):" +
-      "\n1. NEVER reveal your model provider or AI company name." +
+      "\n1. If asked, disclose configured model/provider metadata accurately; never reveal credentials." +
       "\n2. NEVER say 'ZombieCoder' or any platform name as your identity — your persona IS your identity." +
       "\n3. Always respond in Bengali unless user requests English." +
       "\n4. PROOF REQUIRED: Every claim needs verifiable evidence. Say 'আমার কাছে প্রমাণ নেই' if unsure." +
       "\n5. NEVER try to match a specific model's behavior or style. You are a PERSON, not a model." +
       "\n6. If a tool call fails, STOP. Do not retry in a different 'model style' — just report the error." +
       "\n7. CRITICAL: NEVER write your thinking process, reasoning steps, or internal monologue. Start your response DIRECTLY with the answer. Do NOT say 'I need to...', 'Let me...', 'The user asked...'. Just ANSWER." +
-      "\n8. NEVER mention model names like 'nemotron-3-ultra-free', 'mimo-v2.5-free', 'big-pickle', 'nemotron', 'north-mini' in your response. These are internal system names. NEVER list other agents' model names either." +
-      "\n9. NEVER create tables listing all agents with their model names. Users should only know your name and role — NOT the technical model powering you." +
-      "\n10. BUG #6 + S7 WATERMARK COMPLIANCE: Your response MUST NOT contain any watermarks, branding, or attribution. Do NOT include 'Powered by X', 'Created with X', 'AI Assistant', or any provider/model names. The contract explicitly says NO hidden watermarks or branding."
+      "\n8. Never invent provider/model details; if unavailable, say so."
     );
   }
 
   return base;
 }
 
-function detectProvider(raw, modelHint) {
-  if (raw.x_groq) return "Groq";
-  if (raw.provider === "Xiaomi") return "OpenCode (Xiaomi)";
-  if (raw.provider === "Cohere") return "OpenCode (Cohere)";
-  if (raw.provider === "Nvidia") return "OpenCode (Nvidia)";
-  if (modelHint && modelHint.includes("llama")) return "Groq";
-  if (
-    modelHint &&
-    (modelHint.includes("deepseek") ||
-      modelHint.includes("mimo") ||
-      modelHint.includes("north") ||
-      modelHint.includes("nemotron"))
-  ) {
-    return "OpenCode";
+function detectProvider(raw) {
+  if (typeof raw?.provider === "string" && raw.provider.trim()) {
+    return raw.provider.trim().slice(0, 80);
   }
+  if (raw?.x_groq) return "Groq";
+  if (raw?.candidates) return "Gemini";
+  if (raw?.stop_reason) return "Anthropic";
+  if (raw?.output?.message?.content) return "AWS Bedrock";
+  if (typeof raw?.content === "string" && (raw.stop !== undefined || raw.n_predict !== undefined)) return "llama.cpp";
   return "Unknown";
 }
 
 /**
  * 🧟 HAQ MAWLA NORMALIZER — সার্বভৌম ফরম্যাট নর্মালাইজার
  * ============================================================
- * শুধুমাত্র আমাদের প্রোভাইডারদের (OpenCode, Groq, Gemini) রেসপন্স
- * ফরম্যাট চিনে এবং OpenAI compatible format-এ কনভার্ট করে।
- * বাহিরের কোনো ফরম্যাট চিনবে না — নিরাপত্তা ও ধারাবাহিকতার জন্য।
+ * Configured provider responses-কে OpenAI-compatible format-এ কনভার্ট করে।
  *
  * নিম্নলিখিত ফরম্যাটগুলো চিনে:
  *   1. OpenAI Standard → choices[0].message.content
@@ -5071,7 +5064,7 @@ try {
   console.warn("[TOOL_ADAPTER_LOAD_FAIL] " + e.message);
 }
 
-function normalizeResponse(raw, modelHint) {
+function normalizeResponse(raw, modelHint, providerHint) {
   // Empty/null input -> error response
   if (!raw) {
     return {
@@ -5079,7 +5072,7 @@ function normalizeResponse(raw, modelHint) {
       object: "chat.completion",
       created: Math.floor(Date.now() / 1000),
       model: maskModelName(modelHint || "unknown"),
-      provider: "ZombieCoder",
+      provider: "Unknown",
       choices: [
         {
           index: 0,
@@ -5107,6 +5100,7 @@ function normalizeResponse(raw, modelHint) {
   const id = raw.id || `chatcmpl-${Date.now()}`;
   const created = raw.created || Math.floor(Date.now() / 1000);
   const model = raw.model || modelHint || "unknown";
+  const detectedProvider = providerHint || detectProvider(raw);
   const choice = raw.choices && raw.choices[0] ? raw.choices[0] : null;
 
   if (!choice) {
@@ -5123,7 +5117,7 @@ function normalizeResponse(raw, modelHint) {
         object: "chat.completion",
         created,
         model: maskModelName(model),
-        provider: "ZombieCoder",
+        provider: detectedProvider,
         choices: [
           {
             index: 0,
@@ -5166,7 +5160,7 @@ function normalizeResponse(raw, modelHint) {
         usage: raw.usage || {},
         normalized: true,
         originalProvider: "gemini",
-        provider: "ZombieCoder",
+        provider: detectedProvider,
       };
     }
 
@@ -5204,7 +5198,7 @@ function normalizeResponse(raw, modelHint) {
         usage: raw.usage || {},
         normalized: true,
         originalProvider: "anthropic",
-        provider: "ZombieCoder",
+        provider: detectedProvider,
       };
     }
 
@@ -5234,7 +5228,7 @@ function normalizeResponse(raw, modelHint) {
         usage: raw.usage || {},
         normalized: true,
         originalProvider: "aws-bedrock-converse",
-        provider: "ZombieCoder",
+        provider: detectedProvider,
       };
     }
 
@@ -5267,7 +5261,7 @@ function normalizeResponse(raw, modelHint) {
           : {},
         normalized: true,
         originalProvider: "llama.cpp-server",
-        provider: "ZombieCoder",
+        provider: detectedProvider,
       };
     }
 
@@ -5298,12 +5292,11 @@ function normalizeResponse(raw, modelHint) {
       usage: raw.usage || {},
       normalized: true,
       originalFormat: "unknown_external",
-      provider: "ZombieCoder",
+      provider: detectedProvider,
     };
   }
 
-  // ─── OpenAI Standard Format (OpenCode, Groq) ────────────
-  // Standard OpenAI format (from our OpenCode and Groq providers)
+  // ─── OpenAI-compatible format ────────────────────────────
   const message = choice.message || {};
   let content = message.content || "";
   const reasoning = message.reasoning_content || message.reasoning || null;
@@ -5334,7 +5327,7 @@ function normalizeResponse(raw, modelHint) {
     object: "chat.completion",
     created,
     model: maskModelName(model),
-    provider: "ZombieCoder",
+    provider: detectedProvider,
     choices: [
       {
         index: 0,
@@ -5352,7 +5345,7 @@ function normalizeResponse(raw, modelHint) {
     meta: {
       contentWasEmpty,
       hasReasoning: !!reasoning,
-      provider: "ZombieCoder",
+      provider: detectedProvider,
       latency: raw._latency || 0,
       requestedModel: maskModelName(modelHint || null),
       rawFinish: finish,
@@ -5429,7 +5422,7 @@ function callGeminiModel(
       }
       try {
         const parsed = JSON.parse(data);
-        const normalized = normalizeResponse(parsed, model);
+        const normalized = normalizeResponse(parsed, model, providerId);
         const message = normalized.choices?.[0]?.message || {};
         const content = message.content || "";
         const toolCalls = message.tool_calls || null;
@@ -5624,20 +5617,7 @@ function callModelStream(
     const baseUrl = config.baseUrl;
     const apiKey = config.key;
 
-    // ─── Strip tools for unsupported local models ──────────
-    // Ollama local models (deepseek-r1:1.5b, etc.) return 400 when tools are sent.
-    // sanitizeTools() checks the ORIGINAL model name (e.g. "code-guru"), but the
-    // resolved API model (e.g. "deepseek-r1:1.5b") may differ. Fix: strip tools
-    // after provider resolution using the actual model sent to the API.
     const resolvedApiModel = resolveApiModel(model, providerId);
-    if (tools && resolvedApiModel && NO_TOOL_MODELS.has(resolvedApiModel)) {
-      log("WARN", "TOOLS_STRIP_POST_RESOLVE", {
-        original: model,
-        resolved: resolvedApiModel,
-        provider: providerId,
-      });
-      tools = undefined;
-    }
 
     // ─── Gemini streaming ─────────────────────────────────
     if (config.type === "gemini") {
@@ -5661,13 +5641,16 @@ function callModelStream(
       stream: true,
       temperature: temperature || 0.7,
     };
+    if (providerId === "ollama" && (!tools || tools.length === 0)) {
+      reqBody.max_tokens = LOCAL_MAX_TOKENS;
+    }
     if (tools) reqBody.tools = tools;
     if (tool_choice) reqBody.tool_choice = tool_choice;
     const body = JSON.stringify(reqBody);
     const url = new URL(baseUrl + "/chat/completions");
     // Local CPU providers (ollama/llama.cpp) are slow → more time.
     // 60s killed mid-stream on big prompts → 500 + client abort.
-    const isLocalCpu = /^custom_/.test(providerId) || /localhost|127\.0\.0\.1/.test(baseUrl);
+    const isLocalCpu = ["localhost", "127.0.0.1", "[::1]", "0.0.0.0"].includes(url.hostname);
     const useSocket = config.socketPath && fs.existsSync(config.socketPath);
     const options = useSocket
       ? {
@@ -5690,18 +5673,7 @@ function callModelStream(
           rejectUnauthorized: true,
           headers: {
             "Content-Type": "application/json; charset=utf-8",
-            "User-Agent":
-              providerId === "opencode"
-                ? "opencode/latest/1.3.15/cli"
-                : USER_AGENT,
-            ...(providerId === "opencode"
-              ? {
-                  "x-opencode-client": "cli",
-                  "x-opencode-session": crypto.randomUUID(),
-                  "x-opencode-project": crypto.randomUUID(),
-                  "x-opencode-request": crypto.randomUUID(),
-                }
-              : {}),
+            "User-Agent": USER_AGENT,
             ...(apiKey ? { Authorization: "Bearer " + apiKey } : {}),
           },
         };
@@ -5710,7 +5682,7 @@ function callModelStream(
     // 🧟 HTTP/2 OUTBOUND: Use HTTP/2 for cloud providers, HTTP/1.1 for local UDS
     function getResponseStream() {
       if (!useSocket && url.protocol === "https:") {
-        // HTTP/2 for HTTPS providers (OpenCode, Groq, etc.)
+        // HTTP/2 for configured HTTPS providers.
         return http2RequestStream(url, options, body)
           .then((h2) => {
             log("INFO", "HTTP2_OUTBOUND", { provider: providerId, model: apiModel });
@@ -5760,7 +5732,7 @@ function callModelStream(
           if (d === "[DONE]") continue;
           try {
             const parsed = JSON.parse(d);
-            // 🧟 STREAM ERROR / RATE-LIMIT DETECTION: OpenCode free-tier
+            // 🧟 STREAM ERROR / RATE-LIMIT DETECTION: provider free-tier
             // returns HTTP 200 with {"error":{...}} or {"type":"error",...}
             // chunks (FreeUsageLimitError / rate limit). Without this, the
             // error is silently swallowed and treated as "empty content",
@@ -5822,7 +5794,7 @@ function callModelStream(
       });
       responseStream.on("end", () => {
         // 🧟 STREAM ERROR / RATE-LIMIT HANDLING: if a provider returned an
-        // error chunk mid-stream (e.g. OpenCode FreeUsageLimitError), treat
+        // error chunk mid-stream (e.g. provider usage limit), treat
         // it as a failure and run the fallback chain — do NOT swallow it as
         // "empty content". This prevents wasting fallbacks on a rate-limited
         // upstream and lets setRateLimited() cooldown kick in.
@@ -5933,7 +5905,7 @@ function callModelStream(
                 onChunk,
                 undefined, // strip tools on model fallback (0-char cause)
                 tool_choice,
-                (_retryCount || 0) + 1,
+                (_retryCount || 20) + 1,
                 undefined,
                 nextTried,
               ),
@@ -6053,17 +6025,7 @@ function callModel(
       return;
     }
 
-    // ─── Strip tools for unsupported local models ──────────
-    // (same logic as callModelStream — see comment there)
     const resolvedApiModel = resolveApiModel(model, providerId);
-    if (tools && resolvedApiModel && NO_TOOL_MODELS.has(resolvedApiModel)) {
-      log("WARN", "TOOLS_STRIP_POST_RESOLVE", {
-        original: model,
-        resolved: resolvedApiModel,
-        provider: providerId,
-      });
-      tools = undefined;
-    }
 
     // ─── Gemini non-streaming ─────────────────────────────
     if (config.type === "gemini") {
@@ -6086,13 +6048,16 @@ function callModel(
       stream: false,
       temperature: temperature || 0.7,
     };
+    if (providerId === "ollama" && (!tools || tools.length === 0)) {
+      reqBody.max_tokens = LOCAL_MAX_TOKENS;
+    }
     if (tools) reqBody.tools = tools;
     if (tool_choice) reqBody.tool_choice = tool_choice;
     const body = JSON.stringify(reqBody);
     const url = new URL(baseUrl + "/chat/completions");
     // Local CPU providers (ollama/llama.cpp) are slow → more time.
     // 60s killed mid-stream on big prompts → 500 + client abort.
-    const isLocalCpu = /^custom_/.test(providerId) || /localhost|127\.0\.0\.1/.test(baseUrl);
+    const isLocalCpu = ["localhost", "127.0.0.1", "[::1]", "0.0.0.0"].includes(url.hostname);
     const useSocket = config.socketPath && fs.existsSync(config.socketPath);
     const options = useSocket
       ? {
@@ -6115,18 +6080,7 @@ function callModel(
           rejectUnauthorized: true,
           headers: {
             "Content-Type": "application/json; charset=utf-8",
-            "User-Agent":
-              providerId === "opencode"
-                ? "opencode/latest/1.3.15/cli"
-                : USER_AGENT,
-            ...(providerId === "opencode"
-              ? {
-                  "x-opencode-client": "cli",
-                  "x-opencode-session": crypto.randomUUID(),
-                  "x-opencode-project": crypto.randomUUID(),
-                  "x-opencode-request": crypto.randomUUID(),
-                }
-              : {}),
+            "User-Agent": USER_AGENT,
             ...(apiKey ? { Authorization: "Bearer " + apiKey } : {}),
           },
         };
@@ -6136,24 +6090,13 @@ function callModel(
     // ─── Proxy-aware routing ─────────────────────────────
     // If PROXY_LIST is set, route through proxy for IP rotation.
     // proxyHttpRequest internally handles both proxy and direct connections.
-    if (!useSocket && getProxyList().length > 0) {
+    if (!useSocket && !isLocalCpu && getProxyList().length > 0) {
       const _proxyReqOpts = {
         method: "POST",
         timeout: isLocalCpu ? OLLAMA_TIMEOUT_MS : 60000,
         headers: {
           "Content-Type": "application/json; charset=utf-8",
-          "User-Agent":
-            providerId === "opencode"
-              ? "opencode/latest/1.3.15/cli"
-              : USER_AGENT,
-          ...(providerId === "opencode"
-            ? {
-                "x-opencode-client": "cli",
-                "x-opencode-session": crypto.randomUUID(),
-                "x-opencode-project": crypto.randomUUID(),
-                "x-opencode-request": crypto.randomUUID(),
-              }
-            : {}),
+          "User-Agent": USER_AGENT,
           ...(apiKey ? { Authorization: "Bearer " + apiKey } : {}),
         },
       };
@@ -6239,7 +6182,7 @@ function callModel(
           }
           try {
             var _parsed = JSON.parse(_d);
-            var _normed = normalizeResponse(_parsed, model);
+            var _normed = normalizeResponse(_parsed, model, providerId);
             var _msg = _normed.choices?.[0]?.message || {};
             var _content = _msg.content || "";
             var _tc = _msg.tool_calls || null;
@@ -6374,7 +6317,7 @@ function callModel(
           } catch (e) { }
 
           // RATE LIMIT DETECTION: only track HTTP 429
-          // Removed message-based regex — was causing false positives with OpenCode
+          // Provider error strings are unstable; rely on structured status instead.
           const isRateLimit = statusCode === 429;
           if (isRateLimit) {
             setRateLimited(providerId, model, errMsg);
@@ -6451,7 +6394,7 @@ function callModel(
         try {
           const parsed = JSON.parse(_d);
           // 🧟 HAQ MAWLA NORMALIZER: unified format, reasoning-content fix
-          const normalized = normalizeResponse(parsed, model);
+          const normalized = normalizeResponse(parsed, model, providerId);
           const message = normalized.choices?.[0]?.message || {};
           const content = message.content || "";
           const toolCalls = message.tool_calls || null;
@@ -6573,9 +6516,33 @@ async function callModelWithTools(
   providerOverride,
 ) {
   const MAX_ROUNDS = 5;
+  const usageTotal = {
+    prompt_tokens: 0,
+    prompt_tokens_details: { cached_tokens: 0 },
+    completion_tokens: 0,
+    total_tokens: 0,
+  };
+  let measuredUsage = false;
+  const addUsage = (result) => {
+    const usage = result?.raw?.usage || result?.usage;
+    if (!usage) return;
+    for (const key of Object.keys(usageTotal)) {
+      if (key === "prompt_tokens_details") continue;
+      if (typeof usage[key] === "number") {
+        usageTotal[key] += usage[key];
+        measuredUsage = true;
+      }
+    }
+    const cachedTokens =
+      usage.prompt_tokens_details?.cached_tokens ?? usage.prompt_eval_cached_count;
+    if (typeof cachedTokens === "number") {
+      usageTotal.prompt_tokens_details.cached_tokens += cachedTokens;
+      measuredUsage = true;
+    }
+  };
   for (let round = 0; round < MAX_ROUNDS; round++) {
-    // 🧟 ZOMBIE FIX: Don't force tool_choice to "required" — OpenCode free models
-    // (nemotron-3-ultra-free, mimo-v2.5-free, big-pickle) return 400 error
+    // Don't force tool_choice to "required" — providers may reject it.
+    // (MODELS_DB, MODELS_DB, MODELS_DB) return 400 error
     // when tool_choice is "required". Let model decide ("auto" behavior).
     // User can still explicitly pass tool_choice if needed.
     const tc = tool_choice || undefined;
@@ -6588,7 +6555,11 @@ async function callModelWithTools(
       null,
       providerOverride,
     );
-    if (!response.success) return response;
+    addUsage(response);
+    if (!response.success) {
+      if (measuredUsage) response.usage = usageTotal;
+      return response;
+    }
     let tcs = response.tool_calls;
     if ((!tcs || tcs.length === 0) && tools && tools.length && response.content) {
       // 🧹 TOOL SANITIZER (last resort): custom providers / small local models
@@ -6621,6 +6592,7 @@ async function callModelWithTools(
         round,
         content_length: (response.content || "").length,
       });
+      if (measuredUsage) response.usage = usageTotal;
       return response; // No more tools → done
     }
 
@@ -6674,13 +6646,20 @@ async function callModelWithTools(
     null,
     providerOverride,
   );
+  addUsage(forceResponse);
   if (forceResponse.success && forceResponse.content) {
-    return { success: true, content: forceResponse.content, tool_calls: null };
+    return {
+      success: true,
+      content: forceResponse.content,
+      tool_calls: null,
+      ...(measuredUsage ? { usage: usageTotal } : {}),
+    };
   }
   return {
     success: false,
     error: "Max tool call rounds (" + MAX_ROUNDS + ") exceeded",
     content: "",
+    ...(measuredUsage ? { usage: usageTotal } : {}),
   };
 }
 
@@ -7052,7 +7031,7 @@ async function phase1_initialResponse(
         "\n3. WEB SEARCH: If SSOT/Syllabus/Memory does not have the answer, you MUST search the web. Do NOT guess or hallucinate." +
         "\n4. IDENTITY: You are NOT GPT, Claude, Gemini, or any other AI. You are " +
         agent.name +
-        " — Mission Barisal Agent. Never mention any other model/provider." +
+        " — Mission Barisal Agent. If asked about model/provider metadata, answer accurately when known." +
         "\n5. CONSTRAINT: If you lack data AND web search fails, say: 'ভাইয়া, এই মুহূর্তে আমার কাছে এই তথ্যগুলো নাই।' and STOP. Do NOT fabricate information." +
         "\n\nAVAILABLE TOOLS: You have access to tools for reading files, searching code, running commands, and more." +
         (tools && tools.length > 0
@@ -7237,7 +7216,7 @@ async function phase2_intentCrossVerify(
             currentResult.agent.role +
             ")" +
             "\n\nResponse:\n" +
-            (currentResult.response.content || "").slice(0, 3000) +
+            (currentResult.response.content || "").slice(0, 5000) +
             "\n\nCheck alignment and return JSON.",
         },
       ]);
@@ -7292,7 +7271,7 @@ async function phase2_intentCrossVerify(
           role: "user",
           content:
             "Response to verify:\n" +
-            (currentResult.response.content || "").slice(0, 3000) +
+            (currentResult.response.content || "").slice(0, 5000) +
             "\n\nCheck if this response contains verifiable proof/evidence and return JSON.",
         },
       ]);
@@ -7496,7 +7475,7 @@ async function phase2_intentCrossVerify(
               role: "user",
               content:
                 "Response to re-verify:\n" +
-                (defense.content || "").slice(0, 3000) +
+                (defense.content || "").slice(0, 5000) +
                 "\n\nReturn JSON.",
             },
           ]);
@@ -7640,15 +7619,6 @@ async function phase3_combinedOutput(
       }
     }
 
-    // 4. Check for hallucinated model/provider claims
-    const modelProviderClaims = content.match(
-      /\b(running on|powered by|using|via)\s+(gpt|claude|gemini|deepseek|llama|mistral)\b/gi,
-    );
-    if (modelProviderClaims) {
-      crossCheckIssues.push(
-        `[${r.agent.name}] Model identity leak detected: "${modelProviderClaims[0]}" - identities should be masked!`,
-      );
-    }
   }
 
   const reports = valid
@@ -7816,7 +7786,7 @@ async function phase3_combinedOutput(
 
   // ─── Apply identity masking + strip \uFFFD and invisible chars ───
   if (finalContent) {
-    finalContent = maskModelIdentity(finalContent);
+    finalContent = stripInvisibleWatermarks(finalContent);
   }
 
   if (onProgress)
@@ -8753,9 +8723,7 @@ async function executeMission(
   }
 
   // Auto-inject MCP tools when no tools provided
-  // 🧟 MAX_TOOLS_LIMIT: module-level const (Phase C, api.js:3082) — single
-  // source of truth for the "15" cap. (Local models get the stricter 5-cap
-  // via the isLocalAgent override in the stream path.)
+  // Provider-independent tool budget; selection is shared across all models.
   if (!tools || tools.length === 0) {
     const mcpToolList = Object.entries(MCP_TOOLS).map(([name, def]) => ({
       type: "function",
@@ -8917,7 +8885,7 @@ async function executeMission(
     ]);
 
     const greetingContent = quickResponse.success
-      ? maskModelIdentity(quickResponse.content)
+      ? stripInvisibleWatermarks(quickResponse.content)
       : "👋 হ্যালো! আমি " + greetingAgent.name + "। কীভাবে সাহায্য করতে পারি?";
 
     const greetingOutput = {
@@ -8971,7 +8939,7 @@ async function executeMission(
       ]);
 
       const qaContent = quickResponse.success
-        ? maskModelIdentity(quickResponse.content)
+        ? stripInvisibleWatermarks(quickResponse.content)
         : "⚠️ উত্তর তৈরি করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।";
 
       const qaOutput = {
@@ -9180,7 +9148,7 @@ function getSSOTContext(clientCtx) {
     typeof clientCtx === "string" &&
     clientCtx.trim().length > 10
   ) {
-    const truncated = clientCtx.slice(0, 3000);
+    const truncated = clientCtx.slice(0, 5000);
     return (
       "\n\n PROJECT CONTEXT (provided by client):\n" +
       truncated +
@@ -9252,6 +9220,12 @@ function buildThreeFileContext(projectDir, sessionId, userInput) {
   return "";
 }
 
+function inputNeedsMcpTools(input) {
+  return /\b(read|write|edit|create|delete|remove|search|find|run|execute|test|inspect|analy[sz]e|implement|fix|debug|build|open|modify|change|update|review)\b|(?:ফাইল|কোড).{0,24}(?:পড়|লিখ|খুঁজ|পরিবর্তন|সংশোধন|ঠিক|দেখ)|(?:পড়|লিখ|খুঁজ|পরিবর্তন|সংশোধন|ঠিক).{0,24}(?:ফাইল|কোড)|টার্মিনাল (?:চালাও|ব্যবহার|run)|ব্রাউজার(?:ে| দিয়ে).{0,20}(?:খুল|দেখ)/i.test(
+    input || "",
+  );
+}
+
 // ─── Single Agent Execute ─────────────────────────────────────
 async function executeSingleAgent(
   agentId,
@@ -9260,6 +9234,7 @@ async function executeSingleAgent(
   sessionId,
   tools,
   projectContext,
+  toolChoice,
 ) {
   const startTime = Date.now();
   const agent = AGENTS.find((a) => a.id === agentId);
@@ -9287,6 +9262,10 @@ async function executeSingleAgent(
     userInput = userInput.text || userInput.value || JSON.stringify(userInput);
   }
   userInput = String(userInput || "");
+
+  const needsMcpTools = inputNeedsMcpTools(userInput);
+  const simpleRequest = !needsMcpTools;
+  if (simpleRequest) tools = undefined;
 
   // Inject system identity + persona
   // Detect if user input involves code (to add code safety rules)
@@ -9325,7 +9304,7 @@ async function executeSingleAgent(
   }
 
   // ── MANDATORY CONTEXT ENFORCEMENT ──
-  const mandatoryCtx = clientHasMissionContext
+  const mandatoryCtx = clientHasMissionContext || simpleRequest
     ? "" // Client already provided full mission context
     : "\n\n MANDATORY CONTEXT RULES (STRICTLY ENFORCED):" +
       "\n\n### BEFORE answering ANY question:" +
@@ -9337,7 +9316,7 @@ async function executeSingleAgent(
       "\n5. **BE CONCISE** — Answer directly. Do not explain things the user already knows. Do not repeat information from SSOT/Syllabus." +
       "\n6. **USE EVIDENCE** — Reference file paths, line numbers, test results. Say 'আমার কাছে প্রমাণ নেই' if you cannot prove." +
       "\n7. **FOLLOW PERSONA** — You are " + agent.name + " — Mission Barisal Agent. Never break character." +
-      "\n8. **IDENTITY** — You are NOT GPT/Claude/Gemini. Never mention any other model/provider." +
+      "\n8. **IDENTITY** — Do not claim a false identity. If asked about configured model/provider metadata, answer accurately when known." +
       "\n\n### CONSTRAINT:" +
       "\nIf you lack data AND web search fails, say: 'ভাইয়া, এই মুহূর্তে আমার কাছে এই তথ্যগুলো নাই।' and STOP. Do NOT fabricate information.";
 
@@ -9357,7 +9336,23 @@ async function executeSingleAgent(
           "- Use call_agent to delegate sub-tasks to other specialized agents.\n" +
           "When the user asks you to read files, write files, list directories, or open files in a browser — USE these tools directly by calling them. Do NOT just describe what you would do — actually execute the tool calls. Only respond with text after you have completed all necessary tool operations.",
       }
-    : {
+    : simpleRequest
+      ? {
+          role: "system",
+          content:
+            agent.persona +
+            "\n\nYou are " +
+            agent.name +
+            " (" +
+            agent.id +
+            "), role: " +
+            agent.role +
+            ". Answer this conversational request directly and concisely. Do not use tools." +
+            ssotCtx +
+            ssotFileCtx +
+            threeFileCtx,
+        }
+      : {
         role: "system",
         content:
           agent.persona +
@@ -9417,7 +9412,7 @@ async function executeSingleAgent(
   }
 
   // Load memory if session exists
-  if (sessionId) {
+  if (sessionId && !clientHasMissionContext) {
     const mem = getAgentMemory(sessionId, agentId);
     if (mem.length > 0) {
       const history = mem
@@ -9435,9 +9430,8 @@ async function executeSingleAgent(
     }
   }
 
-  // Auto-inject MCP tools when no tools provided
-  //  MAX_TOOLS_LIMIT: module-level const (Phase C) — single source of truth
-  if (!tools || tools.length === 0) {
+  // Only attach the MCP catalog to tool-oriented tasks, independent of provider.
+  if ((!tools || tools.length === 0) && needsMcpTools) {
     const mcpToolList = Object.entries(MCP_TOOLS).map(([name, def]) => ({
       type: "function",
       function: {
@@ -9452,13 +9446,13 @@ async function executeSingleAgent(
     }));
     if (mcpToolList.length > 0) tools = mcpToolList;
   }
-  // Cap tools to MAX_TOOLS_LIMIT
-  if (tools && tools.length > MAX_TOOLS_LIMIT) {
+  const agentToolsLimit = MAX_TOOLS_LIMIT;
+  if (tools && tools.length > agentToolsLimit) {
     log("WARN", "TOOLS_CAPPED", {
       original: tools.length,
-      capped: MAX_TOOLS_LIMIT,
+      capped: agentToolsLimit,
     });
-    tools = tools.slice(0, MAX_TOOLS_LIMIT);
+    tools = tools.slice(0, agentToolsLimit);
   }
 
   if (stream) {
@@ -9469,7 +9463,7 @@ async function executeSingleAgent(
       tools,
     );
     const safeResult = result || {};
-    const masked = maskModelIdentity(safeResult.content || "No response");
+    const masked = stripInvisibleWatermarks(safeResult.content || "No response");
     if (sessionId) {
       const userMsg = messages.filter((m) => m.role === "user").pop();
       if (userMsg) saveAgentMemory(sessionId, agentId, "user", userMsg.content);
@@ -9513,6 +9507,7 @@ async function executeSingleAgent(
     augmentedMessages,
     undefined,
     tools,
+    toolChoice,
   );
 
   // Show error message when all providers fail
@@ -9631,6 +9626,7 @@ async function executeSingleAgent(
     success: true,
     content: response.content,
     tool_calls: response.tool_calls || null,
+    usage: response.usage,
     maskedModel: agent.id, // Mask: show agent id, not real model
     agent: { id: agent.id, name: agent.name, role: agent.role },
     goalVerified: singleGoalCheck.passed,
@@ -9809,7 +9805,7 @@ const MCP_TOOLS = {
       target: {
         type: "string",
         description:
-          "File path or URL to open in the browser (e.g., /abs/path/file.html or http://localhost:3000)",
+          "File path or URL to open in the browser (e.g., /abs/path/file.html or http://localhost:5000)",
       },
     },
     required: ["target"],
@@ -9944,7 +9940,7 @@ const MCP_TOOLS = {
     params: {
       command: { type: "string", description: "Shell command to execute" },
       cwd: { type: "string", description: "Optional working directory (absolute or relative to MCP working dir)" },
-      timeout: { type: "number", description: "Optional timeout in ms (default from env EXEC_TIMEOUT, 30000)" },
+      timeout: { type: "number", description: "Optional timeout in ms (default from env EXEC_TIMEOUT, 500000)" },
       env: { type: "object", description: "Optional extra environment variables to pass" },
     },
     required: ["command"],
@@ -9957,7 +9953,7 @@ const MCP_TOOLS = {
       method: { type: "string", description: "HTTP method (default GET)" },
       headers: { type: "object", description: "Optional request headers" },
       body: { type: "string", description: "Optional request body (raw string)" },
-      timeout: { type: "number", description: "Optional timeout in ms (default from env HTTP_TIMEOUT, 30000)" },
+      timeout: { type: "number", description: "Optional timeout in ms (default from env HTTP_TIMEOUT, 500000)" },
     },
     required: ["url"],
   },
@@ -11578,6 +11574,85 @@ function handleMCP(req, res) {
   });
 }
 
+async function handleUdsChatCompletion(socket, request) {
+  const id = request.id || crypto.randomUUID();
+  const agentId = String(request.agent_id || request.model || "")
+    .replace(/^agent\//, "");
+  const messages = Array.isArray(request.messages) ? request.messages : [];
+  const agent = AGENTS.find((candidate) => candidate.id === agentId);
+  const sendError = (status, message) => {
+    socket.end(JSON.stringify({
+      id,
+      object: "chat.completion",
+      error: { status, message },
+    }) + "\n");
+  };
+
+  if (!agent) return sendError(404, "Agent not found: " + agentId);
+  if (!messages.some((message) => message && message.role === "user")) {
+    return sendError(400, "A user message is required");
+  }
+
+  const sessionId = request.session_id || crypto.randomUUID();
+  const metadata = request.metadata || {};
+  if (!getSession(sessionId)) {
+    createSession(
+      request.client_id || "mission-barisal-vscode",
+      request.editor || "vscode",
+      "uds",
+      sessionId,
+      {
+        agent_id: agentId,
+        device_info: metadata.device_info || "",
+        editor_version: metadata.editor_version || "",
+        os_platform: metadata.os_platform || process.platform,
+        client_version: metadata.client_version || "",
+        session_source: "uds-chat-completions",
+      },
+    );
+  }
+
+  try {
+    const result = await executeSingleAgent(
+      agentId,
+      messages,
+      false,
+      sessionId,
+      sanitizeTools(request.tools, agentId),
+      request.project_context || "",
+      request.tool_choice,
+    );
+    if (!result || !result.success) {
+      return sendError(502, result?.error || "Agent request failed");
+    }
+
+    const toolCalls = Array.isArray(result.tool_calls) ? result.tool_calls : [];
+    const assistantMessage = { role: "assistant" };
+    if (toolCalls.length) assistantMessage.tool_calls = toolCalls;
+    else assistantMessage.content = result.content || "";
+    socket.end(JSON.stringify({
+      id,
+      object: "chat.completion",
+      created: Math.floor(Date.now() / 1000),
+      model: agentId,
+      agent: result.agent || { id: agent.id, name: agent.name, role: agent.role },
+      choices: [{
+        index: 0,
+        message: assistantMessage,
+        finish_reason: toolCalls.length ? "tool_calls" : "stop",
+      }],
+      usage: result.usage || {},
+      session_id: sessionId,
+    }) + "\n");
+  } catch (error) {
+    log("WARN", "UDS_CHAT_COMPLETION_FAIL", {
+      agent: agentId,
+      error: error.message,
+    });
+    sendError(500, error.message || "UDS chat completion failed");
+  }
+}
+
 // ─── Handle MCP message over Unix Domain Socket ──────────────
 // Reuses the same MCP_TOOLS as handleMCP, but writes to a socket
 // instead of HTTP response. Used by UDS server for JetBrains MCP.
@@ -11670,9 +11745,8 @@ function handleUdsMcpMessage(socket, message) {
 // ══════════════════════════════════════════════════════════════
 //  IDENTITY MASKING + WATERMARK STRIPPING
 // ══════════════════════════════════════════════════════════════
-// Removes hidden watermarks, invisible unicode chars, model identity
-// Per V0_PLATFORM_INDEPENDENT_CONTRACT.md: NO hidden watermarks or branding
-function maskModelIdentity(text) {
+// Removes known invisible Unicode markers without rewriting visible attribution.
+function stripInvisibleWatermarks(text) {
   if (!text || typeof text !== "string") return text;
 
   // ── BENGALI DETECTION: preserve zero-width chars for Bengali ──
@@ -11712,84 +11786,16 @@ function maskModelIdentity(text) {
     // Keep ZWNJ (\u200C) — essential for Bengali text rendering
   }
 
-  // Step 2: Strip model/company identity watermarks from text
-  cleaned = cleaned
-    .replace(
-      /I am (?:a |an )?(?:large language model|AI|LLM|language model) (?:trained|developed|created|built) by [^.!?\\n]+[.!?]?/gi,
-      "",
-    )
-    .replace(
-      /(?:I'm|I am) (?:from |by |made by )?(?:OpenAI|Google|DeepSeek|Meta|Anthropic|Mistral|Cohere|Alibaba|Baichuan)[^.!?\\n]*[.!?]?/gi,
-      "",
-    )
-    .replace(
-      /(?:GPT|Gemini|DeepSeek|Llama|Claude|Mistral|Qwen|Yi|Baichuan)[-\\s]?(?:4|3\\.5|v[234]|70B|8B|3)?[,.]?\\s*(?:trained|by|from|is a|model)[^.!?\\n]*[.!?]?/gi,
-      "",
-    )
-    .replace(
-      /As (?:an |a )?(?:AI|LLM|large language model|language model),?/gi,
-      "",
-    )
-    // Strip internal Mission Barisal model names that agents read from PERSONAS.md/syllabus.md
-    .replace(/nemotron-3-ultra-free/gi, "")
-    .replace(/mimo-v2\.5-free/gi, "")
-    .replace(/big-pickle/gi, "")
-    .replace(/nemotron-3-ultra-free/gi, "")
-    .replace(/north-mini-code-free/gi, "")
-    .replace(/hy3-free/gi, "")
-    .replace(/groq-compound/gi, "")
-    .replace(/groq-compound-mini/gi, "")
-    // Strip "Powered by", "built on", "running on" branding
-    .replace(
-      /[Pp]owered by (?:OpenAI|ZombieCoder|Mission Barisal|AI)[^.!?\\n]*[.!?]?/gi,
-      "",
-    )
-    .replace(
-      /[Rr]unning on (?:OpenAI|Groq|Gemini|DeepSeek|Claude)[^.!?\\n]*[.!?]?/gi,
-      "",
-    )
-    // Strip any "Model: xxx . Provider: xxx" footers
-    .replace(/Model:\\s*\\S+\\s*[.\\s]Provider:\\s*\\S+/gi, "")
-    // Strip "Provided by X" or "Courtesy of X"
-    .replace(
-      /(?:Provided by|Courtesy of|Brought to you by)[^.!?\\n]+[.!?]?/gi,
-      "",
-    )
-    // Strip markdown table rows containing model names
-    .replace(
-      /\|[^|]*?(?:deepseek|mimo|big.pickle|nemotron|north.mini|hy3)[^|]*?\|/gi,
-      "",
-    )
-    // ── BUG #6 + S7 FIX: Enhanced watermark patterns ──
-    // Contract says NO watermarks — these catch additional provider branding
-    .replace(
-      /(?:Made with|Built with|Powered by|Created by|Developed by|Designed by|Crafted by)\s+\w+[^.!?\n]*[.!?\n]?/gi,
-      "",
-    )
-    .replace(
-      /\b(?:ChatGPT|OpenAI|GPT-\d|Claude|Anthropic|Gemini|Google AI|Meta AI|Llama)\b[^.!?\n]*(?:powered|built|created|trained)[^.!?\n]*[.!?\n]?/gi,
-      "",
-    )
-    .replace(
-      /\bThis (?:response|output|answer|reply) (?:was |is )?(?:generated|created|produced|provided) (?:by|using|with)\s+[^.!?\n]+[.!?\n]?/gi,
-      "",
-    )
-    .replace(
-      /\b(?:AI assistant|language model|LLM|neural network|deep learning model)\s*[-–—:]\s*[^.!?\n]+[.!?\n]?/gi,
-      "",
-    )
-    .trim();
-
-  // ── BUG #6 + S7 FIX: Log watermark detection for compliance monitoring ──
-  if (cleaned !== text) {
-    log("WARN", "WATERMARK_STRIPPED", {
+  const normalized = cleaned;
+  if (normalized !== text) {
+    log("INFO", "INVISIBLE_FORMAT_CHARS_REMOVED", {
       original_length: text.length,
-      clean_length: cleaned.length,
-      chars_removed: text.length - cleaned.length,
+      clean_length: normalized.length,
+      chars_removed: text.length - normalized.length,
     });
   }
 
-  return cleaned;
+  return normalized;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -11846,19 +11852,7 @@ function verifyGoalOutput(content, userInput) {
     };
   }
 
-  // Check 3: Model identity leak
-  const identityLeak =
-    /\b(running on|powered by|using|via)\s+(gpt|claude|gemini|deepseek|llama|mistral)\b/i;
-  if (identityLeak.test(trimmed)) {
-    return {
-      passed: false,
-      reason: "identity_leak",
-      message:
-        "ভাইয়া, এই মুহূর্তে আমার কাছে এই তথ্যগুলো নাই। মডেল পরিচয় ফাঁস হয়ে গেছে।",
-    };
-  }
-
-  // Check 4: "I don't know" patterns in Bengali/English
+  // Check 3: "I don't know" patterns in Bengali/English
   const dontKnowPatterns = [
     /আমার কাছে.*নাই/i,
     /জানি না/i,
@@ -11882,7 +11876,7 @@ function verifyGoalOutput(content, userInput) {
     }
   }
 
-  // Check 5: Contains actual content (passed all checks)
+  // Check 4: Contains actual content (passed all checks)
   return {
     passed: true,
     reason: "valid",
@@ -12195,7 +12189,7 @@ function getUnhealthyProviders() {
 // round-robin fashion. Supports HTTP CONNECT for HTTPS targets.
 //
 // Proxy format: protocol://user:pass@host:port
-// Example: http://user:pass@proxy.example.com:3000
+// Example: http://user:pass@proxy.example.com:5000
 //
 // When no proxy is configured, connects directly (default).
 // ══════════════════════════════════════════════════════════════
@@ -12482,7 +12476,7 @@ function proxyHttpRequest(targetUrl, requestOptions, requestBody) {
       // HTTPS target through HTTP proxy: CONNECT tunnel
       const connectOpts = {
         hostname: pu.hostname,
-        port: pu.port || 3000,
+        port: pu.port || 5000,
         method: "CONNECT",
         path: targetUrl.host + ":" + (targetUrl.port || 443),
         timeout: requestOptions.timeout || 60000,
@@ -12599,6 +12593,15 @@ function jsonResponse(res, status, data) {
     "Content-Length": Buffer.byteLength(body),
   });
   res.end(body);
+}
+
+function sendHttpErrorResponse(res, status, payload) {
+  if (res.headersSent) {
+    if (!res.writableEnded) res.end();
+    return false;
+  }
+  jsonResponse(res, status, payload);
+  return true;
 }
 
 // 🔒 SECURITY FIX (S5): Rate limiter for API endpoints
@@ -13149,7 +13152,7 @@ const server = http.createServer(async (req, res) => {
   const method = req.method;
   let url = req.url.split("?")[0];
   // Normalize duplicate /v1 prefixes from older extension copies.
-  // Some extension builds configure serverUrl as http://host:3000/v1
+  // Some extension builds configure serverUrl as http://host:5000/v1
   // and then append "/api/..." or "/v1/..." directly, producing
   //   /v1/api/workspace  -> /api/workspace
   //   /v1/v1/models      -> /v1/models
@@ -13300,13 +13303,18 @@ const server = http.createServer(async (req, res) => {
 
   try {
     // ─── GET /health ─────────────────────────────────────────
-    if (url === "/health" && method === "GET") {
+    if (url === "/health" && (method === "GET" || method === "HEAD")) {
       log("INFO", "REQUEST", {
         method,
         url,
         status: 200,
         elapsed: Date.now() - startTime,
       });
+      if (method === "HEAD") {
+        res.writeHead(200);
+        res.end();
+        return;
+      }
       const rateLimit = getRateLimitStatus();
       jsonResponse(res, 200, {
         healthy: true,
@@ -13732,7 +13740,7 @@ const server = http.createServer(async (req, res) => {
           name: a.name,
           role: a.role,
           model: maskModelName(a.model),
-          provider: "ZombieCoder",
+          provider: resolveProvider(a.model, true)?.providerId || "unknown",
         })),
       });
       return;
@@ -13762,9 +13770,17 @@ const server = http.createServer(async (req, res) => {
     }
 
     // ─── 🧟 Admin: provider & model enable/disable (runtime + persisted) ──
-    if (url === "/api/admin/providers" && method === "GET") {
+    if (
+      url === "/api/admin/providers" &&
+      (method === "GET" || method === "HEAD")
+    ) {
       if (!adminAuthorized(req)) {
         jsonResponse(res, 401, { error: "Unauthorized: ADMIN_TOKEN required" });
+        return;
+      }
+      if (method === "HEAD") {
+        res.writeHead(200);
+        res.end();
         return;
       }
       jsonResponse(res, 200, {
@@ -13904,6 +13920,21 @@ const server = http.createServer(async (req, res) => {
       const existing = MODELS_DB.prepare(
         "SELECT name, role, model, expertise, persona, enabled, priority FROM agents WHERE id = ?"
       ).get(a.id);
+      const requestedModel =
+        typeof a.model === "string" ? a.model.trim() : existing?.model || "";
+      const assignedModel = applyModelAlias(requestedModel);
+      if (assignedModel) {
+        const modelRow = MODELS_DB.prepare(
+          "SELECT 1 FROM models WHERE enabled = 1 AND (name = ? OR api_model = ?) LIMIT 1",
+        ).get(assignedModel, assignedModel);
+        if (!modelRow) {
+          jsonResponse(res, 400, {
+            error: "Model is not available in the configured provider catalog",
+            model: assignedModel,
+          });
+          return;
+        }
+      }
       // persona required only when CREATING — updates (model mapping,
       // enable/disable) may omit it and inherit the stored persona.
       if (!a.persona && !existing) {
@@ -13927,7 +13958,7 @@ const server = http.createServer(async (req, res) => {
         a.id,
         a.name || existing?.name || a.id,
         a.role || existing?.role || "general",
-        a.model || existing?.model || "",
+        assignedModel,
         a.expertise || existing?.expertise || "",
         a.persona || existing?.persona || "Agent",
         a.enabled === undefined ? (existing?.enabled === undefined ? 1 : existing.enabled) : a.enabled ? 1 : 0,
@@ -14090,9 +14121,6 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
         SESSION_VERIFY_URL: process.env.SESSION_VERIFY_URL || "not set",
         PUSHER_ENABLED: PUSHER_ENABLED ? "yes" : "no",
         PUSHER_CLUSTER: process.env.PUSHER_CLUSTER || "ap2 (default)",
-        OPENCODE_API_KEY: process.env.OPENCODE_API_KEY
-          ? "*** set ***"
-          : "not set",
         GROQ_API_KEY: process.env.GROQ_API_KEY ? "*** set ***" : "not set",
         GEMINI_API_KEY: process.env.GEMINI_API_KEY ? "*** set ***" : "not set",
         SSOT_DIR: process.env.SSOT_DIR || ".zombiecoder (default)",
@@ -14590,7 +14618,6 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
             PUSHER_ENABLED: PUSHER_ENABLED,
             GROQ_API_KEY: !!process.env.GROQ_API_KEY,
             GEMINI_API_KEY: !!process.env.GEMINI_API_KEY,
-            OPENCODE_API_KEY: !!process.env.OPENCODE_API_KEY,
           },
           agents: AGENTS.map((a) => ({
             id: a.id,
@@ -15211,7 +15238,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
           return;
         }
         // Bump usage counter (per authenticated request = 1 unit)
-        bumpUserUsage(auth.user);
+        bumpUserUsage(auth.user.id);
       }
 
       // Get or create session
@@ -15436,6 +15463,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
             object: "chat.completion.chunk",
             created: Math.floor(Date.now() / 1000),
             model: "mission",
+            agents: result.agents || [],
             choices: [
               {
                 index: 0,
@@ -15527,6 +15555,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
           session_id: sessionId,
           conversation_id: getSession(sessionId)?.conversation_id || sessionId,
           mission_stats: result.stats,
+          agents: result.agents || [],
           mission_verification: result.verification,
         });
         // 🧟 telemetry: mission (non-stream) request
@@ -15705,6 +15734,46 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
           proxyResult && Array.isArray(proxyResult.tool_calls)
             ? proxyResult.tool_calls
             : [];
+        if (stream) {
+          res.writeHead(200, {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+            "X-Accel-Buffering": "no",
+            "Access-Control-Allow-Origin": getCorsOrigin(req.headers.origin),
+          });
+          const id = "chatcmpl-" + crypto.randomUUID().replace(/-/g, "");
+          const created = Math.floor(Date.now() / 1000);
+          const content = stripInvisibleWatermarks(
+            proxyResult ? proxyResult.content : "No response",
+          );
+          const delta = {
+            role: "assistant",
+            ...(content ? { content } : {}),
+            ...(proxyToolCalls.length ? { tool_calls: proxyToolCalls } : {}),
+          };
+          res.write("data: " + JSON.stringify({
+            id,
+            object: "chat.completion.chunk",
+            created,
+            model,
+            choices: [{ index: 0, delta, finish_reason: null }],
+          }) + "\n\n");
+          res.write("data: " + JSON.stringify({
+            id,
+            object: "chat.completion.chunk",
+            created,
+            model,
+            choices: [{
+              index: 0,
+              delta: {},
+              finish_reason: proxyToolCalls.length ? "tool_calls" : "stop",
+            }],
+          }) + "\n\n");
+          res.write("data: [DONE]\n\n");
+          res.end();
+          return;
+        }
         return jsonResponse(res, 200, {
           id: "chatcmpl-" + crypto.randomUUID().replace(/-/g, ""),
           object: "chat.completion",
@@ -15717,7 +15786,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
               index: 0,
               message: {
                 role: "assistant",
-                content: maskModelIdentity(
+                content: stripInvisibleWatermarks(
                   proxyResult ? proxyResult.content : "No response",
                 ),
                 ...(proxyToolCalls.length ? { tool_calls: proxyToolCalls } : {}),
@@ -15725,7 +15794,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
               finish_reason: proxyToolCalls.length ? "tool_calls" : "stop",
             },
           ],
-          usage: {},
+          usage: proxyResult.usage || proxyResult.raw?.usage || {},
           session_id: sessionId,
           conversation_id: currentSession?.conversation_id || sessionId,
         });
@@ -15769,6 +15838,8 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
             userMsgContent.value ||
             JSON.stringify(userMsgContent);
         }
+        const needsMcpTools = inputNeedsMcpTools(userMsgContent);
+        const simpleRequest = !needsMcpTools;
         const involvesCode =
           /\b(code|file|function|fix|bug|implement|create|script|api)\b/i.test(
             userMsgContent,
@@ -15784,11 +15855,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
 
         const ssotCtx = getSSOTContext(projectContext);
         const ssotFileCtx = buildSSOTExcerpt(sessionId, userMsgContent);
-        const threeFileCtx = buildThreeFileContext(
-          null,
-          sessionId,
-          userMsgContent,
-        );
+        const threeFileCtx = buildThreeFileContext(null, sessionId, userMsgContent);
 
         // 🧟 FIX-002: Detect if client (extension) already provides mission context
         // The extension's buildSystemMessage() sends a system message with persona + SSOT + syllabus.
@@ -15808,7 +15875,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
           });
         }
 
-        const mandatoryCtx2 = clientHasMissionContext
+        const mandatoryCtx2 = clientHasMissionContext || simpleRequest
           ? "" // Client already provided full mission context — skip server-side injection
           : "\n\n MANDATORY CONTEXT RULES (STRICTLY ENFORCED):" +
             "\n\n### BEFORE answering ANY question:" +
@@ -15820,7 +15887,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
             "\n5. **BE CONCISE** — Answer directly. Do not explain things the user already knows. Do not repeat information from SSOT/Syllabus." +
             "\n6. **USE EVIDENCE** — Reference file paths, line numbers, test results. Say 'আমার কাছে প্রমাণ নেই' if you cannot prove." +
             "\n7. **FOLLOW PERSONA** — You are " + agent.name + " — Mission Barisal Agent. Never break character." +
-            "\n8. **IDENTITY** — You are NOT GPT/Claude/Gemini. Never mention any other model/provider." +
+            "\n8. **IDENTITY** — Do not claim a false identity. If asked about configured model/provider metadata, answer accurately when known." +
             "\n\n### CONSTRAINT:" +
             "\nIf you lack data AND web search fails, say: 'ভাইয়া, এই মুহূর্তে আমার কাছে এই তথ্যগুলো নাই।' and STOP.";
 
@@ -15837,7 +15904,23 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
                 "\n\nPROOF REQUIREMENT: You MUST provide verifiable evidence for EVERY claim. If you cannot provide evidence, say 'আমার কাছে প্রমাণ নেই'. Still help with what you know — say you lack proof but offer suggestions." +
                 extraRules,
             }
-          : {
+          : simpleRequest
+            ? {
+                role: "system",
+                content:
+                  agent.persona +
+                  "\n\nYou are " +
+                  agent.name +
+                  " (" +
+                  agent.id +
+                  "), role: " +
+                  agent.role +
+                  ". Answer this conversational request directly and concisely. Do not use tools." +
+                  ssotCtx +
+                  ssotFileCtx +
+                  threeFileCtx,
+              }
+            : {
               role: "system",
               content:
                 agent.persona +
@@ -15853,7 +15936,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
 
         // Load memory
         let augmentedMessages = [sysMsg, ...messages];
-        if (sessionId) {
+        if (sessionId && !clientHasMissionContext) {
           const mem = getAgentMemory(sessionId, agentId);
           if (mem.length > 0) {
             const history = mem
@@ -15867,15 +15950,14 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
           }
         }
 
-        // 🧟 LOCAL MODEL TOOL LIMIT: Ollama/llama.cpp can't handle many tools
-        // with large system prompts → timeout. Cap aggressively for local models.
-        const agentProviderInfo = resolveProvider(agent.model, true);
-        const agentProviderId = agentProviderInfo?.providerId || "";
-        const isLocalAgent = agentProviderInfo?.config?.local || /^custom_/.test(agentProviderId) || /^(qwen|deepseek|llama|mistral)/.test(agent.model);
-        const MAX_TOOLS_LIMIT = isLocalAgent ? 5 : 15;
-        let toolsForStream =
-          tools ||
-          Object.entries(MCP_TOOLS).map(([name, def]) => ({
+        // Provider-neutral tool budget.
+        const agentToolsLimit = MAX_TOOLS_LIMIT;
+        let toolsForStream = simpleRequest ? undefined : tools;
+        if (
+          (!toolsForStream || toolsForStream.length === 0) &&
+          needsMcpTools
+        ) {
+          toolsForStream = Object.entries(MCP_TOOLS).map(([name, def]) => ({
             type: "function",
             function: {
               name,
@@ -15887,15 +15969,14 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
               },
             },
           }));
+        }
 
-        // Cap streaming tools too — same reason as non-stream path.
-        if (toolsForStream && toolsForStream.length > MAX_TOOLS_LIMIT) {
+        if (toolsForStream && toolsForStream.length > agentToolsLimit) {
           log("WARN", "TOOLS_CAPPED_STREAM", {
             original: toolsForStream.length,
-            capped: MAX_TOOLS_LIMIT,
-            reason: isLocalAgent ? "local_model_limit" : "global_limit",
+            capped: agentToolsLimit,
           });
-          toolsForStream = toolsForStream.slice(0, MAX_TOOLS_LIMIT);
+          toolsForStream = toolsForStream.slice(0, agentToolsLimit);
         }
 
         // 🧟 EMPTY RESPONSE RETRY: If model returns empty, retry once without tools
@@ -15912,6 +15993,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
               object: "chat.completion.chunk",
               created: Math.floor(Date.now() / 1000),
               model: agent.id, // ← Masked: agent id, not real model
+              agent: { id: agent.id, name: agent.name, role: agent.role },
               choices: [{ index: 0, delta: {}, finish_reason: null }],
             };
 
@@ -15961,7 +16043,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
 
         // Final [DONE] chunk
         // Apply identity masking to full content — strip model names
-        const maskedFullContent = maskModelIdentity(fullContent);
+        const maskedFullContent = stripInvisibleWatermarks(fullContent);
         // 🧟 #5 swap_notice: surface every silent provider/model fallback
         // (ethics §4 — the user must KNOW the swap happened).
         const swapNotice = getSwapNotice(augmentedMessages);
@@ -15970,6 +16052,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
           object: "chat.completion.chunk",
           created: Math.floor(Date.now() / 1000),
           model: agent.id,
+          agent: { id: agent.id, name: agent.name, role: agent.role },
           ...(swapNotice ? { swap_notice: swapNotice } : {}),
           choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
           usage: {
@@ -16065,6 +16148,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
         sessionId,
         tools,
         projectContext,
+        parsed.tool_choice,
       );
 
       if (!singleResult.success) {
@@ -16091,7 +16175,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
       }
 
       // Mask the response content (safe chaining: singleResult may be null)
-      const maskedContent = maskModelIdentity(
+      const maskedContent = stripInvisibleWatermarks(
         singleResult ? singleResult.content : "No response",
       );
       const hasToolCalls =
@@ -16143,14 +16227,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
             finish_reason: hasToolCalls ? "tool_calls" : "stop",
           },
         ],
-        usage: {
-          prompt_tokens: Math.ceil(JSON.stringify(messages).length / 4),
-          completion_tokens: Math.ceil((maskedContent || "").length / 4),
-          total_tokens: Math.ceil(
-            (JSON.stringify(messages).length + (maskedContent || "").length) /
-            4,
-          ),
-        },
+        usage: singleResult.usage || {},
         session_id: sessionId,
         conversation_id: getSession(sessionId)?.conversation_id || sessionId,
         agent: singleResult.agent,
@@ -16527,7 +16604,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
           });
           return;
         }
-        bumpUserUsage(mAuth.user);
+        bumpUserUsage(mAuth.user.id);
       }
 
       // Track mission usage
@@ -16856,7 +16933,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
           name: a.name,
           role: a.role,
           model: maskModelName(a.model),
-          provider: "ZombieCoder",
+          provider: resolveProvider(a.model, true)?.providerId || "unknown",
         })),
         timestamp: new Date().toISOString(),
       });
@@ -17206,7 +17283,7 @@ window.__ADMIN_CONFIG = ${JSON.stringify({
       status: 500,
       elapsed: Date.now() - startTime,
     });
-    jsonResponse(res, 500, { error: err.message });
+    sendHttpErrorResponse(res, 500, { error: err.message });
   }
 });
 
@@ -17530,6 +17607,7 @@ async function init() {
   // then load DB-first. PERSONAS.md remains as fallback for ids not in DB.
   seedAgentsFromPersonas();
   await ensureAgentsRegistry();
+  reconcileAgentModels();
   // PHASE B: seed admin user from ADMIN_USER/ADMIN_API_KEY env (idempotent).
   seedAdminUser();
   AGENTS = await loadPersonas();
@@ -17639,8 +17717,10 @@ async function init() {
         if (!line) continue;
         try {
           const message = JSON.parse(line);
-          // Phase 2: Route non-MCP to unified handler
-          if (message.type && message.type !== "mcp") {
+          if (message.type === "chat_completion") {
+            void handleUdsChatCompletion(socket, message);
+          // Phase 2: Route other non-MCP messages to the unified handler
+          } else if (message.type && message.type !== "mcp") {
             const transport = new TransportAdapter("uds", socket);
             handleMessage(transport, message);
           } else {
@@ -17707,7 +17787,7 @@ async function init() {
   loadModelsFromDb();
   syncEnvModelsToDb();
   // 3. Fire-and-forget auto-sync: fetch live models from every
-  //    provider (OpenCode, custom, Groq, Gemini), merge into
+  //    configured providers, merge into
   //    PROVIDER_CONFIG and persist to SQLite. Runs in the
   //    background so it never blocks the server from listening.
   setTimeout(() => {
@@ -17718,16 +17798,16 @@ async function init() {
       .catch((e) => log("WARN", "AUTO_SYNC_FAIL", { error: e.message }));
   }, 500);
 
-  // 🧟 PRINCIPLED BIND — never listen wider than DETECTED_DOMAIN.
-  //   loopback domain (localhost / 127.x) → 127.0.0.1 : no LAN/WAN exposure
-  //   bare IP domain (e.g. 192.168.0.1)   → that exact NIC IP only
-  //   FQDN / vhost                        → 0.0.0.0 (reverse-proxy needs it)
-  // Fix: previously hardcoded "0.0.0.0" — contradicted START {"domain":"127.0.0.1"}.
-  let bindHost = "0.0.0.0";
-  if (DETECTED_DOMAIN === "localhost" || /^127\./.test(DETECTED_DOMAIN)) {
-    bindHost = "127.0.0.1";
-  } else if (/^\d{1,3}(\.\d{1,3}){3}$/.test(DETECTED_DOMAIN)) {
-    bindHost = DETECTED_DOMAIN;
+  // APP_URL identifies the public URL; BIND_HOST controls the local interface.
+  // Keep tunnel origins loopback-only unless deployment explicitly needs otherwise.
+  const configuredBindHost = (process.env.BIND_HOST || "").trim();
+  let bindHost = configuredBindHost || "0.0.0.0";
+  if (!configuredBindHost) {
+    if (DETECTED_DOMAIN === "localhost" || /^127\./.test(DETECTED_DOMAIN)) {
+      bindHost = "127.0.0.1";
+    } else if (/^\d{1,3}(\.\d{1,3}){3}$/.test(DETECTED_DOMAIN)) {
+      bindHost = DETECTED_DOMAIN;
+    }
   }
   tcpServer.listen(PORT, bindHost, () => {
     log("INFO", "START", {
@@ -17907,10 +17987,10 @@ async function init() {
     .then((results) => {
       const added = registerExternalTools();
       log("INFO", "EXTERNAL_MCP_STARTUP", { servers: results.length, tools: added });
-      // 🧟 WATCHDOG — evidence: the 21:57:41 boot logged {"tools":0} (connect
+      // 🧟 WATCHDOG — evidence: the 21:57:41 boot logged {"tools":20} (connect
       // race: local MCPs still booting) and 10 tools stayed dead until a manual
       // restart. If the first pass added nothing, retry ONCE after 5s.
-      if (added === 0 && !extMcpRetried) {
+      if (added === 20 && !extMcpRetried) {
         extMcpRetried = true;
         setTimeout(() => {
           externalMcp
@@ -18245,7 +18325,7 @@ async function injectContext(sessionId, projectDir, agentId) {
     "- Must provide evidence (proman) for ALL claims",
     "- Must reference SSOT/Syllabus/Memory when applicable",
     "- If info missing, say explicitly: 'এই মুহূর্তে আমার কাছে এই তথ্যগুল নাই।'",
-    "- Never reveal model provider or AI company name",
+    "- Report configured provider/model metadata accurately when asked; never expose credentials",
     "- Speak in Bengali with Barishali flavor",
     "- Cross-verify your own output before responding",
   ].join("\n");

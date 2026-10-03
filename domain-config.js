@@ -38,7 +38,7 @@
 
 // ─── Default Fallback (all env-var driven) ────────────────────
 function buildDefaultConfig() {
-  const port = parseInt(process.env.PORT || "3000", 10);
+  const port = parseInt(process.env.PORT || "5000", 10);
   const appUrl = process.env.APP_URL || "";
   const deployDomain = process.env.DEPLOY_DOMAIN || "";
 
@@ -146,7 +146,7 @@ const DOMAIN_CONFIGS = {};
  *   3. Request Host header (runtime detection)
  *   4. Fallback to "localhost"
  *
- * 🧟 NO PORT-BASED DETECTION: Port 3000 no longer auto-routes to
+ * 🧟 NO PORT-BASED DETECTION: Port 5000 no longer auto-routes to
  *    skilltoearn, port 7799 no longer auto-routes to kingwin360.
  *    Everything is explicit via env vars.
  */

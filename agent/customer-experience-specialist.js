@@ -7,7 +7,7 @@
 module.exports = {
   id: "customer-experience-specialist",
   name: "কাস্টমার এক্সপেরিয়েন্স স্পেশালিস্ট",
-  model: "mimo-v2.5-free",
+  model: "MODELS_DB",
   role: "customer-experience",
   expertise: "customer journey, UX, satisfaction, retention, support, customer feedback analysis, brand loyalty",
   priority: 8,

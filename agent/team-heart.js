@@ -7,7 +7,7 @@
 module.exports = {
   id: "team-heart",
   name: "টিম হার্ট - জারা",
-  model: "nemotron-3-ultra-free",
+  model: "MODELS_DB",
   role: "general",
   expertise: "team coordination, user empathy, communication, morale, conflict resolution, stakeholder management",
   priority: 7,

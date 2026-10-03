@@ -66,7 +66,7 @@ function loadAgentFiles() {
           agents.push({
             id: agent.id,
             name: agent.name || agent.id,
-            model: agent.model || "nemotron-3-ultra-free",
+            model: agent.model || "MODELS_DB",
             role: agent.role || "general",
             expertise: agent.expertise || "",
             priority: parseInt(agent.priority || "99", 10),

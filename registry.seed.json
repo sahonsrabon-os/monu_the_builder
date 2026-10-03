@@ -143,8 +143,8 @@
   },
   {
    "provider": "custom_3",
-   "name": "qwen2:0.5b",
-   "api_model": "qwen2:0.5b",
+   "name": "MODELS_DB",
+   "api_model": "MODELS_DB",
    "provider_name": "custom_3",
    "type": "openai",
    "priority": 1
@@ -2063,8 +2063,8 @@
   },
   {
    "provider": "custom_4",
-   "name": "whisper-large-v3-turbo:free",
-   "api_model": "whisper-large-v3-turbo:free",
+   "name": "MODELS_DB:free",
+   "api_model": "MODELS_DB:free",
    "provider_name": "custom_4",
    "type": "openai",
    "priority": 7
@@ -2111,40 +2111,40 @@
   },
   {
    "provider": "groq",
-   "name": "canopylabs/orpheus-v1-english",
-   "api_model": "canopylabs/orpheus-v1-english",
+   "name": "MODELS_DB",
+   "api_model": "MODELS_DB",
    "provider_name": "Groq",
    "type": "openai",
    "priority": 3
   },
   {
    "provider": "groq",
-   "name": "meta-llama/llama-prompt-guard-2-22m",
-   "api_model": "meta-llama/llama-prompt-guard-2-22m",
+   "name": "MODELS_DB",
+   "api_model": "MODELS_DB",
    "provider_name": "Groq",
    "type": "openai",
    "priority": 3
   },
   {
    "provider": "groq",
-   "name": "meta-llama/llama-prompt-guard-2-86m",
-   "api_model": "meta-llama/llama-prompt-guard-2-86m",
+   "name": "MODELS_DB",
+   "api_model": "MODELS_DB",
    "provider_name": "Groq",
    "type": "openai",
    "priority": 3
   },
   {
    "provider": "groq",
-   "name": "openai/gpt-oss-120b",
-   "api_model": "openai/gpt-oss-120b",
+   "name": "MODELS_DB",
+   "api_model": "MODELS_DB",
    "provider_name": "Groq",
    "type": "openai",
    "priority": 3
   },
   {
    "provider": "groq",
-   "name": "openai/gpt-oss-20b",
-   "api_model": "openai/gpt-oss-20b",
+   "name": "MODELS_DB",
+   "api_model": "MODELS_DB",
    "provider_name": "Groq",
    "type": "openai",
    "priority": 3
@@ -2159,8 +2159,8 @@
   },
   {
    "provider": "groq",
-   "name": "qwen/qwen3.8-27b",
-   "api_model": "qwen/qwen3.8-27b",
+   "name": "MODELS_DB",
+   "api_model": "MODELS_DB",
    "provider_name": "Groq",
    "type": "openai",
    "priority": 3
@@ -2175,8 +2175,8 @@
   },
   {
    "provider": "groq",
-   "name": "whisper-large-v3-turbo",
-   "api_model": "whisper-large-v3-turbo",
+   "name": "MODELS_DB",
+   "api_model": "MODELS_DB",
    "provider_name": "Groq",
    "type": "openai",
    "priority": 3
@@ -2319,8 +2319,8 @@
   },
   {
    "provider": "opencode",
-   "name": "big-pickle",
-   "api_model": "big-pickle",
+   "name": "MODELS_DB",
+   "api_model": "MODELS_DB",
    "provider_name": "OpenCode",
    "type": "openai",
    "priority": 2
@@ -2551,8 +2551,8 @@
   },
   {
    "provider": "opencode",
-   "name": "mimo-v2.5-free",
-   "api_model": "mimo-v2.5-free",
+   "name": "MODELS_DB",
+   "api_model": "MODELS_DB",
    "provider_name": "OpenCode",
    "type": "openai",
    "priority": 2
@@ -2599,8 +2599,8 @@
   },
   {
    "provider": "opencode",
-   "name": "nemotron-3-ultra-free",
-   "api_model": "nemotron-3-ultra-free",
+   "name": "MODELS_DB",
+   "api_model": "MODELS_DB",
    "provider_name": "OpenCode",
    "type": "openai",
    "priority": 2

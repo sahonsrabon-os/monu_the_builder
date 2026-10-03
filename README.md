@@ -3,12 +3,12 @@
 ![Version](https://img.shields.io/badge/version-3.2.1-7c3aed)
 ![Platform](https://img.shields.io/badge/platform-Linux%20x86--64-2563eb)
 ![Node](https://img.shields.io/badge/Node-%E2%89%A5%2018-10b981)
-![MCP%20tools](https://img.shields.io/badge/MCP%20tools-36-f59e0b)
+![MCP%20tools](https://img.shields.io/badge/MCP%20tools-26-f59e0b)
 ![Agents](https://img.shields.io/badge/agents-10-ec4899)
 
 > **Where evidence meets conversation** — a zero-dependency Node.js server that speaks
 > MCP over **HTTP JSON-RPC / SSE / WebSocket / Unix socket**, speaks **OpenAI** on
-> `/v1`, runs **10 agents**, and can serve a CPU llama.cpp model from RAM behind its
+> `/v1`, runs **9 agents**, and can serve a CPU llama.cpp model from RAM behind its
 > own local socket. Every claim in this file carries a log line, a JSON excerpt or a
 > screenshot — and every known flaw stays listed.
 
@@ -36,7 +36,7 @@ Architected by **Monu — The Builder** (Mission Barisal persona).
 │  api.js — transport resolver · agent router · anti-dote chain      │
 │  ┌──────────────┐  ┌────────────────┐  ┌────────────────────────┐  │
 │  │ MCP tool bus │  │ evidence gate  │  │ SQLite telemetry       │  │
-│  │ 36 tools     │  │ 6-step chain   │  │ requests·sessions·     │  │
+│  │ 26 tools     │  │ 6-step chain   │  │ requests·sessions·     │  │
 │  │ on/off switch│  │ fail-open      │  │ providers·usage        │  │
 │  └──────────────┘  └────────────────┘  └────────────────────────┘  │
 └───────────┬──────────────────────────────┬─────────────────────────┘
@@ -63,19 +63,19 @@ DB** — change it live from **Admin → Agent Manager** (`Change Model` → `Sa
 
 | ID | Persona | Role | Mapped model |
 |----|---------|------|--------------|
-| `doc-king` | Documentation King - Halim | documentation | `llama-local` |
-| `team-heart` | Team Heart - Jara | general | `llama-local` |
-| `customer-experience-specialist` | Customer Experience Specialist | customer-experience | `llama-local` |
-| `ecommerce-operations-analyst` | E-Commerce Operations Analyst | ecommerce-operations | `llama-local` |
-| `bug-hunter` | Bug Hunter - Jewel | debugging | `qwen2:0.5b` |
-| `code-guru` | Code Guru - Monu | architecture | `qwen2:0.5b` |
-| `perf-wizard` | Performance Wizard - Rashed | performance | `llama-local` |
-| `qa-tyrant` | Quality Tyrant - Mojnu | quality | `llama-local` |
-| `security-hero` | Security Hero - Bablu | security | `llama-local` |
+| `doc-king` | Documentation King - Halim | documentation | `MODELS_DB` |
+| `team-heart` | Team Heart - Jara | general | `MODELS_DB` |
+| `customer-experience-specialist` | Customer Experience Specialist | customer-experience | `MODELS_DB` |
+| `ecommerce-operations-analyst` | E-Commerce Operations Analyst | ecommerce-operations | `MODELS_DB` |
+| `bug-hunter` | Bug Hunter - Jewel | debugging | `MODELS_DB` |
+| `code-guru` | Code Guru - Monu | architecture | `MODELS_DB` |
+| `perf-wizard` | Performance Wizard - Rashed | performance | `MODELS_DB` |
+| `qa-tyrant` | Quality Tyrant - Mojnu | quality | `MODELS_DB` |
+| `security-hero` | Security Hero - Bablu | security | `MODELS_DB` |
 
 > Mappings are live DB values shown as a snapshot (2026-09-27). Seven of the nine
-> agents run on the local model `llama-local` (public alias `zombie-mini`); the
-> coding pair `bug-hunter` / `code-guru` was set to `qwen2:0.5b` through
+> agents run on the local model `MODELS_DB` (public alias `zombie-mini`); the
+> coding pair `bug-hunter` / `code-guru` was set to `MODELS_DB` through
 > Admin -> Agent Manager on the same day. The DB is the source of truth - edit in
 > Admin -> Agent Manager; `docs/openai-schema.json` regenerates from it via
 > `tools/gen-openai-docs.js`.
@@ -86,12 +86,12 @@ A virtual `mission` model runs the multi-agent debate path
 
 ---
 
-## MCP Tools (36)
+## MCP Tools (26)
 
 One registry, one enable/disable switch, four transports — `tools/list` and
 `tools/call` behave identically everywhere. The full table with descriptions lives in
 [`docs/openai-tools.md`](docs/openai-tools.md); the machine-readable OpenAI
-function-calling conversion of all 36 tools is [`docs/openai-schema.json`](docs/openai-schema.json).
+function-calling conversion of all 26 tools is [`docs/openai-schema.json`](docs/openai-schema.json).
 
 | Group | Tools |
 |-------|-------|
@@ -104,13 +104,13 @@ function-calling conversion of all 36 tools is [`docs/openai-schema.json`](docs/
 | Screen & OCR (external) | `screen-recorder__screen_record_start/status/stop/screenshot` · `ocr__ocr_crop/image/screenshot` |
 | Voice (external) | `tts__tts_play/speak/voices` |
 
-Live registry: **36 tools, all enabled**. Call/error counters are runtime stats; the docs-vs-registry claim is re-verified on every run by `tests/docs-claims.test.js`.
+Live registry: **26 tools, all enabled**. Call/error counters are runtime stats; the docs-vs-registry claim is re-verified on every run by `tests/docs-claims.test.js`.
 Disabling a tool drops it from `tools/list` and refuses `tools/call` at one choke
 point; re-enabling restores it.
 
 <img src="docs/evidence/mcp-tools-stats.jpeg" width="620" alt="MCP & Tools stats — 35 total tools, 0 errors">
 <img src="docs/evidence/mcp-tools-list-b.jpeg" width="620" alt="Per-tool Enable/Disable toggles - MCP & Tools admin page">
-> Captures are point-in-time (35 tools when captured; the live count is 36 and is
+> Captures are point-in-time (35 tools when captured; the live count is 26 and is
 > re-verified by `tests/docs-claims.test.js`).
 
 ---
@@ -119,7 +119,7 @@ point; re-enabling restores it.
 
 | Transport | Endpoint | Wire format |
 |-----------|----------|-------------|
-| HTTP JSON-RPC 2.0 | `POST /mcp` | newline/JSON-RPC (VS Code uses `http://localhost:3000/mcp`) |
+| HTTP JSON-RPC 2.0 | `POST /mcp` | newline/JSON-RPC (VS Code uses `http://localhost:5000/mcp`) |
 | SSE | `GET /mcp` | `endpoint` event + tool events |
 | WebSocket | HTTP upgrade on `/` | full-duplex messages |
 | Unix domain socket | `/tmp/zombiecoder/mcp.sock` | newline-delimited JSON-RPC (TCP fallback on Windows) |
@@ -132,21 +132,21 @@ point; re-enabling restores it.
 ### Health
 
 ```bash
-curl http://localhost:3000/health
+curl http://localhost:5000/health
 # {"healthy":true,"version":"3.2.1","agents":10,"models":<live>,...}
 ```
 
 ### Models (real provider catalog for IDEs)
 
 ```bash
-curl http://localhost:3000/api/v0/models
-# {"data":[{"id":"llama-local","owned_by":"local_llm"}, ... <live> models ...]}
+curl http://localhost:5000/api/v0/models
+# {"data":[{"id":"MODELS_DB","owned_by":"local_llm"}, ... <live> models ...]}
 ```
 
 ### Chat with an agent (OpenAI format — model = agent id)
 
 ```bash
-curl -X POST http://localhost:3000/v1/chat/completions \
+curl -X POST http://localhost:5000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "bug-hunter",
@@ -160,7 +160,7 @@ curl -X POST http://localhost:3000/v1/chat/completions \
 ```bash
 printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' \
   | nc -U /tmp/zombiecoder/mcp.sock
-# {"jsonrpc":"2.0","id":1,"result":{"tools":[ ...36 tools with inputSchema... ]}}
+# {"jsonrpc":"2.0","id":1,"result":{"tools":[ ...26 tools with inputSchema... ]}}
 ```
 
 ### Local bridge (no auth header, any client)
@@ -169,7 +169,7 @@ printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' \
 curl http://127.0.0.1:11435/health
 curl --unix-socket /tmp/local-llm.sock http://localhost/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model":"llama-local","messages":[{"role":"user","content":"say PONG"}],"max_tokens":20}'
+  -d '{"model":"MODELS_DB","messages":[{"role":"user","content":"say PONG"}],"max_tokens":20}'
 ```
 
 ---
@@ -189,7 +189,7 @@ node start.js --start-all
 ```
 
 Terminates any previous instance itself and brings up the gateway plus worker ports.
-Admin panel: `http://localhost:3000/admin.html`.
+Admin panel: `http://localhost:5000/admin.html`.
 
 ### Step 2 — (Optional) Start the local LLM bridge
 
@@ -204,7 +204,7 @@ process and unlinks the socket.
 ### Step 3 — Verify
 
 ```bash
-curl http://localhost:3000/health          # server up
+curl http://localhost:5000/health          # server up
 curl http://127.0.0.1:11435/health         # bridge up, both transports listed
 ```
 
@@ -219,15 +219,15 @@ that every agent and any OpenAI SDK client can share:
 |-----|----------|
 | `contract` | gateway / local-bridge / MCP endpoints, auth rules, request & response shapes |
 | `models` | the full provider catalog (ids grouped by provider; counts sync from the DB and drift - regenerated by `tools/gen-openai-docs.js`) |
-| `agents` | agent id → mapped model routing table (10 agents) |
-| `tools` | all **36 MCP tools converted to OpenAI function-calling format** (`type:"function"` + JSON-Schema `parameters` taken from the MCP `inputSchema`) |
+| `agents` | agent id → mapped model routing table (9 agents) |
+| `tools` | all **26 MCP tools converted to OpenAI function-calling format** (`type:"function"` + JSON-Schema `parameters` taken from the MCP `inputSchema`) |
 | `usage` | how to attach `tools`, how agent routing works, the local default |
 
 **Proof it works** — the schema's own `tools` array, sent to the local model:
 
 ```json
 POST http://127.0.0.1:11435/v1/chat/completions   (tools from docs/openai-schema.json)
-{"model":"llama-local","choices":[{"message":{
+{"model":"MODELS_DB","choices":[{"message":{
   "content":"",
   "tool_calls":[{"type":"function","function":{
     "name":"list_directory","arguments":"{\"path\":\".\"}"}}]},
@@ -277,7 +277,7 @@ Routes served on **both** transports: `GET /health` · `GET /v1/models` ·
 | `LLAMA_SERVER_BIN` | auto-detect | llama-server binary (verified: v0.5.0-dev, build 11146) |
 | `BRIDGE_GGUF` | scan | exact GGUF path if set; otherwise **discovered at runtime** by scanning every `*.gguf` under `~/.local/share/models` and the Hugging Face hub cache (no fixed list — the folder may move) |
 | `BRIDGE_GGUF_HINT` | unset | substring used to pick one file among the scanned candidates (e.g. `Meta-Llama-3.1-8B`); newest match wins |
-| `BRIDGE_MODEL` | `llama-local` | wire model name |
+| `BRIDGE_MODEL` | `MODELS_DB` | wire model name |
 | `BRIDGE_PORT` | `11435` | loopback TCP |
 | `BRIDGE_SOCKET` | `/tmp/local-llm.sock` | Unix socket (perm 0666) |
 | `BRIDGE_INTERNAL_PORT` | `18777` | llama-server loopback only |
@@ -292,7 +292,7 @@ so repeated gateway context can skip re-prefill. Gateway wiring (`.env`, git-ign
 CUSTOM_PROVIDER_5_NAME=local_llm
 CUSTOM_PROVIDER_5_URL=http://127.0.0.1:11435/v1
 CUSTOM_PROVIDER_5_SOCKET=/tmp/local-llm.sock
-CUSTOM_PROVIDER_5_MODELS=llama-local
+CUSTOM_PROVIDER_5_MODELS=MODELS_DB
 ```
 
 `.env` is the single source of truth for provider rows: keep `..._MODELS` aligned
@@ -363,14 +363,14 @@ have to repeat.
 | S3 | **One local-model identity, answer line always attributable.** The bridge is that identity (socket + port); responses should carry an `upstream` tag naming the line that answered. | "Clean" is only acceptable when the answering line can still be traced. *Status: the tag itself is a proposal — the bridge serves one backend at a time today (`BRIDGE_BACKEND=auto`).* |
 | S4 | **The broker is an anti-corruption layer.** The gateway keeps speaking only the standard OpenAI dialect; all format translation lives in the broker; `api.js` gains no per-caller format branches; contract tests are the treaty. | Keeps the gateway independent of any single client. *Missing: a broker-side contract test.* |
 | S5 | **The gateway (port 3000) is the response-collection point.** Models talk only to the server; the companion UI is deferred — its backend answered in ~1.2 s while the frontend failed to render (UI-side issue, tracked separately). | Response collection first; presentation second. |
-| S6 | **Canonical local model id is `llama-local`.** Agents and docs reference it; the defective IQ3_XS quant was deleted; Q4_K_M is the verified file. | Renaming the id would break existing agent rows. |
+| S6 | **Canonical local model id is `MODELS_DB`.** Agents and docs reference it; the defective IQ3_XS quant was deleted; Q4_K_M is the verified file. | Renaming the id would break existing agent rows. |
 | S7 | **Dual tool contract, stated explicitly.** Non-stream single-agent requests execute tools server-side (loop capped at MAX_ROUNDS, then a forced text final); streaming requests forward `tool_calls` deltas and do NOT execute — the client is the executor. | Observed live 2026-09-26 night: the non-stream path logged real `MCP_CALL` executions, while a stream round forwarded tool_call fragments with zero executions. |
 
 ### Proposals (open)
 
 | # | Proposal | Verdict |
 |---|----------|---------|
-| P1 | Display alias `Zombie Mini` for the local model (branding fit). | **Implemented 2026-09-27** — public name `zombie-mini` maps to the canonical id `llama-local` via the `MODEL_ALIASES` env (resolved in `tools/model-alias.js` before provider routing, so it survives the normalizer prune); pinned catalog row carries the display name `Zombie Mini`. Canonical id untouched (S6). See Addendum below. |
+| P1 | Display alias `Zombie Mini` for the local model (branding fit). | **Implemented 2026-09-27** — public name `zombie-mini` maps to the canonical id `MODELS_DB` via the `MODEL_ALIASES` env (resolved in `tools/model-alias.js` before provider routing, so it survives the normalizer prune); pinned catalog row carries the display name `Zombie Mini`. Canonical id untouched (S6). See Addendum below. |
 | P2 | Aggregate `/v1/models` from both backends (llama + ollama) behind one port and route by model name. | Logical; needs multi-upstream bridge work — today the bridge picks one backend at a time. |
 | P3 | **Lazy boot:** serve the model list first, probe both entry points, then load ONLY the selected model into RAM on first use (evict the previous one). | **Required by the RAM budget** — the current 8 B model alone holds ≈ 8.5 GB RSS on a 15 GB machine; loading everything at once would OOM. Cost: the first call pays ~20 s of model load. |
 | P4 | Dual-face transport: the Unix socket is the memory-to-memory data path with no header ceremony; loopback TCP is the metadata face (health / models / identity handshake) for clients that expect a TCP handshake. | Accepted principle, partially implemented — both transports already serve `/health` and `/v1/models` with `auth_required:false`. |
@@ -409,13 +409,13 @@ have to repeat.
 ### Addendum — 2026-09-27 (P1 alias, context alignment, real execution)
 
 - **P1 landed:** public model name `zombie-mini` resolves to the canonical id
-  `llama-local` through the `MODEL_ALIASES` env (`tools/model-alias.js`, applied at
+  `MODELS_DB` through the `MODEL_ALIASES` env (`tools/model-alias.js`, applied at
   the top of `resolveProvider` / `resolveApiModel` in `api.js`), and a pinned catalog
   row carries the display name `Zombie Mini`. The alias cannot live in the provider
   model list: `runNormalizerSync` prunes any entry the upstream does not report, and
   llama.cpp reports only its loaded model — so the alias map is applied before
   routing instead. Live proof: `PROXY_ROUTE primaryProvider:custom_5` →
-  `UDS_OUTBOUND socket=/tmp/local-llm.sock` → bridge `REQ model=llama-local`
+  `UDS_OUTBOUND socket=/tmp/local-llm.sock` → bridge `REQ model=MODELS_DB`
   (upstream always canonical, S6) → 1.4 s local reply, no cloud hop.
 - **S8 — precision context (latency alignment):** the system prompt no longer ships
   bulk. `tools/context-slimmer.js` injects (1) the syllabus as an index of titles
@@ -441,11 +441,11 @@ have to repeat.
 - **Honest caveats:** the 1 B still shows known quirks (JSON schema passed as
   arguments on some calls, a trailing ` directory` glued onto a list path,
   peg-format rejects triggering retry/fallback — the stream smoke test fell back
-  to `qwen2:0.5b` once via `STREAM_ERROR_MODEL_FALLBACK`), and local latency
+  to `MODELS_DB` once via `STREAM_ERROR_MODEL_FALLBACK`), and local latency
   scales with machine load (the 13.75 s round measured at `load < 2`; the same
   prefill took 112 s at `load ≈ 6`).
-- **Roster:** seven of nine agents on `llama-local`; `bug-hunter` and `code-guru`
-  set to `qwen2:0.5b` via a live Admin -> Agent Manager save the same day (kept as
+- **Roster:** seven of nine agents on `MODELS_DB`; `bug-hunter` and `code-guru`
+  set to `MODELS_DB` via a live Admin -> Agent Manager save the same day (kept as
   the user's latest choice — DB stays the source of truth).
 
 ---
@@ -456,7 +456,7 @@ Same-day captures from this machine. Screenshots live in `docs/evidence/`; logs 
 `logs/` (server) and the bridge stdout. Counts in this section (models, providers,
 calls) are point-in-time values that drift with DB sync; the enforced claims live
 in `tests/docs-claims.test.js`. Evidence #6 and #9 capture the demo agent
-`llama-local-test`, which was removed from the roster and the seed snapshot on
+`MODELS_DB-test`, which was removed from the roster and the seed snapshot on
 2026-09-27 (decision: test artifacts stay out of the client-facing model catalog).
 
 **1. Server health**
@@ -470,7 +470,7 @@ in `tests/docs-claims.test.js`. Evidence #6 and #9 capture the demo agent
 ```json
 GET http://127.0.0.1:11435/health
 {"status":"ok","bridge":"local-llm-bridge","backend":"llama",
- "model":"llama-local","gguf":"Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+ "model":"MODELS_DB","gguf":"Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
  "upstream":{"base":"http://127.0.0.1:18777","ready":true},
  "transports":{"unix_socket":"/tmp/local-llm.sock","tcp":"127.0.0.1:11435"},
  "auth_required":false}
@@ -486,7 +486,7 @@ llama-server v0.5.0-dev (build 11146) · n_ctx 16384 · RSS 8.5 GB (8B Q4_K_M)
 
 ```
 [INFO] UDS_OUTBOUND {"provider":"custom_5","socket":"/tmp/local-llm.sock"}
-[bridge:INFO] CHAT_OK {"transport":"uds","model":"llama-local","tools":15,"ms":204257,"usage_total":6242}
+[bridge:INFO] CHAT_OK {"transport":"uds","model":"MODELS_DB","tools":15,"ms":204257,"usage_total":6242}
 ```
 
 **5. Local model produced structured tool calls**
@@ -499,30 +499,30 @@ llama-server v0.5.0-dev (build 11146) · n_ctx 16384 · RSS 8.5 GB (8B Q4_K_M)
 **6. Agent → local model end-to-end (truncated)**
 
 ```json
-{"model":"llama-local-test",
+{"model":"MODELS_DB-test",
  "choices":[{"message":{"role":"assistant","content":"…reply text…"},"finish_reason":"stop"}],
- "agent":{"id":"llama-local-test","name":"Llama Local Test","role":"test harness"}}
+ "agent":{"id":"MODELS_DB-test","name":"Llama Local Test","role":"test harness"}}
 ```
 
 **7. Provider credentials re-verified — three independent live calls (2026-09-26)**
 
 ```json
 {"model":"gemini-flash","provider":"gemini","content":"OK"}
-{"model":"qwen/qwen3.8-27b","provider":"groq","content":"OK"}
-{"model":"qwen2:0.5b","provider":"custom_3","content":"Okay."}
+{"model":"MODELS_DB","provider":"groq","content":"OK"}
+{"model":"MODELS_DB","provider":"custom_3","content":"Okay."}
 ```
 
 **8. Shared schema tools round-trip over MCP UDS**
 
 ```bash
 printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | nc -U /tmp/zombiecoder/mcp.sock
-# tools over UDS: 36 · every tool carries inputSchema
+# tools over UDS: 26 · every tool carries inputSchema
 ```
 
 **9. Session telemetry row (DB-backed)**
 
 ```json
-{"agent":"llama-local-test","model":"llama-local","provider":"custom_5",
+{"agent":"MODELS_DB-test","model":"MODELS_DB","provider":"custom_5",
  "status":"active","requests":6,"user_agent":"curl/8.5.0"}
 ```
 
@@ -530,7 +530,7 @@ printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | nc -U /t
 
 <img src="docs/evidence/providers-local-llm.jpeg" width="660" alt="Providers table — custom_5 / local_llm row with request stats">
 <img src="docs/evidence/mcp-tools-list-a.jpeg" width="660" alt="Providers table - 8 providers, 346 models, custom_3 REQ 1 / ERR 1 counters">
-<img src="docs/evidence/agents-llama-local.jpeg" width="660" alt="Agent card — Llama Local Test mapped to llama-local">
+<img src="docs/evidence/agents-MODELS_DB.jpeg" width="660" alt="Agent card — Llama Local Test mapped to MODELS_DB">
 
 ---
 

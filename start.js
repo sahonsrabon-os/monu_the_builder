@@ -32,6 +32,8 @@ const HEALTH_ENDPOINTS = [
 
 const STARTUP_TIMEOUT_MS = 30000;
 const HEALTH_CHECK_DELAY_MS = 2000;
+let localLlmBridgeChild = null;
+let bridgeShutdownHooksInstalled = false;
 
 // ---------------------------------------------------------------------------
 // Environment loader (unchanged behavior, kept dependency-free)
@@ -64,6 +66,136 @@ function loadEnv() {
       console.log("[ENV] Loaded:", envPath, "(" + loaded + " vars)");
     }
   } catch (_) { }
+}
+
+// ---------------------------------------------------------------------------
+// 🧟 ENV IMMUNITY — project .env is the Single Source of Truth for boot-
+// critical keys. loadEnv() deliberately lets OS-level `export`s win, which is
+// right for ad-hoc overrides but WRONG for keys that decide whether the whole
+// boot survives: a stray `export BRIDGE_OLLAMA_URL=...` (shell history, editor,
+// parent process) made the LLM bridge poll ITSELF, never become ready, and
+// abort the gateway before it ever bound — taking the MCP tool chain with it.
+// applyEnvImmunity() re-imposes .env on the keys below, then validates them.
+// ---------------------------------------------------------------------------
+const CRITICAL_ENV_KEYS = [
+  "PORT",
+  "SERVER_PORT",
+  "APP_URL",
+  "BIND_HOST",
+  "BRIDGE_BACKEND",
+  "BRIDGE_OLLAMA_URL",
+  "BRIDGE_UPSTREAM_MODEL",
+  "BRIDGE_MODEL",
+  "OLLAMA_BASE",
+  "BROKER_PORT",
+  "BRIDGE_PROXY_PORT",
+  "BRIDGE_TARGET_PORT",
+  "SESSION_HMAC_REQUIRED", // fail-closed switch — shell must not flip it silently
+  "LOCAL_MAX_TOKENS", // local output cap — 128 starved thinking models into empty replies
+  "OLLAMA_MODELS", // routing truth — wrong model list reroutes agents to dead providers
+];
+
+function readDotEnvFile() {
+  const out = {};
+  try {
+    const p = path.resolve(".env");
+    if (!fs.existsSync(p)) return out;
+    for (const raw of fs.readFileSync(p, "utf8").split("\n")) {
+      const t = raw.trim();
+      if (!t || t.startsWith("#") || /^=+$/.test(t)) continue;
+      const eq = t.indexOf("=");
+      if (eq === -1) continue;
+      const k = t.slice(0, eq).trim();
+      if (!k) continue;
+      let v = t.slice(eq + 1).trim();
+      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'")))
+        v = v.slice(1, -1);
+      out[k] = v;
+    }
+  } catch (_) {
+    /* missing .env → nothing to impose */
+  }
+  return out;
+}
+
+function applyEnvImmunity() {
+  const dot = readDotEnvFile();
+  let normalized = 0;
+
+  // 1) .env wins over stray shell exports for boot-critical keys
+  for (const k of CRITICAL_ENV_KEYS) {
+    if (dot[k] === undefined || dot[k] === "") continue;
+    const shellVal = process.env[k];
+    if (shellVal !== undefined && shellVal !== dot[k]) {
+      console.log(
+        "[ENV-IMMUNITY] " +
+          k +
+          ": ignored shell value '" +
+          shellVal +
+          "' → .env = '" +
+          dot[k] +
+          "'",
+      );
+      normalized++;
+    }
+    process.env[k] = dot[k];
+  }
+
+  // 2) BRIDGE_PORT is ambiguous: local-llm-bridge treats it as the LLM port
+  //    (default 11435), bridge.js historically treated it as its listen port
+  //    (default 9999). If a shell export carries the PROXY meaning, disambiguate.
+  if (
+    process.env.BRIDGE_PORT &&
+    !dot.BRIDGE_PORT &&
+    parseInt(process.env.BRIDGE_PORT, 10) === (parseInt(process.env.BRIDGE_PROXY_PORT || "9999", 10))
+  ) {
+    console.warn(
+      "[ENV-IMMUNITY] BRIDGE_PORT=" +
+        process.env.BRIDGE_PORT +
+        " looks like the editor proxy → moved to BRIDGE_PROXY_PORT",
+    );
+    process.env.BRIDGE_PROXY_PORT = process.env.BRIDGE_PORT;
+    delete process.env.BRIDGE_PORT;
+    normalized++;
+  }
+
+  // Port roles are read AFTER the disambiguation above so the self-reference
+  // check never validates against a stale number.
+  const LLM_PORT = parseInt(process.env.BRIDGE_PORT || "11435", 10); // local-llm-bridge.js
+  const PROXY_PORT = parseInt(process.env.BRIDGE_PROXY_PORT || "9999", 10); // bridge.js (editor proxy)
+  const GATEWAY = parseInt(process.env.PORT || "5000", 10);
+
+  // 3) BRIDGE_OLLAMA_URL must be the OLLAMA DAEMON — never self/proxy/gateway
+  let ollama = (process.env.BRIDGE_OLLAMA_URL || "http://127.0.0.1:11434").trim();
+  try {
+    const u = new URL(ollama);
+    const p = u.port ? parseInt(u.port, 10) : u.protocol === "https:" ? 443 : 80;
+    if (u.protocol !== "http:" || p === LLM_PORT || p === PROXY_PORT || p === GATEWAY) {
+      console.warn(
+        "[ENV-IMMUNITY] BRIDGE_OLLAMA_URL='" +
+          ollama +
+          "' is not the Ollama daemon (self/proxy/gateway port) → forcing http://127.0.0.1:11434",
+      );
+      ollama = "http://127.0.0.1:11434";
+      normalized++;
+    }
+  } catch (_) {
+    console.warn(
+      "[ENV-IMMUNITY] BRIDGE_OLLAMA_URL malformed ('" +
+        ollama +
+        "') → forcing http://127.0.0.1:11434",
+    );
+    ollama = "http://127.0.0.1:11434";
+    normalized++;
+  }
+  process.env.BRIDGE_OLLAMA_URL = ollama;
+
+  if (normalized) {
+    console.log(
+      "[ENV-IMMUNITY] " + normalized + " boot-critical value(s) normalized — shell cannot change boot behavior",
+    );
+  }
+  return normalized;
 }
 
 // ---------------------------------------------------------------------------
@@ -159,7 +291,7 @@ function storeRuntimeConfig(envInfo) {
     const relevantKeys = [
       "PORT", "SERVER_PORT", "UDS_PORT", "APP_URL", "DOMAIN",
       "NOTE_ENCRYPTION_KEY", "NOTE_TTL", "MAX_NOTE_SIZE",
-      "OPENCODE_MODELS", "GROQ_MODELS", "GEMINI_MODELS",
+      "GROQ_MODELS", "GEMINI_MODELS",
       "ADMIN_USER", "ADMIN_API_KEY",
       "PUSHER_APP_ID", "PUSHER_KEY", "PUSHER_SECRET", "PUSHER_CLUSTER",
     ];
@@ -207,7 +339,15 @@ function storeRuntimeConfig(envInfo) {
 // ---------------------------------------------------------------------------
 // HTTP Test Client (no external deps)
 // ---------------------------------------------------------------------------
-function httpRequest(host, port, path, method = "GET", body = null) {
+function httpRequest(
+  host,
+  port,
+  path,
+  method = "GET",
+  body = null,
+  extraHeaders = {},
+  timeoutMs = 5000,
+) {
   return new Promise((resolve, reject) => {
     const options = {
       hostname: host,
@@ -217,6 +357,7 @@ function httpRequest(host, port, path, method = "GET", body = null) {
       headers: {
         "Content-Type": "application/json",
         "User-Agent": "MissionBarisal-StartScript/1.0",
+        ...extraHeaders,
       },
     };
     
@@ -239,7 +380,7 @@ function httpRequest(host, port, path, method = "GET", body = null) {
     });
     
     req.on("error", (err) => reject(err));
-    req.setTimeout(5000, () => {
+    req.setTimeout(timeoutMs, () => {
       req.destroy();
       reject(new Error("Request timeout"));
     });
@@ -247,6 +388,111 @@ function httpRequest(host, port, path, method = "GET", body = null) {
     if (body) req.write(JSON.stringify(body));
     req.end();
   });
+}
+
+function installBridgeShutdownHooks() {
+  if (bridgeShutdownHooksInstalled) return;
+  bridgeShutdownHooksInstalled = true;
+  const stopOwnedBridge = () => {
+    if (localLlmBridgeChild && localLlmBridgeChild.exitCode === null) {
+      localLlmBridgeChild.kill("SIGTERM");
+    }
+  };
+  process.once("SIGINT", stopOwnedBridge);
+  process.once("SIGTERM", stopOwnedBridge);
+  process.once("exit", stopOwnedBridge);
+}
+
+async function readBridgeHealth(port) {
+  try {
+    const response = await httpRequest("127.0.0.1", port, "/health");
+    if (response.status !== 200) return { error: "HTTP " + response.status };
+    if (response.data?.bridge !== "local-llm-bridge") {
+      return { error: "port is occupied by a non-bridge service" };
+    }
+    return { health: response.data };
+  } catch (_) {
+    return null;
+  }
+}
+
+async function preloadBridgeModel(health) {
+  if (health.backend !== "ollama") {
+    console.log("[LOCAL-LLM] Backend ready:", health.backend, health.model || "");
+    return;
+  }
+  const base = new URL(process.env.BRIDGE_OLLAMA_URL || "http://127.0.0.1:11434");
+  if (base.protocol !== "http:") {
+    throw new Error("BRIDGE_OLLAMA_URL must use http for local model preloading");
+  }
+  const port = Number(base.port) || 80;
+  const warmup = await httpRequest(
+    base.hostname,
+    port,
+    "/api/chat",
+    "POST",
+    { model: health.model, keep_alive: process.env.OLLAMA_KEEP_ALIVE || "10m" },
+    {},
+    Number(process.env.OLLAMA_MODEL_LOAD_TIMEOUT_MS) || 180000,
+  );
+  if (warmup.status !== 200) {
+    throw new Error("Ollama model preload failed (HTTP " + warmup.status + ")");
+  }
+  const loadMs = Number(warmup.data?.load_duration || 0) / 1e6;
+  console.log(
+    "[LOCAL-LLM] Model loaded and retained:",
+    health.model,
+    "load_ms=" + Math.round(loadMs),
+  );
+}
+
+async function ensureLocalLlmBridge() {
+  if (String(process.env.LOCAL_LLM_BRIDGE_ENABLED || "true").toLowerCase() === "false") {
+    console.log("[LOCAL-LLM] Disabled by LOCAL_LLM_BRIDGE_ENABLED=false");
+    return;
+  }
+  const bridgePath = path.join(__dirname, "local-llm-bridge.js");
+  if (!fs.existsSync(bridgePath)) throw new Error("local-llm-bridge.js is missing");
+  const port = Number(process.env.BRIDGE_PORT) || 11435;
+  const timeoutMs = Number(process.env.BRIDGE_STARTUP_TIMEOUT_MS) || 120000;
+  const existing = await readBridgeHealth(port);
+  if (existing?.error) throw new Error("Bridge port " + port + ": " + existing.error);
+
+  if (!existing) {
+    console.log("[LOCAL-LLM] Starting bridge before gateway...");
+    localLlmBridgeChild = spawn(process.execPath, [bridgePath], {
+      cwd: __dirname,
+      env: process.env,
+      stdio: "inherit",
+    });
+    installBridgeShutdownHooks();
+    localLlmBridgeChild.on("error", (err) => {
+      console.error("[LOCAL-LLM] Bridge spawn error:", err.message);
+    });
+    localLlmBridgeChild.on("exit", (code, signal) => {
+      console.log("[LOCAL-LLM] Owned bridge exited code=" + code + " signal=" + signal);
+    });
+  } else {
+    console.log("[LOCAL-LLM] Reusing existing bridge on port " + port);
+  }
+
+  const deadline = Date.now() + timeoutMs;
+  let bridgeHealth = existing?.health || null;
+  while (!bridgeHealth?.upstream?.ready && Date.now() < deadline) {
+    if (localLlmBridgeChild && localLlmBridgeChild.exitCode !== null) {
+      throw new Error("Bridge exited before upstream became ready");
+    }
+    const status = await readBridgeHealth(port);
+    if (status?.error) throw new Error("Bridge port " + port + ": " + status.error);
+    bridgeHealth = status?.health || null;
+    if (!bridgeHealth?.upstream?.ready) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
+  if (!bridgeHealth?.upstream?.ready) {
+    throw new Error("Bridge upstream not ready after " + timeoutMs + "ms");
+  }
+  await preloadBridgeModel(bridgeHealth);
 }
 
 // ---------------------------------------------------------------------------
@@ -344,7 +590,7 @@ async function runHealthChecks(host, port) {
 function getDefaultConfig() {
   return {
     version: VERSION,
-    serverPort: Number(process.env.SERVER_PORT) || Number(process.env.PORT) || 9999,
+    serverPort: Number(process.env.SERVER_PORT) || Number(process.env.PORT) || 5000,
     udsPort: Number(process.env.UDS_PORT) || 5100,
     udsPath:
       process.env.ZOMBIECODER_UDS_PATH ||
@@ -385,7 +631,58 @@ function configAll() {
 // ---------------------------------------------------------------------------
 // START ALL — load env + config, then boot the main server
 // ---------------------------------------------------------------------------
-function cleanupOldProcesses() {
+// Pids of this process and all its ancestors — never killed, ever.
+function selfAncestorPids() {
+  const set = new Set([process.pid]);
+  if (process.platform === "win32") return set;
+  let p = process.pid;
+  for (let i = 0; i < 16; i++) {
+    try {
+      const stat = fs.readFileSync("/proc/" + p + "/stat", "utf8");
+      const rest = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+      const ppid = parseInt(rest[1], 10); // rest = [state, ppid, pgrp, ...]
+      if (!ppid || ppid <= 1 || set.has(ppid)) break;
+      set.add(ppid);
+      p = ppid;
+    } catch (_) {
+      break;
+    }
+  }
+  return set;
+}
+
+function portListening(port) {
+  if (process.platform === "win32") return false;
+  try {
+    execSync('ss -ltn 2>/dev/null | grep -q ":' + port + ' "', {
+      stdio: "ignore",
+      shell: "/bin/bash",
+    });
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+// Is the process listening on this port owned by THIS project directory?
+// Foreign squatters (other projects, services) are never ours to kill — and
+// never worth waiting for.
+function portOwnedByProject(port) {
+  if (process.platform === "win32") return false;
+  try {
+    const out = execSync('ss -ltnp 2>/dev/null | grep ":' + port + ' "', {
+      encoding: "utf8",
+      shell: "/bin/bash",
+    });
+    const m = String(out).match(/pid=(\d+)/);
+    if (!m) return false;
+    return fs.realpathSync("/proc/" + parseInt(m[1], 10) + "/cwd") === __dirname;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function cleanupOldProcesses() {
   // Kill any previously-running server processes (api.js / hamba.js /
   // php-broker-server.js) and free the target port BEFORE booting fresh.
   // Cross-platform: Windows uses netstat + taskkill; Linux/macOS uses
@@ -393,7 +690,7 @@ function cleanupOldProcesses() {
   const targetPort =
     Number(process.env.PORT) ||
     Number(process.env.SERVER_PORT) ||
-    9999;
+    5000;
   console.log(
     "[CLEANUP] Scanning for old server processes on port " +
       targetPort +
@@ -401,16 +698,16 @@ function cleanupOldProcesses() {
   );
   const killed = new Set();
 
-  const sleepMs = (ms) => {
-    if (process.platform === "win32") {
-      const t = Date.now();
-      while (Date.now() - t < ms) {}
-    } else {
-      try {
-        execSync("sleep " + (ms / 1000).toFixed(1));
-      } catch (_) {}
-    }
-  };
+  // Snapshot OUR auxiliary listeners before killing anything: only ports whose
+  // current owner lives in this project are expected to disappear. A foreign
+  // service on the same port is left alone — and not waited on either.
+  const preListeningAux = [
+    parseInt(process.env.BRIDGE_PROXY_PORT || "9999", 10),
+    parseInt(process.env.BROKER_PORT || "9998", 10),
+    parseInt(process.env.BRIDGE_PORT || "11435", 10),
+  ].filter((p) => p && portOwnedByProject(p));
+
+  const sleepMs = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const findPidsOnPort = () => {
     const pids = new Set();
@@ -438,6 +735,28 @@ function cleanupOldProcesses() {
     return [...pids];
   };
 
+  const isOwnedServerPid = (pid) => {
+    if (process.platform === "linux") {
+      try {
+        const cwd = fs.realpathSync("/proc/" + pid + "/cwd");
+        const args = fs.readFileSync("/proc/" + pid + "/cmdline", "utf8").replace(/\0/g, " ");
+        return cwd === __dirname && /(?:start|api|hamba)\.js\b/.test(args);
+      } catch (_) {
+        return false;
+      }
+    }
+    if (process.platform !== "win32") {
+      try {
+        const cwd = execSync("lsof -a -p " + pid + " -d cwd -Fn 2>/dev/null", { encoding: "utf8" });
+        const args = execSync("ps -p " + pid + " -o args=", { encoding: "utf8" });
+        return cwd.split("\n").some((line) => line === "n" + __dirname) && /(?:start|api|hamba)\.js\b/.test(args);
+      } catch (_) {
+        return false;
+      }
+    }
+    return false;
+  };
+
   const killPid = (pid, force) => {
     if (!pid || pid === process.pid || killed.has(pid)) return;
     killed.add(pid);
@@ -455,34 +774,44 @@ function cleanupOldProcesses() {
     } catch (_) {}
   };
 
-  // 1) Kill whatever listens on the target port
-  for (const pid of findPidsOnPort()) killPid(pid, false);
+  // 1) Kill only a gateway process owned by this project. Never terminate
+  //    an unrelated service just because it occupies the configured port.
+  for (const pid of findPidsOnPort()) {
+    if (!isOwnedServerPid(pid)) {
+      console.error("[CLEANUP] Port " + targetPort + " is occupied by unmanaged pid=" + pid + "; refusing to kill it.");
+      return false;
+    }
+    killPid(pid, false);
+  }
 
-  // 2) Kill sibling server scripts in this project directory
+  // 2) Kill EVERY node process owned by THIS project — an older start.js
+  //    (even one stuck mid-bootstrap), gateway api.js, editor proxy bridge.js,
+  //    local-llm-bridge, php-broker, note-store — so this run starts truly
+  //    fresh instead of racing leftovers. Previously only api/hamba/broker
+  //    were matched and start.js was explicitly skipped, so a wedged prior
+  //    run survived and fought the new one.
+  //    SAFETY: (a) this directory only, (b) never self or an ancestor,
+  //    (c) never the LLM bridge when CLEAN_KEEP_BRIDGE=true (keeps model warm).
   if (process.platform !== "win32") {
+    const keepBridge =
+      String(process.env.CLEAN_KEEP_BRIDGE || "").toLowerCase() === "true";
+    const PROJECT_SCRIPTS =
+      /(?:^|[\s/])(start|api|hamba|bridge|local-llm-bridge|php-broker-server|note-store|start-local-mcp)\.js(?:\s|$)/;
+    const protect = selfAncestorPids();
     try {
-      const out = execSync(
-        'ps -eo pid,args | grep -E "node .*(api|hamba|php-broker-server|note-store)\\.js" | grep -v grep',
-        { encoding: "utf8" },
-      );
+      const out = execSync('ps -eo pid,args | grep -E "node " | grep -v grep', {
+        encoding: "utf8",
+      });
       for (const line of String(out).split("\n")) {
         const m = line.trim().match(/^(\d+)\s+(.+)$/);
         if (!m) continue;
         const pid = parseInt(m[1], 10);
         const args = m[2] || "";
-        if (pid === process.pid) continue;
-        if (args.indexOf("start.js") !== -1) continue; // never kill this script
-        // SAFETY: only kill server scripts from THIS project directory,
-        // so a test run on an alternate port never kills a server that
-        // is running from a different directory (e.g. the live 9999).
-        if (args.indexOf(__dirname) === -1) continue;
-        if (
-          args.indexOf("api.js") !== -1 ||
-          args.indexOf("hamba.js") !== -1 ||
-          args.indexOf("php-broker-server.js") !== -1
-        ) {
-          killPid(pid, false);
-        }
+        if (protect.has(pid)) continue; // never self or an ancestor
+        if (args.indexOf(__dirname) === -1) continue; // this dir only
+        if (!PROJECT_SCRIPTS.test(args)) continue;
+        if (keepBridge && /local-llm-bridge\.js/.test(args)) continue;
+        killPid(pid, false);
       }
     } catch (_) {}
   }
@@ -491,11 +820,44 @@ function cleanupOldProcesses() {
   const deadline = Date.now() + 5000;
   while (Date.now() < deadline) {
     if (findPidsOnPort().length === 0) break;
-    sleepMs(300);
+    await sleepMs(300);
   }
-  for (const pid of findPidsOnPort()) killPid(pid, true);
+  for (const pid of findPidsOnPort()) {
+    if (!isOwnedServerPid(pid)) {
+      console.error("[CLEANUP] Port " + targetPort + " remains occupied by unmanaged pid=" + pid + "; refusing to force-kill it.");
+      return false;
+    }
+    killPid(pid, true);
+  }
+
+  // 3b) Wait for THIS project's auxiliary listeners to disappear — but only
+  //     for ports that were already listening before we started killing (i.e.
+  //     ones a leftover of ours owns). A foreign service squatting 9999/9998
+  //     is not ours to fight: cleanup refuses to kill it, so don't wait on it.
+  if (killed.size && process.platform !== "win32" && preListeningAux.length) {
+    const aux = new Set(preListeningAux);
+    if (String(process.env.CLEAN_KEEP_BRIDGE || "").toLowerCase() !== "true") {
+      const llm = parseInt(process.env.BRIDGE_PORT || "11435", 10);
+      if (portListening(llm)) aux.add(llm);
+    }
+    const auxDeadline = Date.now() + 5000;
+    while (Date.now() < auxDeadline) {
+      const alive = [...aux].filter((p) => p && portListening(p));
+      if (!alive.length) break;
+      await sleepMs(300);
+    }
+    const still = [...aux].filter((p) => p && portListening(p));
+    if (still.length) {
+      console.warn(
+        "[CLEANUP] auxiliary ports still listening after kill: " + still.join(", "),
+      );
+    } else {
+      console.log("[CLEANUP] auxiliary ports free: " + [...aux].join(", "));
+    }
+  }
 
   console.log("[CLEANUP] Port " + targetPort + " is free. Starting fresh ...");
+  return true;
 }
 
 function storeModels() {
@@ -537,6 +899,73 @@ function storeModels() {
   }
 }
 
+// ─── Editor proxy (bridge.js : PROXY → gateway) ────────────────────────────
+// Owned by the starter: cleanup kills stale proxies, this re-spawns a fresh
+// one pointed at the CURRENT gateway port — a leftover proxy otherwise keeps
+// forwarding editors to a dead port after a restart.
+let editorBridgeChild = null;
+
+function startEditorBridge() {
+  const proxyPath = path.join(__dirname, "bridge.js");
+  if (!fs.existsSync(proxyPath)) {
+    console.warn("[EDITOR-BRIDGE] bridge.js not found — editor proxy skipped");
+    return;
+  }
+  // Legacy reverse-proxy from an old download (editors → gateway). Off by
+  // default: the current topology doesn't use 9999 (Cloudflare tunnel talks
+  // straight to the gateway), so we never squat or fight over that port.
+  if (String(process.env.EDITOR_BRIDGE_ENABLED || "").toLowerCase() !== "true") {
+    console.log(
+      "[EDITOR-BRIDGE] off (legacy bridge.js; set EDITOR_BRIDGE_ENABLED=true to run it)",
+    );
+    return;
+  }
+  const proxyPort = parseInt(process.env.BRIDGE_PROXY_PORT || "9999", 10);
+  const targetPort = parseInt(process.env.PORT || "5000", 10);
+  if (portListening(proxyPort)) {
+    console.warn(
+      "[EDITOR-BRIDGE] port " + proxyPort + " already taken by another service — skipped",
+    );
+    return;
+  }
+  editorBridgeChild = spawn(process.execPath, [proxyPath], {
+    cwd: __dirname,
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      // Explicit, unambiguous values: bridge.js reads BRIDGE_PORT as ITS
+      // listen port while start.js reads BRIDGE_PORT as the LLM bridge port.
+      BRIDGE_PROXY_PORT: String(proxyPort),
+      BRIDGE_PORT: String(proxyPort),
+      BRIDGE_TARGET_HOST: "127.0.0.1",
+      BRIDGE_TARGET_PORT: String(targetPort),
+    },
+  });
+  editorBridgeChild.on("error", (e) =>
+    console.error("[EDITOR-BRIDGE] spawn error:", e.message),
+  );
+  editorBridgeChild.on("exit", (code, sig) => {
+    console.log("[EDITOR-BRIDGE] exited code=" + code + " signal=" + sig);
+    editorBridgeChild = null;
+  });
+  const stop = () => {
+    if (editorBridgeChild && editorBridgeChild.exitCode === null) {
+      editorBridgeChild.kill("SIGTERM");
+    }
+  };
+  process.once("SIGINT", stop);
+  process.once("SIGTERM", stop);
+  process.once("exit", stop);
+  console.log(
+    "[EDITOR-BRIDGE] spawned bridge.js pid=" +
+      editorBridgeChild.pid +
+      " :" +
+      proxyPort +
+      " → 127.0.0.1:" +
+      targetPort,
+  );
+}
+
 function startBroker() {
   // Spawn the PHP broker server (php-broker-server.js) alongside the
   // sarver. It reads BROKER_PORT / FRONTEND_DIR / brokerUrl from the
@@ -562,8 +991,9 @@ async function startAll() {
   console.log("  Mission Barisal v" + VERSION + " — START ALL (Full Bootstrap)");
   console.log("=".repeat(60));
   
-  // 1. Load .env first
+  // 1. Load .env first, then lock boot-critical keys against shell exports
   loadEnv();
+  applyEnvImmunity();
   
   // 2. Detect environment
   const envInfo = detectEnvironment();
@@ -575,10 +1005,10 @@ async function startAll() {
   storeRuntimeConfig(envInfo);
   
   // ── Final required conditions (user-specified) ──
-  // PORT must be 9999 and APP_URL must point at the public app URL.
+  // PORT must be 5000 and APP_URL must point at the public app URL.
   // Enforced even if missing from .env so the server always boots on the
   // expected port / URL.
-  process.env.PORT = process.env.PORT || "9999";
+  process.env.PORT = process.env.PORT || "5000";
   // APP_URL: derive from DEPLOY_DOMAIN if not set, don't hardcode
   if (!process.env.APP_URL) {
     const domain = process.env.DEPLOY_DOMAIN || "localhost";
@@ -608,13 +1038,25 @@ async function startAll() {
   
   // 6. Cleanup old processes
   console.log("[START ALL] Cleaning up old server processes ...");
-  cleanupOldProcesses();
+  if (!(await cleanupOldProcesses())) return;
   
   // 7. Boot the server
   console.log("[START ALL] Booting Mission Barisal v" + VERSION + " ...");
+  // Start/wait for and preload the model bridge before any gateway workers.
+  try {
+    await ensureLocalLlmBridge();
+  } catch (e) {
+    console.error("[LOCAL-LLM] Startup blocked:", e.message);
+    if (localLlmBridgeChild && localLlmBridgeChild.exitCode === null) {
+      localLlmBridgeChild.kill("SIGTERM");
+    }
+    return;
+  }
+
   startBroker();
-  
-  // 8. Start local MCP servers (OCR, Screen Recorder, TTS)
+  startEditorBridge();
+
+  // Start local MCP servers (OCR, Screen Recorder, TTS) after model readiness.
   try {
     const { startLocalServers } = require("./start-local-mcp.js");
     const mcpResults = await startLocalServers();
@@ -637,6 +1079,43 @@ async function startAll() {
   // Hook into process to run health checks after a delay
   setTimeout(async () => {
     if (!serverStarted) {
+      try {
+        const headHealth = await httpRequest(host, port, "/health", "HEAD");
+        let adminHead = { status: 0 };
+        let anonymousHead = { status: 0 };
+        if (process.env.ADMIN_TOKEN) {
+          adminHead = await httpRequest(
+            host,
+            port,
+            "/api/admin/providers",
+            "HEAD",
+            null,
+            { "X-Admin-Token": process.env.ADMIN_TOKEN },
+          );
+          anonymousHead = await httpRequest(
+            host,
+            port,
+            "/api/admin/providers",
+            "HEAD",
+          );
+          if (adminHead.status !== 200 || anonymousHead.status !== 401) {
+            throw new Error("ADMIN_TOKEN HEAD verification failed");
+          }
+        } else {
+          adminHead = await httpRequest(
+            host,
+            port,
+            "/api/admin/providers",
+            "HEAD",
+          );
+        }
+        if (headHealth.status !== 200 || adminHead.status !== 200) {
+          throw new Error("gateway HEAD verification failed");
+        }
+        console.log("[VERIFY] HEAD /health: 200; ADMIN_TOKEN: verified");
+      } catch (e) {
+        console.error("[VERIFY] Startup HEAD/auth check failed:", e.message);
+      }
       console.log("[HEALTH] Running post-startup integration tests...");
       const results = await runHealthChecks(host, port);
       
@@ -705,7 +1184,8 @@ if (args.includes("--config-all") || args.includes("-c")) {
   startAll();
 } else if (args.includes("--health-only")) {
   loadEnv();
-  const port = Number(process.env.PORT) || 9999;
+  applyEnvImmunity();
+  const port = Number(process.env.PORT) || 5000;
   runHealthChecks("127.0.0.1", port).catch(err => {
     console.error("[HEALTH] Failed:", err.message);
     process.exit(1);

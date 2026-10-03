@@ -1,0 +1,100 @@
+{
+  "name": "mission-barisal-vscode",
+  "displayName": "Mission Barisal",
+  "description": "Mission Barisal agents and MCP tools in VS Code Copilot Chat.",
+  "version": "0.1.4",
+  "publisher": "zombiecoder",
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.138.0"
+  },
+  "categories": ["AI", "Chat"],
+  "extensionKind": ["workspace"],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished",
+    "onChatParticipant:mission-barisal.mission",
+    "onLanguageModelChatProvider:mission-barisal"
+  ],
+  "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "mission-barisal.mcp",
+        "label": "Mission Barisal Gateway"
+      }
+    ],
+    "languageModelChatProviders": [
+      {
+        "vendor": "mission-barisal",
+        "displayName": "Mission Barisal",
+        "managementCommand": "mission-barisal.configure"
+      }
+    ],
+    "chatParticipants": [
+      {
+        "id": "mission-barisal.mission",
+        "name": "mission",
+        "fullName": "Mission Barisal",
+        "description": "Ask a Mission Barisal agent",
+        "isSticky": true,
+        "commands": [
+          { "name": "agents", "description": "Choose an agent for this request" },
+          { "name": "status", "description": "Check the gateway connection" }
+        ]
+      }
+    ],
+    "commands": [
+      { "command": "mission-barisal.configure", "title": "Mission Barisal: Configure" },
+      { "command": "mission-barisal.selectAgent", "title": "Mission Barisal: Select Agent" },
+      { "command": "mission-barisal.testConnection", "title": "Mission Barisal: Test Connection" },
+      { "command": "mission-barisal.setApiKey", "title": "Mission Barisal: Set API Credential" }
+    ],
+    "configuration": {
+      "title": "Mission Barisal",
+      "properties": {
+        "missionBarisal.gatewayUrl": {
+          "type": "string",
+          "default": "https://zombiecoder.my.id",
+          "description": "Gateway base URL used when the local MCP socket is unavailable."
+        },
+        "missionBarisal.localGatewayUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:5000",
+          "description": "Loopback HTTP gateway tried before the public HTTPS tunnel when UDS is unavailable."
+        },
+        "missionBarisal.mcpSocketPath": {
+          "type": "string",
+          "default": "/tmp/zombiecoder/mcp.sock",
+          "description": "Local Mission Barisal MCP Unix socket path."
+        },
+        "missionBarisal.preferUds": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prefer the local MCP Unix socket before the HTTPS endpoint."
+        },
+        "missionBarisal.agentId": {
+          "type": "string",
+          "default": "bug-hunter",
+          "description": "Default agent used by @mission and new model requests."
+        },
+        "missionBarisal.requestTimeoutMs": {
+          "type": "number",
+          "default": 500000,
+          "minimum": 1000,
+          "description": "Maximum time to wait for an agent response."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "check": "tsc --noEmit -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/vscode": "^1.138.0",
+    "@vscode/vsce": "^4.0.0",
+    "typescript": "^5.8.3"
+  }
+}

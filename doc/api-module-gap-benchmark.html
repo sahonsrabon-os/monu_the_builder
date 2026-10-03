@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="doc/Extensions modular runtime এবং Mission Barisal api.js-এর নিরপেক্ষ প্রকৌশল পর্যালোচনা ও quality benchmark।">
+  <title>Runtime Review | Extensions ও api.js</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17282b;
+      --muted: #52666a;
+      --paper: #f5f8f6;
+      --surface: #ffffff;
+      --line: #d7e1dd;
+      --teal: #08766d;
+      --teal-soft: #e5f3ef;
+      --coral: #b7472b;
+      --coral-soft: #fff0e9;
+      --blue: #395b83;
+      --blue-soft: #eaf1f8;
+      --gold: #8a6500;
+      --gold-soft: #fff5d7;
+      --shadow: 0 12px 32px rgba(23, 40, 43, .07);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        linear-gradient(90deg, rgba(8,118,109,.035) 1px, transparent 1px),
+        linear-gradient(rgba(8,118,109,.035) 1px, transparent 1px),
+        var(--paper);
+      background-size: 28px 28px;
+      color: var(--ink);
+      font-family: "Noto Sans Bengali", "Hind Siliguri", "Segoe UI", sans-serif;
+      line-height: 1.65;
+    }
+    a { color: var(--teal); text-underline-offset: 3px; }
+    a:hover { color: #034e49; }
+    code, .mono { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+    .topline { height: 7px; background: var(--teal); }
+    .shell { width: min(1160px, calc(100% - 40px)); margin: 0 auto; }
+    header { padding: 38px 0 28px; border-bottom: 1px solid var(--line); }
+    .eyebrow { color: var(--teal); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    h1, h2, h3 { line-height: 1.28; margin: 0; }
+    h1 { max-width: 850px; margin-top: 8px; font-family: Georgia, "Noto Serif Bengali", serif; font-size: 36px; font-weight: 700; }
+    .subtitle { max-width: 850px; margin: 12px 0 0; color: var(--muted); font-size: 16px; }
+    .meta-row { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; color: var(--muted); font-size: 13px; }
+    .meta-row strong { color: var(--ink); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    nav a { color: var(--ink); font-weight: 700; }
+    main { padding: 26px 0 64px; }
+    section { margin: 0 0 34px; scroll-margin-top: 18px; }
+    .section-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 13px; }
+    h2 { font-size: 23px; }
+    h3 { font-size: 17px; }
+    .section-note { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+    .verdict {
+      display: grid; grid-template-columns: 1.5fr 1fr; gap: 22px;
+      padding: 22px 24px; background: var(--ink); color: #f5fbf8;
+      border-left: 6px solid #59c3aa; box-shadow: var(--shadow);
+    }
+    .verdict h2 { color: white; }
+    .verdict p { margin: 9px 0 0; color: #d3e3df; }
+    .verdict strong { color: #9ae1d1; }
+    .verdict-side { align-self: center; padding-left: 20px; border-left: 1px solid #486064; }
+    .verdict-side p { margin: 0; font-size: 14px; }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); background: var(--surface); }
+    .metric { min-height: 94px; padding: 16px 18px; border-right: 1px solid var(--line); }
+    .metric:last-child { border-right: 0; }
+    .metric b { display: block; color: var(--teal); font-family: Georgia, serif; font-size: 28px; line-height: 1.2; }
+    .metric span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; }
+    .notice { padding: 13px 16px; border-left: 4px solid var(--gold); background: var(--gold-soft); color: #44370c; font-size: 14px; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); background: var(--surface); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 12px 13px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: #edf3f0; color: #33484b; font-size: 12px; }
+    tr:last-child td { border-bottom: 0; }
+    td:first-child { min-width: 145px; font-weight: 800; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+    .tag.good { background: var(--teal-soft); color: #07584f; }
+    .tag.partial { background: var(--gold-soft); color: #695000; }
+    .tag.missing { background: var(--coral-soft); color: #8e341d; }
+    .tag.unknown { background: var(--blue-soft); color: #2e4a6b; }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .band { padding: 18px 20px; background: var(--surface); border-top: 3px solid var(--teal); box-shadow: var(--shadow); }
+    .band.gap { border-top-color: var(--coral); }
+    .band ul { margin: 10px 0 0; padding-left: 20px; }
+    .band li { margin: 6px 0; }
+    .finding { display: grid; grid-template-columns: 110px 1fr; gap: 14px; padding: 15px 0; border-top: 1px solid var(--line); }
+    .finding:first-of-type { border-top: 0; }
+    .finding p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+    .priority { color: var(--coral); font-size: 12px; font-weight: 900; }
+    .bench-intro { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; background: var(--blue-soft); color: #263c55; font-size: 13px; }
+    .weight { white-space: nowrap; color: var(--blue); font-weight: 900; }
+    .recommendations { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--line); background: var(--surface); }
+    .recommendation { padding: 18px; border-right: 1px solid var(--line); }
+    .recommendation:last-child { border-right: 0; }
+    .recommendation .step { color: var(--coral); font-size: 12px; font-weight: 900; }
+    .recommendation h3 { margin-top: 5px; }
+    .recommendation p { margin: 7px 0 0; color: var(--muted); font-size: 13px; }
+    .sources { display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0 0; }
+    .sources a { padding: 4px 8px; border: 1px solid var(--line); background: var(--surface); font-family: Consolas, monospace; font-size: 11px; }
+    footer { padding: 20px 0 30px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    @media (max-width: 760px) {
+      .shell { width: min(100% - 24px, 1160px); }
+      header { padding-top: 26px; }
+      h1 { font-size: 29px; }
+      .verdict, .split { grid-template-columns: 1fr; }
+      .verdict-side { padding: 12px 0 0; border-left: 0; border-top: 1px solid #486064; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .metric:nth-child(2) { border-right: 0; }
+      .metric:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+      .recommendations { grid-template-columns: 1fr; }
+      .recommendation { border-right: 0; border-bottom: 1px solid var(--line); }
+      .recommendation:last-child { border-bottom: 0; }
+      .finding { grid-template-columns: 1fr; gap: 2px; }
+    }
+    @media print {
+      body { background: white; }
+      .shell { width: 100%; }
+      nav { display: none; }
+      header { padding-top: 12px; }
+      main { padding-top: 16px; }
+      .verdict, .band { box-shadow: none; }
+      a { color: inherit; }
+      section, tr, .finding { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topline"></div>
+  <header class="shell">
+    <div class="eyebrow">Engineering review · evidence first</div>
+    <h1>Extensions Runtime বনাম Mission Barisal API</h1>
+    <p class="subtitle">ডকুমেন্টেড মডিউল, বাস্তব source, test evidence এবং root server-এর feature parity মিলিয়ে নিরপেক্ষ পর্যালোচনা। সিদ্ধান্তটি “কোনটি ভালো” নয়; কোনটি কী করতে পারে, কী প্রমাণিত, আর কী এখনো missing—সেটি আলাদা করা।</p>
+    <div class="meta-row">
+      <span><strong>পর্যালোচনার তারিখ:</strong> ২ অক্টোবর ২০২৬</span>
+      <span><strong>Extensions:</strong> v0.20.0</span>
+      <span><strong>Root runtime:</strong> `start.js` → `api.js`</span>
+      <span><strong>Review mode:</strong> source + tests + docs</span>
+    </div>
+  </header>
+  <nav class="shell" aria-label="Report sections">
+    <a href="#verdict">সারাংশ</a>
+    <a href="#inventory">মডিউল inventory</a>
+    <a href="#findings">নিরপেক্ষ মন্তব্য</a>
+    <a href="#comparison">দুই runtime-এর তুলনা</a>
+    <a href="#benchmark">Quality benchmark</a>
+    <a href="#actions">পরবর্তী কাজ</a>
+  </nav>
+
+  <main class="shell">
+    <section id="verdict">
+      <div class="verdict">
+        <div>
+          <h2>মূল সিদ্ধান্ত</h2>
+          <p><strong>`doc/Extensions` একটি আলাদা, modular runtime</strong>; এটি বর্তমান `api.js`-এর refactor বা তার drop-in replacement নয়। `start.js` এখনো root `api.js` চালায়, এবং দুই runtime-এর route, authentication, model selection, tools ও session contract আলাদা।</p>
+          <p>Extensions-এর architecture ও security boundaries অধিক explicit; legacy API-তে feature breadth ও বর্তমান client compatibility বেশি। কিন্তু Extensions-এ model allowlist validation অনুপস্থিত, আর legacy API-র tool request path-এ attached logs অনুযায়ী undefined constants ও response double-write দেখা গেছে। কোনোটিকেই parity-complete বলা যায় না।</p>
+        </div>
+        <div class="verdict-side">
+          <p><strong>সুপারিশ:</strong> এখনই runtime swap নয়। প্রথমে P0 security/contract gaps মেটান, তারপর compatibility adapter ও route-level differential tests দিয়ে ধাপে migration করুন।</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-label="Reviewed footprint">
+      <div class="metrics">
+        <div class="metric"><b>88</b><span>Extensions source files under `src/`</span></div>
+        <div class="metric"><b>18</b><span>Node test files under `tests/`</span></div>
+        <div class="metric"><b>56</b><span>Markdown documents under `docs/`</span></div>
+        <div class="metric"><b>59 / 59</b><span>`cd doc/Extensions && npm test` passed</span></div>
+      </div>
+      <p class="section-note">এই 59টি test local suite-এর ফল; live provider, real remote MCP, production TLS, load/latency বা legacy parity-এর বিকল্প নয়। Root suite-এ `local-tool-cap`-এর 61টি assertion pass করেছে; `docs-claims` gateway বন্ধ থাকায় fetch করতে পারেনি, তাই সেটি environment-blocked এবং এই report-এ code regression হিসেবে গণ্য নয়।</p>
+    </section>
+
+    <section id="inventory">
+      <div class="section-head">
+        <div><h2>Extensions-এ কী আছে</h2><p class="section-note">88টি source file বহু bounded boundary-তে ভাগ; নিচে প্রধান ownership area-গুলো।</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Area / representative modules</th><th>কী দায়িত্ব</th><th>প্রকৌশলগত মন্তব্য</th><th>অবস্থা</th></tr></thead>
+          <tbody>
+            <tr><td>Server / transport<br><code>src/server.js</code><br><code>src/transport/*</code></td><td>HTTP handler; HTTP, HTTPS, UDS; SSE chat/stream.</td><td>একটি request handler transport-এ reuse করা যুক্তিসঙ্গত। তবে route registration এখনো `server.js`-এ কেন্দ্রীভূত, তাই module boundaries পুরো route-layer পর্যন্ত যায়নি। WebSocket নেই।</td><td><span class="tag partial">আংশিক</span></td></tr>
+            <tr><td>Configuration / core<br><code>src/config/*</code><br><code>src/core/*</code></td><td>`.env` loading, runtime config, IDs, structured logs ও redaction.</td><td>Central config ও structured logging testable এবং operationally useful। কিন্তু fallback config-এ নির্দিষ্ট public ngrok URL আছে; environment ভুল/খালি হলে traffic অপ্রত্যাশিত endpoint-এ যেতে পারে।</td><td><span class="tag partial">সংশোধন দরকার</span></td></tr>
+            <tr><td>Auth / admin<br><code>src/auth/*</code><br><code>src/admin/*</code></td><td>Application API key hash, expiry/status validation, admin routes, key rotation.</td><td>Hash-at-rest, expiry ও application identity স্পষ্ট। এটি root API-র user/API-key schema-এর সমতুল্য নয়; migration/identity mapping লাগবে।</td><td><span class="tag good">যুক্তিসঙ্গত</span></td></tr>
+            <tr><td>Storage / sessions<br><code>src/storage/*</code><br><code>src/session/*</code></td><td>JSON/SQLite stores, migrations, app-owned session lifecycle/history.</td><td>Restart persistence ও session ownership-এর test আছে। Crash চলাকালীন remote side effect-এর চূড়ান্ত outcome স্বয়ংক্রিয়ভাবে জানা যায় না—docs-ও এটিকে সীমা হিসেবে উল্লেখ করে।</td><td><span class="tag partial">আংশিক verified</span></td></tr>
+            <tr><td>Provider / model<br><code>src/providers/*</code><br><code>src/network/*</code></td><td>Provider registry, model discovery, OpenAI-family/Gemini/Ollama adapters, canonical response, outbound URL policy.</td><td>Adapter/normalizer separation ভালো abstraction। কিন্তু `resolveModel()` requested model-কে catalog membership যাচাই না করে ফেরত দেয়; docs-এর “model allowlist check” contract পূরণ হয় না। Live provider response-ও verified নয়।</td><td><span class="tag missing">P0 gap</span></td></tr>
+            <tr><td>Agent / context<br><code>src/agents/*</code><br><code>src/context/*</code><br><code>src/entities/*</code></td><td>Agent/persona registry, project context, SSOT/syllabus/memory reads, bounded entity normalization.</td><td>Responsibilities আলাদা, context read path পরীক্ষা করা হয়েছে। Legacy auto-SSOT generation, syllabus writes এবং full router/debate behavior parity নেই।</td><td><span class="tag partial">আংশিক parity</span></td></tr>
+            <tr><td>Execution / evidence<br><code>src/execution/*</code><br><code>src/evidence/*</code></td><td>Goal/plan/consent boundary; provider/tool/MCP adapters; bounded multi-round loop; evidence status.</td><td>Explicit consent, repeat-call guard ও observed বনাম verified পার্থক্য শক্তিশালী। তবে `/v1/chat/completions` compatibility path সরাসরি provider call করে; consent-controlled `/v1/execution/run`-এর সমান behavior নয়।</td><td><span class="tag partial">path-ভেদে আলাদা</span></td></tr>
+            <tr><td>Tools / MCP<br><code>src/tools/*</code><br><code>src/mcp/*</code></td><td>Tool registry, input schema, explicit binding, default-deny permissions, connection lease, audit/reconciliation.</td><td>Permission check tool execution-এর আগে, এবং network policy-র tests আছে। Real remote endpoint/session propagation ও crash outcome end-to-end verified নয়।</td><td><span class="tag good">design শক্ত</span></td></tr>
+            <tr><td>Compatibility / docs<br><code>src/compatibility/legacy/*</code><br><code>docs/*</code></td><td>Legacy feature inventory, phased migration record, 56 design/status docs.</td><td>Inventory নিজেই “parity verified নয়” বলে—এটি সৎ ও উপকারী। কিন্তু API contract path ও phase status এক জায়গায় current consolidated matrix-এ আনা দরকার।</td><td><span class="tag partial">সতর্কতা আছে</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="findings">
+      <div class="section-head"><div><h2>নিরপেক্ষ প্রকৌশল মন্তব্য</h2><p class="section-note">প্রথমে যাচাইযোগ্য ঝুঁকি, তারপর architecture ও verification-এর মূল্যায়ন।</p></div></div>
+      <div class="band">
+        <div class="finding"><div class="priority">P0 · Security</div><div><h3>Requested model allowlist enforce হয় না</h3><p><code>src/providers/registry.js</code>-এর <code>resolveModel(id, requestedModel)</code> non-empty requested name-কে সরাসরি ফেরত দেয়; provider-এর registered <code>models</code> তালিকার সঙ্গে membership check নেই। অথচ <code>docs/07-api-contracts.md</code> allowlist check দাবি করে। ফল: authenticated client configured provider-এ unregistered model নাম পাঠাতে পারে; provider billing/access boundary ও documented contract-এর সঙ্গে অমিল। Test suite-এ unknown model rejection test নেই।</p></div></div>
+        <div class="finding"><div class="priority">P0 · Routing</div><div><h3>Default provider fallback-এ hardcoded public URL</h3><p><code>src/providers/registry.js</code>-এ <code>OLLAMA_BASE_URL</code> না থাকলে একটি নির্দিষ্ট ngrok URL fallback হয়। “Local-first” নাম/ডকুমেন্টেশনের সঙ্গে public tunnel fallback মেলে না। `.env`/deployment config অনুপস্থিত থাকলে request ভুল বা অননুমোদিত endpoint-এ যেতে পারে। Default-এ endpoint না থাকলে fail-closed হওয়া বা explicit configuration বাধ্যতামূলক করা উচিত।</p></div></div>
+        <div class="finding"><div class="priority">P1 · Contract</div><div><h3>Chat compatibility এবং guarded execution এক নয়</h3><p>Modular <code>/v1/chat/completions</code> provider-এ সরাসরি chat করে; goal/consent/tool loop আলাদা <code>/v1/execution/run</code> path-এ। এটি ইচ্ছাকৃত separation হতে পারে, কিন্তু generic client যদি chat route দিয়ে tool/agent execution আশা করে, ফল হবে feature mismatch। দুই contract স্পষ্টভাবে প্রকাশ ও test করা দরকার।</p></div></div>
+        <div class="finding"><div class="priority">P1 · Docs</div><div><h3>API contract ও implemented route prefix মেলে না</h3><p><code>docs/07-api-contracts.md</code> session routes হিসেবে <code>/api/sessions</code> লেখে; বর্তমান modular server routes <code>/v1/sessions</code>। Phase 12 provider doc streaming না থাকার কথা বলে, কিন্তু Phase 20 SSE test verified বলে। Phase chronology রাখা ঠিক, তবে current contract index-এ কোন phase superseded তা পরিষ্কার হওয়া দরকার।</p></div></div>
+        <div class="finding"><div class="priority">P2 · Maintainability</div><div><h3>Feature count বেশি, integration boundary এখনো আলাদা</h3><p>88 source files-এ concern separation আছে; তবু HTTP route dispatch মূলত একটি <code>src/server.js</code>-এ, phase docs অনেকগুলো, আর `start.js` modular entrypoint-কে import/mount করে না। Extraction-এর সুবিধা তখনই runtime-এ ലഭবে যখন shared DB/config/identity, route compatibility සහ startup lifecycle নির্ধারিত হবে।</p></div></div>
+      </div>
+      <p class="notice" style="margin-top:14px"><strong>Evidence boundary:</strong> Extensions suite 59/59 পাস। এটি source-level contract tests-এর evidence; real provider/MCP/TLS/load/parity প্রমাণ নয়। Documentation-এও live Ollama/provider DNS, remote MCP, HTTPS handshake ও WebSocket সীমা উল্লেখ আছে।</p>
+    </section>
+
+    <section id="comparison">
+      <div class="section-head"><div><h2>`api.js`-এর সঙ্গে তুলনা</h2><p class="section-note">এক runtime-এর strengths অন্যটির missing work ঢেকে দেয় না। Root startup বর্তমানে `start.js` থেকে `api.js` require করে; Extensions-কে mount করে না।</p></div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>বিষয়</th><th>Extensions-এ কী আছে</th><th>Root `api.js`-এ কী আছে</th><th>কী missing / কী যুক্ত করা উচিত</th></tr></thead>
+          <tbody>
+            <tr><td>Provider ও models</td><td>Registry, `/models` discovery, adapter ও canonical normalizer.</td><td>Env/DB/custom provider config, competition/fallback, model masking, normalize/model-catalog routes.</td><td>দুই routing source এক করা; explicit model allowlist; no implicit public URL; upstream capability test; duplicate provider admin route সরল করা।</td></tr>
+            <tr><td>Authentication</td><td>Application-scoped API key hash, status, expiry ও session ownership.</td><td>User API keys, token usage/expiry, admin token, sessions ও verify-token mechanisms.</td><td>একটি identity mapping ও migration policy; app-level limits/ownership না হারিয়ে existing user auth সংযুক্ত করা। “Auth আছে/নেই” নয়, data model আলাদা।</td></tr>
+            <tr><td>Tools / MCP</td><td>Explicit tool binding, app-scoped default-deny permission, argument validation, outbound policy, audit.</td><td>বৃহৎ built-in MCP catalog, tool toggle/admin stats, external MCP, JSON-RPC/SSE/UDS routes.</td><td>Existing MCP clients/tools-এর compatibility adapter; permission check প্রতিটি legacy tool call-এ নিশ্চিত করা; remote MCP E2E ও recovery test।</td></tr>
+            <tr><td>Execution safety</td><td>Explicit consent, bounded loop, repeated-call stop, observed/verified evidence separation.</td><td>Anti-Dote 6-step monitoring chain, mission/single-agent loops; attached runtime logs show chat 500 from undefined <code>NO_TOOL_MODELS</code>/<code>MAX_TOOLS_LIMIT</code> and later <code>ERR_HTTP_HEADERS_SENT</code>.</td><td>Legacy handler-এ error-after-stream response guard; modular `chat` বনাম `execution` contract প্রকাশ; tool/consent semantics route tests-এ স্থির করা।</td></tr>
+            <tr><td>Agent ও context</td><td>Agent/persona registries; bounded context; project SSOT/syllabus/memory read boundaries.</td><td>9 personas, intent classifier/agent mission, SSOT scanner/generator, syllabus, memory/context injections.</td><td>Auto-SSOT, syllabus write, memory archive ও debate parity কেবল product requirement থাকলে; প্রতিটি behavior golden request/response fixture-এ capture করা।</td></tr>
+            <tr><td>HTTP API surface</td><td>Application/admin/MCP/execution/session APIs; core chat.</td><td>Legacy identity/domain/config/admin dashboard, `/api/mission`, `/api/input`, `/api/normalize`, `/api/workspace`, broad admin/model routes.</td><td>Used endpoints inventory করে versioned compatibility facade; silently delete নয়। Route deprecation/retirement usage telemetry দিয়ে করা।</td></tr>
+            <tr><td>Transport</td><td>HTTP, configured HTTPS, SSE, UDS; WebSocket নেই.</td><td>HTTP, SSE modes, WebSocket, MCP SSE/UDS paths এবং integration-specific behavior.</td><td>WebSocket/UDS behavior parity test বা আনুষ্ঠানিক retirement; TLS live handshake + shutdown test।</td></tr>
+            <tr><td>Operations / observability</td><td>Structured JSONL redaction, request IDs, modular MCP audit.</td><td>Request/session/provider/model/tool stats, health, logs, startup and health checks.</td><td>Metrics/log schema mapping, retention/privacy rules, health semantics এবং startup/rollback/DB migration acceptance gate।</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="split" style="margin-top:16px">
+        <div class="band"><h3>Extensions থেকে root-এ নেওয়ার যৌক্তিক candidate</h3><ul><li>Outbound provider URL policy (HTTPS default, private network explicit allow).</li><li>Application-scoped permission/ownership pattern, যদি deployment-এ পৃথক application দরকার হয়.</li><li>Explicit consent ও evidence vocabulary; legacy Anti-Dote-কে replace না করে semantics reconcile.</li><li>Bounded, repeated-call guarded tool loop এবং structured, redacted logs.</li><li>Provider adapter/normalizer boundary—বর্তমান provider breadth বজায় রেখে.</li></ul></div>
+        <div class="band gap"><h3>Legacy API থেকে Extensions-এ parity candidate</h3><ul><li>Domain/identity/config routes, existing admin dashboard এবং model-list/normalize endpoints.</li><li>Mission, unified input, agent router, SSOT generation, syllabus/memory write/archive.</li><li>Current MCP client protocols, WebSocket behavior, usage/stats and startup hooks.</li><li>All route response/error shapes, DB schema migrations, user/session compatibility.</li><li>Only routes confirmed in client telemetry/product requirements; unused legacy behavior can be explicitly retired.</li></ul></div>
+      </div>
+    </section>
+
+    <section id="benchmark">
+      <div class="section-head"><div><h2>Quality benchmark</h2><p class="section-note">প্রস্তাবিত acceptance benchmark; weights অগ্রাধিকার বোঝায়, বর্তমান numeric quality score নয়।</p></div></div>
+      <div class="bench-intro"><span>সঠিক পদ্ধতি: contract → automated test → real integration evidence → rollout gate। “59/59” functional suite ফল; পূর্ণ runtime score নয়।</span><span class="weight">Weight total: 100%</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Benchmark / weight</th><th>কোন বিষয় মাপে</th><th>কেন জরুরি</th><th>Pass criteria</th><th>বর্তমান evidence</th></tr></thead>
+          <tbody>
+            <tr><td>Security & policy<br><span class="weight">25%</span></td><td>Auth/expiry, app-session isolation, model allowlist, consent, MCP deny-by-default, SSRF.</td><td>Unauthorized model/provider/tool access, data leakage ও unapproved side-effect আটকায়।</td><td>Unauthorized/expired/unknown model সব deny; cross-app session 0; MCP permission bypass 0; private/HTTP target policy test pass.</td><td><span class="tag partial">আংশিক</span> Auth, consent, MCP, network tests আছে; requested model allowlist gap verified.</td></tr>
+            <tr><td>API compatibility<br><span class="weight">20%</span></td><td>HTTP method/path, request/response, stream/error semantics against current API.</td><td>Extensions চালু করলে clients না ভাঙা নিশ্চিত করে।</td><td>Telemetry-তে critical বলে চিহ্নিত route-গুলোর 100% contract test pass; exceptions versioned/deprecated.</td><td><span class="tag missing">অপ্রমাণিত</span> Inventory আছে, parity explicitly false; route maps আলাদা.</td></tr>
+            <tr><td>Execution correctness<br><span class="weight">15%</span></td><td>Tool loop, argument binding, limits, tool errors, completion vs verification.</td><td>Model output যেন অনুমতি ছাড়া side effect না করে এবং অসম্পূর্ণ কাজ success না বলে।</td><td>Unknown binding deny; consent absent deny; repeated/round limit stops; tool error remains visible; verified claim needs verification evidence.</td><td><span class="tag good">ভালো local proof</span> Loop/consent/evidence contract tests pass; real external effects unverified.</td></tr>
+            <tr><td>Provider integration<br><span class="weight">15%</span></td><td>Model discovery, provider adapters, live JSON/SSE, timeout/error behavior.</td><td>Local fixture test provider interoperability বা upstream availability প্রমাণ করে না।</td><td>প্রতি supported adapter-এ reachable upstream smoke test; discovered model only; streaming terminates `[DONE]`; no secret/payload leak.</td><td><span class="tag partial">আংশিক</span> Adapter fixture tests pass; live endpoint DNS/provider response not verified.</td></tr>
+            <tr><td>Persistence & recovery<br><span class="weight">10%</span></td><td>SQLite migrations, restart durability, app ownership, in-flight operation recovery.</td><td>Restart/crash-এ session, permissions ও audit integrity রক্ষা করে।</td><td>Clean migration + restart pass; process kill during MCP call marked unknown/incomplete, never fabricated success; ownership always checked.</td><td><span class="tag partial">আংশিক</span> Restart/migration/lease tests pass; real external side-effect crash semantics incomplete.</td></tr>
+            <tr><td>Transport & operations<br><span class="weight">10%</span></td><td>HTTP/HTTPS/SSE/UDS, graceful shutdown, health, logs, rate/concurrency.</td><td>Production rollout-এ observability ও recoverability নিশ্চিত করে।</td><td>Each enabled transport smoke + TLS handshake; shutdown releases listeners; redaction test; agreed load SLO met.</td><td><span class="tag partial">আংশিক</span> HTTP/UDS/SSE local tests pass; HTTPS live handshake unverified; WebSocket absent.</td></tr>
+            <tr><td>Docs & maintainability<br><span class="weight">5%</span></td><td>Docs-to-route accuracy, one current status, ownership/duplication.</td><td>Stale contract migration ও incident response-এ ভুল সিদ্ধান্ত ঘটায়।</td><td>All public routes mapped; historical phase labels explicit; no undocumented endpoint/default; module ownership clear.</td><td><span class="tag partial">মাঝারি</span> Inventory সতর্ক; session prefix mismatch ও phase status consolidation দরকার.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="section-note" style="margin-top:10px">Performance/scale benchmark চালানো হয়নি। Production SLO না জেনে latency বা throughput target বানানো ঠিক হবে না; expected concurrency, provider timeout, hardware ও deployment mode স্থির হলে p95 latency, error rate, memory/CPU এবং saturation threshold যোগ করতে হবে।</p>
+    </section>
+
+    <section id="actions">
+      <div class="section-head"><div><h2>কী যুক্ত করা উচিত, কোন ক্রমে</h2><p class="section-note">Feature-count নয়, risk ও migration dependency অনুযায়ী।</p></div></div>
+      <div class="recommendations">
+        <div class="recommendation"><div class="step">01 · BEFORE INTEGRATION</div><h3>Close P0 contract/security gaps</h3><p>Model must be in the selected provider's discovered/approved catalog; remove public tunnel default; test app ownership and consent bypass rules; document chat vs execution route.</p></div>
+        <div class="recommendation"><div class="step">02 · COMPATIBILITY GATE</div><h3>Build route parity evidence</h3><p>Capture real clients' used routes, payloads and status/errors. Add differential tests against both runtimes for health, models, admin, chat/stream, MCP, mission and workspace flows.</p></div>
+        <div class="recommendation"><div class="step">03 · CONTROLLED CUTOVER</div><h3>Migrate data and traffic gradually</h3><p>Define user↔application/session mapping, backup and rollback; run shadow/read-only comparison first; switch a small client cohort; retain legacy fallback until error and usage thresholds hold.</p></div>
+      </div>
+      <div class="split" style="margin-top:16px">
+        <div class="band"><h3>দুটো একত্রে নিলে সম্ভাব্য ফল</h3><ul><li><strong>সঠিকভাবে staged migration:</strong> legacy client breadth + modular policy boundaries; maintainability ও safety বাড়তে পারে.</li><li><strong>দ্রুত full swap:</strong> dashboard/domain/workspace/MCP/WebSocket/client flows ভাঙতে পারে; session/auth/model data migration risk.</li><li><strong>দুই runtime parallel চালালে:</strong> provider config, DB state, auth ও routing-এর দুটি source of truth তৈরি হবে; পরিষ্কার ownership ছাড়া drift বাড়বে.</li></ul></div>
+        <div class="band gap"><h3>যে দাবিগুলো এখন করা যাবে না</h3><ul><li>“Extensions legacy API-র replacement” — parity inventory তা সমর্থন করে না.</li><li>“59 tests মানে production-ready” — live provider/MCP/TLS/load evidence নেই.</li><li>“api.js কেবল পুরোনো বলে বাদ” — root-এ বহু বাস্তব client-facing route ও behavior আছে.</li><li>“api.js production-safe” — attached logs-এ chat 500 ও double-response crash দেখা গেছে.</li></ul></div>
+      </div>
+    </section>
+
+    <section aria-label="Sources">
+      <h2>প্রধান source</h2>
+      <div class="sources">
+        <a href="../api.js">../api.js</a>
+        <a href="../start.js">../start.js</a>
+        <a href="Extensions/src/server.js">Extensions/src/server.js</a>
+        <a href="Extensions/src/providers/registry.js">Extensions/src/providers/registry.js</a>
+        <a href="Extensions/src/execution/tool-loop.js">Extensions/src/execution/tool-loop.js</a>
+        <a href="Extensions/src/compatibility/legacy/feature-registry.js">legacy feature inventory</a>
+        <a href="Extensions/docs/07-api-contracts.md">API contracts</a>
+        <a href="Extensions/docs/28-core-feature-map.md">core feature map</a>
+        <a href="Extensions/docs/50-phase-20-test-matrix.md">phase 20 test matrix</a>
+        <a href="Extensions/package.json">package/test script</a>
+      </div>
+    </section>
+  </main>
+  <footer class="shell">Prepared from local source, documentation and the test command recorded above. Review is not a security certification; live-system claims require reproducible deployment evidence.</footer>
+</body>
+</html>

@@ -2070,14 +2070,29 @@
     //  AGENT MANAGER — Full CRUD from SQLite DB
     // ═══════════════════════════════════════════════
     let agentManagerData = []; // Cache for filtering
+    let agentManagerReadOnly = false;
 
     async function loadAgentManager() {
-      const data = await apiFetch('/api/admin/agents');
+      let data = await apiFetch('/api/admin/agents');
+      agentManagerReadOnly = false;
       if (data.error || !data.agents) {
-        document.getElementById('agentManagerList').innerHTML =
-          '<p style="color:var(--red)">Failed to load agents: ' + (data.error || 'Unknown') +
-          '</p><p style="font-size:12px;color:var(--text2)">Make sure ADMIN_TOKEN is set correctly in the header.</p>';
-        return;
+        const publicData = await apiFetch('/api/agents');
+        if (publicData.error || !Array.isArray(publicData.agents)) {
+          document.getElementById('agentManagerList').innerHTML =
+            '<p style="color:var(--red)">Failed to load agents: ' + (data.error || 'Unknown') + '</p>';
+          return;
+        }
+        agentManagerReadOnly = true;
+        data = {
+          count: publicData.agents.length,
+          agents: publicData.agents.map(a => ({
+            ...a,
+            expertise: '',
+            enabled: 1,
+            priority: 99,
+            updated_at: 0
+          }))
+        };
       }
 
       agentManagerData = data.agents;
@@ -2100,8 +2115,19 @@
         newModelSel.innerHTML = '<option value="">-- Select Model --</option>';
         agentModelsCache.forEach(m => {
           const name = m.model || m.name || m.id;
-          newModelSel.innerHTML += `<option value="${name}">${name} (${m.provider || '?'})</option>`;
+          if (m.enabled === false) return;
+          newModelSel.innerHTML += `<option value="${name}">${name} (${m.providerName || m.provider || '?'})</option>`;
         });
+      }
+
+      const addButton = document.querySelector('#page-agent-manager button[onclick="showNewAgentForm()"]');
+      if (addButton) {
+        addButton.disabled = agentManagerReadOnly;
+        addButton.title = agentManagerReadOnly ? 'Verify the admin token to edit agents' : '';
+      }
+      if (agentManagerReadOnly) {
+        document.getElementById('newAgentForm').style.display = 'none';
+        if (newModelSel) newModelSel.disabled = true;
       }
 
       renderAgentManagerList(agentManagerData);
@@ -2114,7 +2140,10 @@
         'general':'var(--blue)','customer-experience':'var(--cyan)','ecommerce-operations':'var(--teal)'
       };
 
-      document.getElementById('agentManagerList').innerHTML = agents.map(a => {
+      const readOnlyNotice = agentManagerReadOnly
+        ? '<p style="font-size:12px;color:var(--orange);margin-bottom:12px">Read-only: verify the admin token above to change model assignments or agent settings.</p>'
+        : '';
+      document.getElementById('agentManagerList').innerHTML = readOnlyNotice + agents.map(a => {
         const color = colors[a.role] || 'var(--blue)';
         const statusTag = a.enabled
           ? '<span class="tag tag-green">✅ Enabled</span>'
@@ -2134,9 +2163,11 @@
             </div>
             <div class="agent-list-status" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
               ${statusTag}
-              <button class="refresh-btn" onclick="editAgent('${a.id}')" style="padding:4px 8px;font-size:11px;">✏️ Edit</button>
-              <button class="refresh-btn" onclick="toggleAgentEnabled('${a.id}', ${a.enabled ? 0 : 1})" style="padding:4px 8px;font-size:11px;">${a.enabled ? '🔕 Disable' : '🔔 Enable'}</button>
-              <button class="refresh-btn" onclick="deleteAgent('${a.id}')" style="padding:4px 8px;font-size:11px;color:var(--red);border-color:var(--red);">🗑 Delete</button>
+              ${agentManagerReadOnly ? '' : `
+                <button class="refresh-btn" onclick="editAgent('${a.id}')" style="padding:4px 8px;font-size:11px;">✏️ Edit</button>
+                <button class="refresh-btn" onclick="toggleAgentEnabled('${a.id}', ${a.enabled ? 0 : 1})" style="padding:4px 8px;font-size:11px;">${a.enabled ? '🔕 Disable' : '🔔 Enable'}</button>
+                <button class="refresh-btn" onclick="deleteAgent('${a.id}')" style="padding:4px 8px;font-size:11px;color:var(--red);border-color:var(--red);">🗑 Delete</button>
+              `}
             </div>
           </div>
           <div class="agent-list-model-section">
@@ -2144,7 +2175,7 @@
               <span style="font-size:12px;color:var(--text2);">Model:</span>
               <code style="font-size:12px;">${a.model || 'Not set'}</code>
               <span style="font-size:11px;color:var(--text2);">→ map:</span>
-              <select onchange="mapAgentModel('${a.id}', this.value)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:2px 6px;border-radius:4px;font-size:11px;max-width:240px;">
+              <select ${agentManagerReadOnly ? 'disabled' : ''} onchange="mapAgentModel('${a.id}', this.value)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:2px 6px;border-radius:4px;font-size:11px;max-width:240px;">
                 <option value="">-- choose model --</option>
                 ${(agentModelsCache || []).map(m => {
                   const nm = m.model || m.name || m.id;
@@ -2162,6 +2193,7 @@
 
     // 🧟 Agent↔Model mapping: save model to agents table (runtime, no restart)
     async function mapAgentModel(agentId, model) {
+      if (agentManagerReadOnly) return;
       const agent = agentManagerData.find(a => a.id === agentId);
       if (!agent) return;
       if (!model) return;

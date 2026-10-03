@@ -2,11 +2,11 @@
   "schema_version": "1.0",
   "title": "Mission Barisal — OpenAI-compatible shared schema",
   "description": "Single OpenAI-compatible manifest consumed by every Mission Barisal agent and by any OpenAI SDK client: chat/models contract + all MCP tools converted to OpenAI function-calling format + agent-to-model routing map. Generated from the LIVE server (not hand-written).",
-  "generated_utc": "2026-09-26T22:10:32Z",
+  "generated_utc": "2026-10-01T18:56:14Z",
   "generator": "tools/gen-openai-docs.js (live gateway)",
   "contract": {
     "gateway": {
-      "base_url": "http://localhost:3000/v1",
+      "base_url": "http://localhost:5000/v1",
       "endpoints": [
         "POST /v1/chat/completions",
         "GET /v1/models"
@@ -46,13 +46,427 @@
   },
   "models": [
     {
-      "id": "deepseek-v4-flash-free",
+      "id": "claude-fable-5",
       "object": "model",
       "provider": "OpenCode",
       "kind": "provider"
     },
     {
-      "id": "mimo-v2.5-free",
+      "id": "claude-fable-5-1",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-5-5",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-5",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4-8",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4-7",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4-6",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-opus-4-5",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-5-5",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-5",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-4-6",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-4-5",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-sonnet-4",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "claude-haiku-4-5",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.6-flash",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.8-flash",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.7-flash",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.5-flash-lite",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.5-flash",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3.1-pro",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gemini-3-flash",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-6-astra",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-6-sol",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-6-luna",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.6-sol",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.6-luna",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.5",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.5-pro",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.4",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.4-pro",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.4-mini",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.4-nano",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.3-codex-spark",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.3-codex",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.2",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.2-codex",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.1",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.1-codex-max",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.1-codex",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5.1-codex-mini",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5-codex",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "gpt-5-nano",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "grok-build-0.1",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "grok-4.7",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "grok-4.6",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "grok-4.5",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "muse-spark-1.3",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "muse-spark-1.2",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v4.1-flash",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v4-pro",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v4-flash",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v4-flash-vision-exp",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.3-flash",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.3",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.2",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5.1",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "glm-5",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "minimax-m3",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "minimax-m2.7",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "minimax-m2.5",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "kimi-k3",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "kimi-k2.7-code",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "kimi-k2.6",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "kimi-k2.5",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3.8-flash",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3.6-plus",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3.5-plus",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "jev-1.13",
       "object": "model",
       "provider": "OpenCode",
       "kind": "provider"
@@ -64,7 +478,55 @@
       "kind": "provider"
     },
     {
-      "id": "hy3-free",
+      "id": "jev-1.13-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "deepseek-v4-flash-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "muse-spark-1.3-contributor-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "muse-spark-1.2-contributor-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "mimo-v2.6-flash-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "space-bunny-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "longcat-2.5-preview-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "mimo-v2.5-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "ling-3.0-flash-fin-free",
       "object": "model",
       "provider": "OpenCode",
       "kind": "provider"
@@ -76,7 +538,19 @@
       "kind": "provider"
     },
     {
-      "id": "north-mini-code-free",
+      "id": "nemotron-3.5-lightning-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "fledge-alpha-free",
+      "object": "model",
+      "provider": "OpenCode",
+      "kind": "provider"
+    },
+    {
+      "id": "qwen3.8-max",
       "object": "model",
       "provider": "OpenCode",
       "kind": "provider"
@@ -88,61 +562,13 @@
       "kind": "provider"
     },
     {
-      "id": "qwen/qwen3.8-27b",
+      "id": "qwen/qwen3.6-27b",
       "object": "model",
       "provider": "Groq",
       "kind": "provider"
     },
     {
-      "id": "allam-2-7b",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
-      "id": "openai/gpt-oss-20b",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
-      "id": "canopylabs/orpheus-v1-english",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
-      "id": "whisper-large-v3",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
-      "id": "meta-llama/llama-prompt-guard-2-22m",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
-      "id": "whisper-large-v3-turbo",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
-      "id": "openai/gpt-oss-safeguard-20b",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
-      "id": "meta-llama/llama-prompt-guard-2-86m",
-      "object": "model",
-      "provider": "Groq",
-      "kind": "provider"
-    },
-    {
-      "id": "canopylabs/orpheus-arabic-saudi",
+      "id": "groq/compound-mini",
       "object": "model",
       "provider": "Groq",
       "kind": "provider"
@@ -178,405 +604,27 @@
       "kind": "provider"
     },
     {
-      "id": "gemini-2.5-pro",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-2.5-flash-preview-tts",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-2.5-pro-preview-tts",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemma-4-26b-a4b-it",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemma-4-31b-it",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-flash-latest",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-flash-lite-latest",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-pro-latest",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
       "id": "gemini-2.5-flash-lite",
       "object": "model",
       "provider": "Gemini",
       "kind": "provider"
     },
     {
-      "id": "gemini-2.5-flash-image",
+      "id": "gemini-2.5-pro",
       "object": "model",
       "provider": "Gemini",
       "kind": "provider"
     },
     {
-      "id": "gemini-3-flash-preview",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.1-pro-preview",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.1-pro-preview-customtools",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.1-flash-lite-preview",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.1-flash-lite",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3-pro-image-preview",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3-pro-image",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "nano-banana-pro-preview",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.1-flash-image-preview",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.1-flash-image",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.1-flash-lite-image",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.5-flash",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.5-flash-lite",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-omni-flash-preview",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-omni-1.1-flash",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.5-transcribe",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.6-flash",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.7-flash",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.8-flash",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "lyria-3-clip-preview",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "lyria-3-pro-preview",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "lyria-3.5",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.1-flash-tts-preview",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.8-flash-tts",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.8-flash-lite-tts",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-robotics-er-2-preview",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-2.5-computer-use-preview-10-2025",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "antigravity-preview-05-2026",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "antigravity-preview-09-2026",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "antigravity-preview-latest",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "deep-research-max-preview-04-2026",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "deep-research-preview-04-2026",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "deep-research-pro-preview-12-2025",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-embedding-001",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-embedding-2-preview",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-embedding-2",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "aqa",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "veo-3.1-generate-preview",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "veo-3.1-fast-generate-preview",
-      "object": "model",
-      "provider": "Gemini",
-      "kind": "provider"
-    },
-    {
-      "id": "cloudflare:default",
-      "object": "model",
-      "provider": "Cloudflare",
-      "kind": "provider"
-    },
-    {
-      "id": "nemotron-3-super",
+      "id": "deepseek-r1:1.5b",
       "object": "model",
       "provider": "Ollama",
       "kind": "provider"
     },
     {
-      "id": "glm-5.2",
+      "id": "llama3.2:3b",
       "object": "model",
-      "provider": "Ollama",
-      "kind": "provider"
-    },
-    {
-      "id": "kimi-k2.7-code",
-      "object": "model",
-      "provider": "Ollama",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-oss:20b",
-      "object": "model",
-      "provider": "Ollama",
-      "kind": "provider"
-    },
-    {
-      "id": "minimax-m2.7",
-      "object": "model",
-      "provider": "Ollama",
-      "kind": "provider"
-    },
-    {
-      "id": "kimi-k3",
-      "object": "model",
-      "provider": "Ollama",
-      "kind": "provider"
-    },
-    {
-      "id": "gemma4:31b",
-      "object": "model",
-      "provider": "Ollama",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-oss:120b",
-      "object": "model",
-      "provider": "Ollama",
-      "kind": "provider"
-    },
-    {
-      "id": "nemotron-3-nano:30b",
-      "object": "model",
-      "provider": "Ollama",
-      "kind": "provider"
-    },
-    {
-      "id": "nemotron-3-ultra",
-      "object": "model",
-      "provider": "Ollama",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-5.3",
-      "object": "model",
-      "provider": "Ollama",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-v4-pro:0813",
-      "object": "model",
-      "provider": "Ollama",
-      "kind": "provider"
-    },
-    {
-      "id": "minimax-m3",
-      "object": "model",
-      "provider": "Ollama",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-v4.1-flash",
-      "object": "model",
-      "provider": "Ollama",
-      "kind": "provider"
-    },
-    {
-      "id": "mistral-large-3:675b",
-      "object": "model",
-      "provider": "Ollama",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-5.3-flash",
-      "object": "model",
-      "provider": "Ollama",
-      "kind": "provider"
-    },
-    {
-      "id": "kimi-k2.6",
-      "object": "model",
-      "provider": "Ollama",
+      "provider": "custom_3",
       "kind": "provider"
     },
     {
@@ -619,1674 +667,6 @@
       "id": "nemotron-3-ultra",
       "object": "model",
       "provider": "custom_3",
-      "kind": "provider"
-    },
-    {
-      "id": "nemotron-3.5-lightning-30b-a3b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "laguna-xs-2.1:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "absolutereality:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "agnes-2.5-flash:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "albedobase-xl-31:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "albedobase-xl-sdxl:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "allam-2-7b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "amponyxl:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "anything-v5:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "anything-xl",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "atria-dawn-preview:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "aura-1:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "autismmix-sdxl",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "axon-1.8-flash:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "axon-1.8-lightning:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "axon-1.8-pro:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "bge-multilingual-gemma2:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-fable-5",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-fable-5.1",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-fable-5.1[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-fable-5[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-haiku-4-5-20251001",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-haiku-4-5-20251001[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-4-5",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-4-5-thinking",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-4-5-thinking[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-4-5[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-4-6-thinking",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-4-6-thinking[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-4-7-thinking",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-4-7-thinking[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-4-8-thinking",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-4-8-thinking[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-4.6",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-4.6[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-4.7",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-4.7[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-4.8",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-4.8[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-5",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-5-thinking",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-5-thinking[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-5.5",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-5.5[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-opus-5[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-sonnet-4-5-thinking",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-sonnet-4-5-thinking[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-sonnet-4-5[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-sonnet-4-6-thinking",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-sonnet-4-6-thinking[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-sonnet-4.5",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-sonnet-4.6",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-sonnet-4.6[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-sonnet-5",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-sonnet-5-thinking",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-sonnet-5-thinking[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "claude-sonnet-5[1m]",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "codestral-latest:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "custom-civitai",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "cyberrealistic-pony",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "cyberrealistic-pony:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-r1",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-r1-0528",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-r1-distill-qwen-32b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-v3",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-v3-0324",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-v3.1-terminus",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-v3.2",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-v3.2-exp",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-v4-flash",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-v4-flash-0731",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-v4-flash:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-v4-pro",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-v4-pro-0813",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-v4-pro:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-v4.1-flash",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "deepseek-v4.1-flash:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "deliberate:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "diffusiongemma-26b-a4b-it:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "dots-3-note-preview:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "dreamshaper-v8",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "dreamshaper-xl",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "dreamshaper:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "epicrealism",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "flat-2d-animerge:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "flux-1-dev-runware",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "flux-1.1-pro-ultra:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "flux-1.1-pro:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "flux.1-dev:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "flux.1-kontext-dev:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "flux.1-kontext-max:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "flux.1-kontext-pro:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "flux.1-schnell:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "flux.2-dev",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "flux.2-flex",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "flux.2-flex:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "flux.2-klein-4b",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "flux.2-klein-9b",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "flux.2-max",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "flux.2-pro",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "flux.2-pro:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "fustercluck:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-2.5-flash-lite",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-2.5-pro",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-2.5-pro-preview-tts",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-2.5-pro-thinking",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3-flash",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3-pro-preview",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.1-flash-image",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.1-flash-lite",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.1-pro",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.1-pro-preview",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.5-flash",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.5-flash-lite:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.6-flash",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.6-flash:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.7-flash",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-3.8-flash",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-embedding-001:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-embedding-2:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-flash-lite-latest:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemini-robotics-er-2-preview:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemma-4-26b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gemma-4-31b-it:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-4.5",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-4.5-flash:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-4.6",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-4.7",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-4.7-flash:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-4.7-thinking",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-5.1",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-5.2",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-5.3",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-5.3-flash",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-5.3-flash-search:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-5.3-flash-think-search:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-5.3-flash-thinking:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "glm-5.3-flash:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-4o-image",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-4o:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-5.5",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-5.6-luna",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-5.6-sol",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-5.6-terra",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-5.6-terra-y",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-6-astra",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-6-luna",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-6-sol",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-image-1",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-image-2",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-image-2.5",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-image-2.5-flare",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-image-2.5-sunburst",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-oss-120b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-oss-20b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "gpt-oss-safeguard-20b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "granite-4.0-micro:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "grok-4.20-non-reasoning",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "grok-4.20-reasoning",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "grok-4.3",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "grok-4.5",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "grok-4.6",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "grok-4.7",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "grok-beta:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "hassaku-xl-illustrious",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "hy3",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "hy4-preview",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "icbinp-i-cant-believe-its-not-photography:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "ising-calibration-1.5-31b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "jev-1.13",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "jina-code-embeddings-0.5b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "jina-code-embeddings-1.5b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "jina-embeddings-v3:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "jina-embeddings-v4:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "jina-embeddings-v5-omni-nano:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "jina-embeddings-v5-omni-small:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "jina-embeddings-v5-text-nano:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "jina-embeddings-v5-text-small:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "juggernaut-xl",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "juggernaut-xl:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "k2-horizon:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "kimi-k2.5",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "kimi-k2.6",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "kimi-k2.6:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "kimi-k2.7-code",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "kimi-k3",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "kimi-k3:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "laguna-s-2.1:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "lfm-2.5-2.6b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "ling-3.0-flash-fin:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "ling-3.0-flash-sante:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "ling-3.0-flash-vl:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "llama-3.2-11b-vision:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "llama-4-maverick-17b-128e-instruct:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "longcat-2.0",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "lorellm:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "majicmix-realistic",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "mimo-v2.5",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "mimo-v2.5-pro",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "mimo-v2.5:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "mimo-v2.6-flash",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "mimo-v2.6-flash:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "mimo-v2.6-pro",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "mimo-v2.6-pro:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "minimax-m2-her",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "minimax-m2.7",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "minimax-m3",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "mistral-7b-instruct:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "mistral-nemotron:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "mistral-small",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "mistral-small:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "muse-glimmer-30b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "muse-spark-1.2-contributor",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "muse-spark-1.3-contributor",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "nemotron-3-nano-omni-30b-a3b-reasoning:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "nemotron-3-super-120b-a12b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "nemotron-3-ultra-550b-a55b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "nemotron-3.5-lightning:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "nemotron-nano-9b-v2:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "nex-n2.5-mini:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "nex-n2.5-pro:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "north-mini-code:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "nova-3:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "nova-anime-xl:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "nova-furry-pony:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "nova-furry-xl",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "ntr-mix-il-noob-xl:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "or-glm-5.3",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "or-kimi-k3",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "pony-diffusion-v6-xl",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "pony-realism",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "prefect-pony:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "quiet-goodnight-xl:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen-image-edit:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen-image:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen-sea-lion-v4-32b-it:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen-sea-lion-v4.5-27b-it:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen2.5-coder-32b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen2.5-vl-7b-instruct-awq:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3-embedding-0.6b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3-embedding-4b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3-embedding-8b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3-reranker-0.6b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3-reranker-8b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3.6-plus:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3.7-max",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3.8-27b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3.8-flash",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3.8-flash-next:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3.8-flash:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3.8-max",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwen3:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "qwq-32b:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "realistic-vision-v6",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "rev-animated",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "rev-animated:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "riva-translate-4b-instruct-v2:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "sea-lion-e5-embedding-600m:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "sea-lion-modernbert-embedding-300m:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "sea-lion-modernbert-embedding-600m:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "sensenova-6.8-flash-lite:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "space-bunny-alpha:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "step-3.7-flash:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "swamponyxl:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "swe-1-6-slow:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "text-embedding-3-large",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "tunix-pony:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "typhoon-v2.5-30b-a3b-instruct:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "villanova-2b-2512-preview-apnea-ft:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "wai-cute-pony:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "wai-nsfw-illustrious-sdxl",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "wai-nsfw-illustrious-sdxl:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "whisper-large-v3-turbo:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "whisper-large-v3:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "whisper-tiny-en:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "whisper:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "z-image-turbo:free",
-      "object": "model",
-      "provider": "custom_4",
-      "kind": "provider"
-    },
-    {
-      "id": "llama-local",
-      "object": "model",
-      "provider": "Zombie Mini",
       "kind": "provider"
     },
     {
@@ -2355,55 +735,55 @@
       "id": "doc-king",
       "name": "Documentation King - Halim",
       "role": "documentation",
-      "model": "llama-local"
+      "model": "openai/gpt-oss-120b"
     },
     {
       "id": "team-heart",
       "name": "Team Heart - Jara",
       "role": "general",
-      "model": "llama-local"
+      "model": "openai/gpt-oss-120b"
     },
     {
       "id": "customer-experience-specialist",
       "name": "Customer Experience Specialist",
       "role": "customer-experience",
-      "model": "llama-local"
+      "model": "openai/gpt-oss-120b"
     },
     {
       "id": "ecommerce-operations-analyst",
       "name": "E-Commerce Operations Analyst",
       "role": "ecommerce-operations",
-      "model": "llama-local"
+      "model": "openai/gpt-oss-120b"
     },
     {
       "id": "bug-hunter",
       "name": "Bug Hunter - Jewel",
       "role": "debugging",
-      "model": "qwen2:0.5b"
+      "model": "llama3.2:3b"
     },
     {
       "id": "code-guru",
       "name": "Code Guru - Monu",
       "role": "architecture",
-      "model": "qwen2:0.5b"
+      "model": "deepseek-r1:1.5b"
     },
     {
       "id": "perf-wizard",
       "name": "Performance Wizard - Rashed",
       "role": "performance",
-      "model": "llama-local"
+      "model": "openai/gpt-oss-120b"
     },
     {
       "id": "qa-tyrant",
       "name": "Quality Tyrant - Mojnu",
       "role": "quality",
-      "model": "llama-local"
+      "model": "openai/gpt-oss-120b"
     },
     {
       "id": "security-hero",
       "name": "Security Hero - Bablu",
       "role": "security",
-      "model": "llama-local"
+      "model": "openai/gpt-oss-120b"
     }
   ],
   "tools": [
@@ -2654,7 +1034,7 @@
           "properties": {
             "target": {
               "type": "string",
-              "description": "File path or URL to open in the browser (e.g., /abs/path/file.html or http://localhost:3000)"
+              "description": "File path or URL to open in the browser (e.g., /abs/path/file.html or http://localhost:5000)"
             }
           },
           "required": [
@@ -2888,7 +1268,7 @@
             },
             "timeout": {
               "type": "number",
-              "description": "Optional timeout in ms (default from env EXEC_TIMEOUT, 30000)"
+              "description": "Optional timeout in ms (default from env EXEC_TIMEOUT, 500000)"
             },
             "env": {
               "type": "object",
@@ -2927,7 +1307,7 @@
             },
             "timeout": {
               "type": "number",
-              "description": "Optional timeout in ms (default from env HTTP_TIMEOUT, 30000)"
+              "description": "Optional timeout in ms (default from env HTTP_TIMEOUT, 500000)"
             }
           },
           "required": [
@@ -2998,283 +1378,11 @@
           ]
         }
       }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "ocr__ocr_image",
-        "description": "[external:ocr] Extract text from an image file (PNG, JPG, BMP, TIFF, PDF). Uses Tesseract OCR. Supports Bengali + English.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string",
-              "description": "Absolute path to the image file"
-            },
-            "langs": {
-              "type": "string",
-              "description": "Tesseract language codes (default: eng). E.g. 'eng', 'ben', 'eng+ben+ara'"
-            },
-            "preprocess": {
-              "type": "string",
-              "enum": [
-                "none",
-                "threshold",
-                "sharpen",
-                "denoise"
-              ],
-              "description": "Image preprocessing mode (default: none)"
-            }
-          },
-          "required": [
-            "path"
-          ]
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "ocr__ocr_screenshot",
-        "description": "[external:ocr] Take a screenshot of the screen and extract text via OCR. Uses ffmpeg x11grab + Tesseract.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "region": {
-              "type": "string",
-              "description": "Capture region: 'full' (default), or 'WxH+X+Y' (e.g. '1920x1080+0+0')"
-            },
-            "langs": {
-              "type": "string",
-              "description": "Tesseract language codes (default: eng)"
-            }
-          },
-          "required": []
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "ocr__ocr_crop",
-        "description": "[external:ocr] Crop a region from an image and extract text. Useful for reading specific parts of screenshots.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string",
-              "description": "Path to source image"
-            },
-            "x": {
-              "type": "number",
-              "description": "X offset (pixels)"
-            },
-            "y": {
-              "type": "number",
-              "description": "Y offset (pixels)"
-            },
-            "width": {
-              "type": "number",
-              "description": "Crop width (pixels)"
-            },
-            "height": {
-              "type": "number",
-              "description": "Crop height (pixels)"
-            },
-            "langs": {
-              "type": "string",
-              "description": "Tesseract language codes"
-            }
-          },
-          "required": [
-            "path",
-            "x",
-            "y",
-            "width",
-            "height"
-          ]
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "screen-recorder__screen_screenshot",
-        "description": "[external:screen-recorder] Take a screenshot of the entire screen or a specific region. Returns file path.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "region": {
-              "type": "string",
-              "description": "Capture region: 'full' (default) or 'WxH+X+Y' (e.g. '800x600+100+200')"
-            },
-            "format": {
-              "type": "string",
-              "enum": [
-                "png",
-                "jpg"
-              ],
-              "description": "Output format (default: png)"
-            },
-            "output": {
-              "type": "string",
-              "description": "Custom output path (optional, auto-generated if empty)"
-            }
-          },
-          "required": []
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "screen-recorder__screen_record_start",
-        "description": "[external:screen-recorder] Start recording the screen. Returns recording ID. Use screen_record_stop to stop.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "duration": {
-              "type": "number",
-              "description": "Max recording duration in seconds (default: 300 = 5 min). Auto-stops."
-            },
-            "fps": {
-              "type": "number",
-              "description": "Frames per second (default: 15). Lower = smaller file."
-            },
-            "region": {
-              "type": "string",
-              "description": "Record region: 'full' (default) or 'WxH+X+Y'"
-            },
-            "format": {
-              "type": "string",
-              "enum": [
-                "mp4",
-                "webm",
-                "mkv"
-              ],
-              "description": "Output format (default: mp4)"
-            },
-            "output": {
-              "type": "string",
-              "description": "Custom output path (optional)"
-            },
-            "audio": {
-              "type": "boolean",
-              "description": "Record system audio (default: false). Requires PulseAudio."
-            }
-          },
-          "required": []
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "screen-recorder__screen_record_stop",
-        "description": "[external:screen-recorder] Stop the active screen recording. Returns the file path and duration.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "recording_id": {
-              "type": "string",
-              "description": "Recording ID to stop (from screen_record_start). If empty, stops the most recent."
-            }
-          },
-          "required": []
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "screen-recorder__screen_record_status",
-        "description": "[external:screen-recorder] Check if a screen recording is active. Lists all active recordings.",
-        "parameters": {
-          "type": "object",
-          "properties": {},
-          "required": []
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "tts__tts_speak",
-        "description": "[external:tts] Convert text to speech audio file. Uses Microsoft Edge TTS (free, no API key). Default voice: Bengali female (bn-BD-NabanitaNeural).",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "text": {
-              "type": "string",
-              "description": "Text to convert to speech"
-            },
-            "voice": {
-              "type": "string",
-              "description": "Voice name (default: bn-BD-NabanitaNeural)"
-            },
-            "rate": {
-              "type": "string",
-              "description": "Speech rate (default: '+0%')"
-            },
-            "output": {
-              "type": "string",
-              "description": "Custom output path (optional)"
-            }
-          },
-          "required": [
-            "text"
-          ]
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "tts__tts_voices",
-        "description": "[external:tts] List available TTS voices. Filter by language.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "lang": {
-              "type": "string",
-              "description": "Filter by language code (e.g. 'bn', 'en')"
-            }
-          },
-          "required": []
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "tts__tts_play",
-        "description": "[external:tts] Convert text to speech AND play it immediately.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "text": {
-              "type": "string",
-              "description": "Text to speak"
-            },
-            "voice": {
-              "type": "string",
-              "description": "Voice name"
-            },
-            "rate": {
-              "type": "string",
-              "description": "Speech rate"
-            }
-          },
-          "required": [
-            "text"
-          ]
-        }
-      }
     }
   ],
   "usage": {
     "chat_with_tool": "POST body.tools = $ref tools (optionally sliced — gateway caps at 15 per request)",
     "agent_routing": "model = <agent id> resolves to that agent's mapped provider model",
-    "local_default": "model = \"llama-local\" served by local-llm-bridge over UDS"
+    "local_default": "model = \"MODELS_DB\" served by local-llm-bridge over UDS"
   }
 }

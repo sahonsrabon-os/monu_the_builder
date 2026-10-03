@@ -96,7 +96,7 @@ loadDotEnv();
 const SARVER_URL =
   process.env.SARVER_URL ||
   process.env.brokerUrl ||
-  "http://localhost:" + (process.env.PORT || "9999");
+  "http://localhost:" + (process.env.PORT || "5000");
 const FRONTEND_PORT = process.env.FRONTEND_PORT || "8081";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:" + FRONTEND_PORT;
 // Allowed CORS origins — comma-separated. Always includes FRONTEND_URL
