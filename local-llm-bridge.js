@@ -13,7 +13,7 @@
  *   - Unix domain socket : /tmp/local-llm.sock   (pure IPC, no network)
  *   - Loopback TCP       : 127.0.0.1:11435        (any HTTP client)
  *
- * GATEWAY WIRING (in /home/sahon/z/monu_the_builder/.env):
+ * GATEWAY WIRING (in /home/sahon/monu_the_builder/.env):
 *OLLAMA_BASE=http://127.0.0.1:11435/v1
 *OLLAMA_SOCKET=/tmp/local-llm.sock
 *OLLAMA_API_KEY=

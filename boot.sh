@@ -19,9 +19,9 @@
 #   ./boot.sh --help          this text
 set -uo pipefail
 
-APP_DIR="${HOME}/z/monu_the_builder"
+APP_DIR="${APP_DIR:-${HOME}/monu_the_builder}"
 OLLAMA_PORT=11434
-GATEWAY_PORT=5000
+GATEWAY_PORT="${PORT:-5000}"
 LOG_DIR="${HOME}/.opencode"
 BOOT_LOG="${LOG_DIR}/boot.log"
 
@@ -74,7 +74,7 @@ report() {
   status_line "ollama"     "$OLLAMA_PORT"
   status_line "gateway"    "$GATEWAY_PORT"
   # These two are spawned by start.js, so they follow the gateway.
-  status_line "llm-bridge" 11435
+  status_line "llm-bridge" "${BRIDGE_PORT:-11436}"
   status_line "php-broker" 9998
 }
 
